@@ -1,0 +1,1 @@
+error("Replace this file with https://github.com/greyliterature/garrysmod/blob/master/outlines.lua")

@@ -157,6 +157,12 @@ if SERVER then
             return false
         end
     end)
+
+    hook.Add("WeaponEquip", "ClassBlacklists", function(weapon, ply)
+        if IsClassBlacklisted(weapon:GetClass()) then --
+            weapon:Remove()
+        end
+    end)
 elseif CLIENT then
     net.Receive("InitClassBlacklistTable", function(_, _)
         local numkeys = net.ReadUInt(8)

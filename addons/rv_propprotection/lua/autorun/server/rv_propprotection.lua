@@ -28,3 +28,9 @@ hook.Add("PlayerDisconnected", "ClearPropsOnDisconnect", function(ply)
 
     ply.PropProtectionEntities = nil
 end)
+
+hook.Add("CanArmDupe", "NoArmingDupes", function(ply)
+    if not ply:IsAdmin() then
+        return false, "Dupes are not allowed"
+    end
+end)

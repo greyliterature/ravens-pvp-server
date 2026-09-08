@@ -1,23 +1,79 @@
-hook.Add("InitPostEntity", "RemovePropsAndEffects", function()
-    for k, ent in ipairs(ents.FindByClass("prop_*")) do
-        if ent:GetCreator() == NULL then ent:Remove() end
+local IgnoreUniversalBlacklist = false -- debug
+local MapSettings = {
+    ["UniversalBlacklist"] = {
+        ["GetClass"] = {
+            "prop_.*", -- 
+            "item_ammo_.*",
+            "item_rpg_.*",
+            "item_box_buckshot",
+            "item_health",
+            "item_battery",
+            "info_particle_system",
+            "item_item_crate"
+        }
+    },
+    ["PerMapSettings"] = {
+        ["ttt_warhawk_g2"] = {
+            ["Blacklists"] = {},
+            ["Whitelists"] = {
+                ["GetClass"] = {"prop_door_rotating"},
+                ["MapCreationID"] = {
+                    "2305", -- the fence
+                    "1537" -- the fence's padlock
+                }
+            }
+        }
+    },
+}
+
+local function FindStringInArray(Array, str)
+    for i = 1, #Array do
+        if string.find(str, Array[i]) then --
+            return true
+        end
     end
-    for k, ent in ipairs(ents.FindByClass("item_ammo_*")) do
-        if ent:GetCreator() == NULL then ent:Remove() end
+    return false
+end
+
+local function RemoveBadEnts()
+    for _, ent in ents.Iterator() do
+        if ent:MapCreationID() == "-1" then -- not a map ent 
+            continue
+        end
+
+        local MarkedForRemoval = false
+        if IgnoreUniversalBlacklist ~= true then
+            for GetterType, tbl in pairs(MapSettings["UniversalBlacklist"]) do -- check if in universal blacklist and mark for removal
+                if FindStringInArray(tbl, ent[GetterType](ent)) then MarkedForRemoval = true end
+            end
+        end
+
+        for GetterType, tbl in pairs(MapSettings["PerMapSettings"][game.GetMap()]["Blacklists"]) do
+            if FindStringInArray(tbl, ent[GetterType](ent)) then -- if its a whitelisted ent type then its unmarked for removal
+                MarkedForRemoval = true
+            end
+        end
+
+        local Unslated = false
+        if MarkedForRemoval == true then
+            for GetterType, tbl in pairs(MapSettings["PerMapSettings"][game.GetMap()]["Whitelists"]) do -- check if in permapsettings whitelist and unmark for removal
+                if FindStringInArray(tbl, ent[GetterType](ent)) then -- if its a whitelisted ent type then its unmarked for removal
+                    Unslated = true
+                    MarkedForRemoval = false
+                end
+            end
+        end
+
+        if MarkedForRemoval == true then
+            print("Removing ", ent:GetClass(), " at ", ent:GetPos(), " with model ", ent:GetModel())
+            ent:Remove()
+        elseif MarkedForRemoval == false and Unslated == true then
+            -- only print exceptions
+            print("Not removing ", ent:GetClass(), " at ", ent:GetPos(), " with model ", ent:GetModel())
+        end
     end
-    for k, ent in ipairs(ents.FindByClass("item_rpg_*")) do
-        if ent:GetCreator() == NULL then ent:Remove() end
-    end
-    for k, ent in ipairs(ents.FindByClass("item_box_buckshot")) do
-        if ent:GetCreator() == NULL then ent:Remove() end
-    end
-    for k, ent in ipairs(ents.FindByClass("item_health*")) do
-        if ent:GetCreator() == NULL then ent:Remove() end
-    end
-    for k, ent in ipairs(ents.FindByClass("item_battery")) do
-        if ent:GetCreator() == NULL then ent:Remove() end
-    end
-    for k, ent in ipairs(ents.FindByClass("info_particle_system")) do
-        if ent:GetCreator() == NULL then ent:Remove() end
-    end
-end)
+end
+
+RemoveBadEnts() -- autorefresh
+hook.Add("PostCleanupMap", "RemoveProps", RemoveBadEnts)
+hook.Add("InitPostEntity", "RemovePropsAndEffects", RemoveBadEnts)

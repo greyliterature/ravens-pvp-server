@@ -48,18 +48,20 @@ local function RemoveBadEnts()
             end
         end
 
-        for GetterType, tbl in pairs(MapSettings["PerMapSettings"][game.GetMap()]["Blacklists"]) do
-            if FindStringInArray(tbl, ent[GetterType](ent)) then -- if its a whitelisted ent type then its unmarked for removal
-                MarkedForRemoval = true
-            end
-        end
-
         local Unslated = false
-        if MarkedForRemoval == true then
-            for GetterType, tbl in pairs(MapSettings["PerMapSettings"][game.GetMap()]["Whitelists"]) do -- check if in permapsettings whitelist and unmark for removal
+        if MapSettings["PerMapSettings"][game.GetMap()] then
+            for GetterType, tbl in pairs(MapSettings["PerMapSettings"][game.GetMap()]["Blacklists"]) do
                 if FindStringInArray(tbl, ent[GetterType](ent)) then -- if its a whitelisted ent type then its unmarked for removal
-                    Unslated = true
-                    MarkedForRemoval = false
+                    MarkedForRemoval = true
+                end
+            end
+
+            if MarkedForRemoval == true then
+                for GetterType, tbl in pairs(MapSettings["PerMapSettings"][game.GetMap()]["Whitelists"]) do -- check if in permapsettings whitelist and unmark for removal
+                    if FindStringInArray(tbl, ent[GetterType](ent)) then -- if its a whitelisted ent type then its unmarked for removal
+                        Unslated = true
+                        MarkedForRemoval = false
+                    end
                 end
             end
         end

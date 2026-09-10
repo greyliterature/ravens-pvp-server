@@ -5,9 +5,27 @@ CreateClientConVar("rv_outlinesdot", 0.75, true, false, "Dot product for outline
 CreateClientConVar("rv_outlinesmaxplayers", 3, true, false, "Maximum players to be outlined, players closer to your crosshair take higher priority.", 1, 100)
 CreateClientConVar("rv_outlinescolor", "255 0 255 255", true, true, "Color of outlines. 1 - 255 <r g b a>")
 CreateClientConVar("rv_outlinesthickness", "1", true, false, "Thickness of outlines.", 1, 1000)
-rv_outlinescolorstringcolor = Color(string.Split(GetConVar("rv_outlinescolor"):GetString(), " ")[1], string.Split(GetConVar("rv_outlinescolor"):GetString(), " ")[2], string.Split(GetConVar("rv_outlinescolor"):GetString(), " ")[3], string.Split(GetConVar("rv_outlinescolor"):GetString(), " ")[4] or 255)
+local outlinescolorsplit = string.Split(GetConVar("rv_outlinescolor"):GetString(), " ")
+for i = #outlinescolorsplit, 1, -1 do
+	if not tonumber(outlinescolorsplit[i]) then --
+		table.remove(outlinescolorsplit, i)
+	end
+end
+
+rv_outlinescolorstringcolor = Color(outlinescolorsplit[1] or 255, outlinescolorsplit[2] or 0, outlinescolorsplit[3] or 255, outlinescolorsplit[4] or 255)
 cvars.AddChangeCallback("rv_outlinescolor", function(convar_name, value_old, value_new)
 	local Split = string.Split(GetConVar("rv_outlinescolor"):GetString(), " ")
+	for i = #Split, 1, -1 do
+		if not tonumber(Split[i]) then --
+			table.remove(Split, i)
+		end
+	end
+
+	if not Split[3] then
+		MsgC(color_white, "Color must have a R G and B value" .. "\n")
+		return
+	end
+
 	rv_outlinescolorstringcolor = Color(Split[1], Split[2], Split[3], Split[4] or 255)
 end, "rv_outlinescolor")
 

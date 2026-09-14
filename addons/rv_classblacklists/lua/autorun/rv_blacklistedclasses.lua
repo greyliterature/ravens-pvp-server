@@ -179,18 +179,16 @@ elseif CLIENT then
     end)
 
     if not spawnmenu.oldCreateContentIcon then spawnmenu.oldCreateContentIcon = spawnmenu.CreateContentIcon end
-    function spawnmenu.CreateContentIcon(...)
-        local args = {...}
+    function spawnmenu.CreateContentIcon(type, panel, parent)
         local spawnname = nil
-        if args[3] and args[3]["spawnname"] then --
-            spawnname = args[3]["spawnname"]
+        if parent and parent["spawnname"] then --
+            spawnname = parent["spawnname"]
         end
 
         if IsClassBlacklisted(spawnname) then --
             return
         end
-
-        spawnmenu.oldCreateContentIcon(unpack(args))
+        return spawnmenu.oldCreateContentIcon(type, panel, parent)
     end
 
     local PANELMETA = FindMetaTable("Panel")

@@ -316,12 +316,8 @@ if SERVER then
     end
 
     --SetGlobal3("Int", "MyCoolInt", 30)
-    local AccountedForPlayers = {}
-    util.AddNetworkString("InitPostEntityStarted")
     util.AddNetworkString("InitGlobal3Vars")
-    net.Receive("InitPostEntityStarted", function(len, ply)
-        if AccountedForPlayers[ply] then return end
-        AccountedForPlayers[ply] = true
+    hook.Add("InitPostEntityStarted", "InitGlobal3OnIPE", function(ply)
         net.Start("InitGlobal3Vars")
         local NumberOfKeys = table.Count(SetGlobal3Vars)
         PrintTable(SetGlobal3Vars)
@@ -362,11 +358,6 @@ if SERVER then
     end)
     --]]
 elseif CLIENT then
-    hook.Add("InitPostEntity", "InitPostEntityStarted", function()
-        net.Start("InitPostEntityStarted")
-        net.SendToServer()
-    end)
-
     net.Receive("Global3VarChange", function(len, ply)
         local VarType = net.ReadString()
         local VarIndex = net.ReadString()
@@ -399,6 +390,25 @@ elseif CLIENT then
         PrintTable(SetGlobal3Vars)
     end)
     --]]
+end
+
+if SERVER then
+    util.AddNetworkString("InitPostEntityStarted")
+    local Accounted = {}
+    net.Receive("InitPostEntityStarted", function(len, ply)
+        if Accounted[ply] then
+            -- ply:Ban() 
+            return
+        end
+
+        Accounted[ply] = true
+        hook.Run("InitPostEntityStarted", ply)
+    end)
+elseif CLIENT then
+    hook.Add("InitPostEntity", "InitPostEntityStarted", function()
+        net.Start("InitPostEntityStarted")
+        net.SendToServer()
+    end)
 end
 
 print("rv_util loaded :)")

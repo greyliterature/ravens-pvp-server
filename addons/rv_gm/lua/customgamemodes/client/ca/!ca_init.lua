@@ -701,7 +701,7 @@ AddGamemodeHook("HUDPaint", "ScoreHud", function()
         local CircleRadius = ScrW() * 0.004
         local CircleOffsetCorrection = ScrW() * 0.0022 -- surface.drawpoly doesn't round coords, my playericonrectwidth isnt precise enough i guess, so manually center the circle better
         local CircleDownOffset = ScrH() * 0.002 -- embed it a bit in the rect
-        draw.Circle(PlayerIconRectWidth + PlayerIconPosX * 0.5 + CircleOffsetCorrection, PlayerIconPosY - CircleRadius + CircleDownOffset, CircleRadius, 255)
+        draw.Circle(PlayerIconRectWidth + PlayerIconPosX * 0.5 + CircleOffsetCorrection, PlayerIconPosY - CircleRadius + CircleDownOffset, CircleRadius, 9)
         -- 1 players alive
         draw.DrawText(LiveCount, "RobotoBig", 0 + MarginFromScreenEdge * 1.25 + LiveCountRectWidth, 0 + MarginFromScreenEdge + ((i - 1) * 30), color_white, TEXT_ALIGN_RIGHT)
     end

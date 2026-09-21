@@ -324,7 +324,11 @@ end
 AddGamemodeHook("PlayerInitialSpawn", "SetSpectateOnInitSpawn", function(ply, trans)
     if ShouldRunHook() == false then return end
     timer.Simple(0, function() ply:SetTeam((ply:IsBot() == false and TEAM_SPECTATOR) or TEAM_RED) end)
-    timer.Simple(2, function() FSpectate.startSpectating(ply, nil, false) end)
+end)
+
+AddGamemodeHook("InitPostEntityStarted", "SetSpectateOnIPE", function(ply)
+    FSpectate.startSpectating(ply, nil, false)
+    return
 end)
 
 AddGamemodeHook("PlayerDeathThink", "DontAllowRespawning", function(ply)

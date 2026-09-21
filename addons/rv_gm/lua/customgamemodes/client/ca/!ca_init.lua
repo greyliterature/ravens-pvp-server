@@ -680,7 +680,7 @@ AddGamemodeHook("HUDPaint", "ScoreHud", function()
             end
         end
 
-        local LiveCountRectWidth = ScrW() * 0.04
+        local LiveCountRectWidth = ScrW() * 0.025
         local AllowanceForLiveCount = LiveCountRectWidth + ScrW() * 0.003
         -- Red team
         draw.DrawText(team.GetName(Teams[i]) .. " team", "RobotoBig", 0 + RectWidth * 0.09 + AllowanceForLiveCount, 0 + MarginFromScreenEdge + ((i - 1) * 30), color_white, TEXT_ALIGN_LEFT)

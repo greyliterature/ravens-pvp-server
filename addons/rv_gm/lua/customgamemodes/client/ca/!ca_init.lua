@@ -685,7 +685,7 @@ AddGamemodeHook("HUDPaint", "ScoreHud", function()
         -- Red team
         draw.DrawText(team.GetName(Teams[i]) .. " team", "RobotoBig", 0 + RectWidth * 0.09 + AllowanceForLiveCount, 0 + MarginFromScreenEdge + ((i - 1) * 30), color_white, TEXT_ALIGN_LEFT)
         -- score
-        draw.DrawText(team.GetScore(Teams[i]), "RobotoBig", 0 + MarginFromScreenEdge + RectWidth * 0.85, 0 + MarginFromScreenEdge + ((i - 1) * 30), color_white, TEXT_ALIGN_LEFT)
+        draw.DrawText(team.GetScore(Teams[i]), "RobotoBig", 0 + MarginFromScreenEdge + RectWidth * 0.96, 0 + MarginFromScreenEdge + ((i - 1) * 30), color_white, TEXT_ALIGN_RIGHT)
         -- live count box
         surface.SetDrawColor((Teams[i] == TEAM_RED and color_myteam_red_livecountrect) or color_myteam_blue_livecountrect)
         surface.DrawRect(0 + MarginFromScreenEdge * 1.45, 0 + MarginFromScreenEdge + RectHeight * 0.5 * (i - 1), LiveCountRectWidth, RectHeight * 0.5)

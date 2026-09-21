@@ -323,6 +323,7 @@ if CLIENT then
     --local color_darkbluetransparent = Color(4, 20, 60, 120)
     local color_blacktransparent = Color(0, 0, 0, 120)
     local color_yellow = Color(255, 177, 0, 255)
+    local color_peach = Color(155, 25, 0, 200)
     local Frame = nil
     CreateClientConVar("rv_scoreboard", "1", true, false, "Whether or not to display custom scoreboard", 0, 1)
     hook.Add("ScoreboardShow", "rv_scoreboard", function()
@@ -539,10 +540,7 @@ if CLIENT then
                         OpenProfileButton:SetIcon("icon16/book_open.png")
                         local SteamIDButton = menu:AddOption("Copy SteamID", function() SetClipboardText(ply:SteamID()) end)
                         SteamIDButton:SetIcon("icon16/page_copy.png")
-                        local SpectateButton = menu:AddOption("Spectate", function()
-                            FSpectate.spectateEntity(ply)
-                        end)
-
+                        local SpectateButton = menu:AddOption("Spectate", function() FSpectate.spectateEntity(ply) end)
                         SpectateButton:SetIcon("icon16/eye.png")
                         if LocalPlayer():IsAdmin() and ply ~= LocalPlayer() then
                             local KickButton = menu:AddOption("Kick", function() RunConsoleCommand("ulx", "kick", ply:Nick()) end)
@@ -563,11 +561,19 @@ if CLIENT then
                 local ReadyUpStatus = (CurrentGamemode == "CA" and ((ply:GetNWBool("Ready") == true and " (R)") or " (NR)")) or ""
                 local PlayerName = " " .. (IsValid(ply) and ((FindColorInText(ply:Nick(), true) and table.concat(FindColorInText(ply:Nick(), true)) or ply:Nick()) .. ReadyUpStatus) or "Connecting")
                 local NickW, NickH = surface.GetTextSize(PlayerName)
+                local SpacerW, _ = surface.GetTextSize(" ")
                 function NameHolder.Paint(self, w, h)
                     --if not IsValid(ply) then return end
                     --surface.SetDrawColor(Color(255, 255, 0, 255))
                     --surface.DrawRect(0, 0, w, h)
-                    draw.DrawText(PlayerName, "ScoreboardDefaultScaled", 0, (h - NickH) / 2, (ply == LocalPlayer() and color_lightblue) or color_blue, TEXT_ALIGN_LEFT)
+                    draw.DrawText(PlayerName, "ScoreboardDefaultScaled", 0, (h - NickH) / 2, ply:Alive() == false and color_darkblue or (ply == LocalPlayer() and color_lightblue) or color_blue, TEXT_ALIGN_LEFT)
+                    if ply:Alive() == false then -- strikethrough for dead players 
+                        surface.SetDrawColor(color_peach)
+                        for i = 1, 2 do
+                            surface.DrawLine(0 + SpacerW, NickH * 0.5 + i, NickW + SpacerW, NickH * 0.5 + i)
+                        end
+                        --surface.DrawRect(0 + SpacerW, 0, NickW, 2)
+                    end
                 end
 
                 function NameHolder.Think(self, w, h)

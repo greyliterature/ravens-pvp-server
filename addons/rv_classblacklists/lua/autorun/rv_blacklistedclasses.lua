@@ -64,7 +64,7 @@ if SERVER then
         local classname = args[1]
         if not classname then return end
         RemoveClassFromBlacklist(classname)
-        PrintMessage("Unblacklisted " .. classname .. ".")
+        PrintMessage(HUD_PRINTTALK, "Unblacklisted " .. classname .. ".")
         print("Unblacklisted " .. classname .. ".")
     end)
 

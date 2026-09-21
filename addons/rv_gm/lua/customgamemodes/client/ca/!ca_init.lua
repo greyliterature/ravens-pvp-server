@@ -633,19 +633,77 @@ end)
 --[[------------------------------
     ScoreHud
 --------------------------------]]
-local color_transparentishgrey = Color(128, 128, 128, 240)
+--local RNDX = include("rndx.lua")
+local color_transparentishblack = Color(15, 15, 15, 200)
+local color_yellow = Color(255, 177, 0, 255) -- same as scoreboard
+local color_myteam_red_bigrect = JoinTeamMenuColors.LightRed:Copy()
+local color_myteam_blue_bigrect = JoinTeamMenuColors.DarkBlue:Copy()
+color_myteam_red_bigrect:AddBrightness(0.1)
+color_myteam_blue_bigrect:AddBrightness(0.1)
+color_myteam_red_bigrect.a = 200
+color_myteam_blue_bigrect.a = 200
+local color_myteam_red_livecountrect = JoinTeamMenuColors.LightRed:Copy()
+local color_myteam_blue_livecountrect = JoinTeamMenuColors.DarkBlue:Copy()
+color_myteam_red_livecountrect.a = 240
+color_myteam_blue_livecountrect.a = 240
 local Teams = {TEAM_RED, TEAM_BLUE}
 AddGamemodeHook("HUDPaint", "ScoreHud", function()
     if ShouldRunHook() == false then return end
     if GetGlobal3("MatchInProgress", false) == false then return end
     local MarginFromScreenEdge = ScrW() * 0.01
-    local RectWidth = ScrW() * 0.09
+    local RectWidth = ScrW() * 0.15
     local RectHeight = ScrH() * 0.06
-    surface.SetDrawColor(color_transparentishgrey)
-    surface.DrawRect(0 + MarginFromScreenEdge, 0 + MarginFromScreenEdge, RectWidth, RectHeight)
+    local OutlineThickness = 1
+    if RNDX then
+    else
+        surface.SetDrawColor(color_yellow)
+        surface.DrawOutlinedRect(0 + MarginFromScreenEdge - OutlineThickness, 0 + MarginFromScreenEdge - OutlineThickness, RectWidth + OutlineThickness * 2, RectHeight + OutlineThickness * 2, OutlineThickness)
+        surface.SetDrawColor(color_transparentishblack)
+        surface.DrawRect(0 + MarginFromScreenEdge, 0 + MarginFromScreenEdge, RectWidth, RectHeight)
+    end
+
     for i = 1, #Teams do
-        draw.DrawText(team.GetName(Teams[i]), "RobotoBig", 0 + MarginFromScreenEdge + RectWidth * 0.05, 0 + MarginFromScreenEdge + ((i - 1) * 30), color_white, TEXT_ALIGN_LEFT)
-        draw.DrawText(team.GetScore(Teams[i]), "RobotoBig", 0 + MarginFromScreenEdge + RectWidth * 0.8, 0 + MarginFromScreenEdge + ((i - 1) * 30), color_white, TEXT_ALIGN_LEFT)
+        local LiveCount = 0
+        for _, ply in ipairs(team.GetPlayers(Teams[i])) do
+            if ply:Alive() == true then --
+                LiveCount = LiveCount + 1
+            end
+        end
+
+        if RNDX then
+        else
+            local PlayerTeam = LocalPlayer():Team()
+            if Teams[i] == PlayerTeam then
+                local MarginFromRectEdge = ScrW() * 0.002
+                surface.SetDrawColor((Teams[i] == TEAM_RED and color_myteam_red_bigrect) or color_myteam_blue_bigrect)
+                surface.DrawRect(0 + MarginFromScreenEdge + MarginFromRectEdge, 0 + MarginFromScreenEdge + RectHeight * 0.5 * (i - 1), RectWidth - MarginFromRectEdge * 2, RectHeight * 0.5)
+            end
+        end
+
+        local LiveCountRectWidth = ScrW() * 0.04
+        local AllowanceForLiveCount = LiveCountRectWidth + ScrW() * 0.003
+        -- Red team
+        draw.DrawText(team.GetName(Teams[i]) .. " team", "RobotoBig", 0 + RectWidth * 0.09 + AllowanceForLiveCount, 0 + MarginFromScreenEdge + ((i - 1) * 30), color_white, TEXT_ALIGN_LEFT)
+        -- score
+        draw.DrawText(team.GetScore(Teams[i]), "RobotoBig", 0 + MarginFromScreenEdge + RectWidth * 0.85, 0 + MarginFromScreenEdge + ((i - 1) * 30), color_white, TEXT_ALIGN_LEFT)
+        -- live count box
+        surface.SetDrawColor((Teams[i] == TEAM_RED and color_myteam_red_livecountrect) or color_myteam_blue_livecountrect)
+        surface.DrawRect(0 + MarginFromScreenEdge * 1.45, 0 + MarginFromScreenEdge + RectHeight * 0.5 * (i - 1), LiveCountRectWidth, RectHeight * 0.5)
+        -- live count little player icon
+        surface.SetDrawColor((Teams[i] == TEAM_RED and JoinTeamMenuColors.DarkBlue) or JoinTeamMenuColors.LightRed) -- the original untransparent versions
+        local PlayerIconMarginX = ScrW() * 0.0015
+        local PlayerIconPosX = 0 + MarginFromScreenEdge * 1.45 + PlayerIconMarginX
+        local PlayerIconMarginY = ScrH() * 0.018
+        local PlayerIconPosY = 0 + MarginFromScreenEdge + ((i - 1) * 30) + PlayerIconMarginY
+        local PlayerIconRectWidth = ScrW() * 0.011
+        local PlayerIconRectHeight = ScrH() * 0.011
+        surface.DrawRect(PlayerIconPosX, PlayerIconPosY, PlayerIconRectWidth, PlayerIconRectHeight)
+        local CircleRadius = ScrW() * 0.004
+        local CircleOffsetCorrection = ScrW() * 0.0022 -- surface.drawpoly doesn't round coords, my playericonrectwidth isnt precise enough i guess, so manually center the circle better
+        local CircleDownOffset = ScrH() * 0.002 -- embed it a bit in the rect
+        draw.Circle(PlayerIconRectWidth + PlayerIconPosX * 0.5 + CircleOffsetCorrection, PlayerIconPosY - CircleRadius + CircleDownOffset, CircleRadius, 255)
+        -- 1 players alive
+        draw.DrawText(LiveCount, "RobotoBig", 0 + MarginFromScreenEdge * 1.25 + LiveCountRectWidth, 0 + MarginFromScreenEdge + ((i - 1) * 30), color_white, TEXT_ALIGN_RIGHT)
     end
 end)
 

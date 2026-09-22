@@ -14,7 +14,7 @@ net.Receive("ReadyUp", function()
     return
 end)
 
-removedClasses["weapon_frag"] = true
+RunConsoleCommand("blacklistclass", "weapon_frag")
 include("autorun/server/rv_motd.lua")
 include("autorun/damagelogic.lua")
 include("autorun/server/rv_duels.lua")

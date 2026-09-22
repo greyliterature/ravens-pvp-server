@@ -705,17 +705,17 @@ AddGamemodeHook("HUDPaint", "ScoreHud", function()
         local PlayerIconPosY = 0 + MarginFromScreenEdge + ((i - 1) * 30) + PlayerIconMarginY
         local PlayerIconRectWidth = ScrW() * 0.0114
         local PlayerIconRectHeight = ScrH() * 0.011
-        local CircleRadius_rndx =  ScrW() * 0.007
+        local CircleRadius_rndx = ScrW() * 0.007
         local CircleRadius_no_rndx = ScrW() * 0.004
         local CircleOffsetCorrection = ScrW() * 0.00220 -- surface.drawpoly doesn't round coords, my playericonrectwidth isnt precise enough i guess, so manually center the circle better
         local CircleDownOffset = ScrH() * 0.002 -- embed it a bit in the rect
+        local col = color_black
         if RNDX then
             local LiveCountRadii = 6
-            local col = (Teams[i] == TEAM_RED and JoinTeamMenuColors.DarkBlue) or JoinTeamMenuColors.LightRed
             RNDX.Draw(LiveCountRadii, PlayerIconPosX, PlayerIconPosY, PlayerIconRectWidth, PlayerIconRectHeight, col, RNDX.NO_BL + RNDX.NO_BR)
             RNDX.DrawCircle(PlayerIconRectWidth + PlayerIconPosX * 0.5 + CircleOffsetCorrection, PlayerIconPosY - CircleRadius_rndx * 0.5 + CircleDownOffset, CircleRadius_rndx, col, RNDX.SHAPE_CIRCLE)
         else
-            surface.SetDrawColor((Teams[i] == TEAM_RED and JoinTeamMenuColors.DarkBlue) or JoinTeamMenuColors.LightRed) -- the original untransparent versions
+            surface.SetDrawColor(col)
             surface.DrawRect(PlayerIconPosX, PlayerIconPosY, PlayerIconRectWidth, PlayerIconRectHeight)
             draw.Circle(PlayerIconRectWidth + PlayerIconPosX * 0.5 + CircleOffsetCorrection, PlayerIconPosY - CircleRadius_no_rndx + CircleDownOffset, CircleRadius_no_rndx, 9)
         end

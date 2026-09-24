@@ -20,6 +20,7 @@ local VanillaMapUrls = {
     ["gm_flatgrass"] = "https://gcdn.thunderstore.io/live/repository/icons/localpcnerd-gm_flatgrass-1.1.0.png.256x256_q95_crop.png",
 }
 
+local MapPreviewUrlFallback = "https://raw.githubusercontent.com/Facepunch/garrysmod/b2bff902adf7f5b87ec543f873e74e3267e93f26/garrysmod/html/img/addonpreview.png"
 function GetMapPreviewUrl(mapid, callback)
     if VanillaMapUrls[game.GetMap()] then --
         callback(VanillaMapUrls[game.GetMap()])
@@ -68,11 +69,12 @@ function GetMapPreviewUrl(mapid, callback)
                     sql.QueryTyped("INSERT OR REPLACE INTO map_icons ( mapID, MapPreviewUrl ) VALUES ( ?, ? )", CurrentMapWSID, MapPreviewUrl)
                 end
 
-                callback()
+                callback(MapPreviewUrl)
                 return
             end)
         end
     end
+    callback(MapPreviewUrlFallback)
 end
 
 hook.Add("InitPostEntity", "SetServerName", function()

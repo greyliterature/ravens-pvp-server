@@ -98,20 +98,34 @@ local function AddMOHHud()
         local IsReloading = false
         if act == ACT_VM_RELOAD then IsReloading = true end
         -- 
-        local SeqDuration = vm:SequenceDuration(seq)
+        --local SeqDuration = vm:SequenceDuration(seq)
+        local SeqProgress = 1
+        if IsReloading == true then --
+            SeqProgress = vm:GetCycle()
+        end
+
+        surface.SetFont("HL2MPBig")
+        local w, h = surface.GetTextSize(text)
         --
         render.PushFilterMag(TEXFILTER.ANISOTROPIC)
         render.PushFilterMin(TEXFILTER.ANISOTROPIC)
         local m = Matrix()
         m:Translate(TranslateVec)
-        surface.SetFont("HL2MPBig")
-        local w, h = surface.GetTextSize(text)
         m:Scale(ScaleVec)
         m:Translate(Vector(-w / 2, -h / 2, 0))
         cam.PushModelMatrix(m, true)
         render.CullMode(MATERIAL_CULLMODE_CW)
         local col = (IsReloading == false and color_white) or color_grey
         draw.SimpleText(text, "HL2MPBig", 0, 0, col)
+        if IsReloading == true then
+            --surface.SetDrawColor(color_grey)
+            local FontHeightOffset = ScrH() * 0.085
+            local FillHeight = h * SeqProgress
+            render.SetScissorRect(0, y + (h - FillHeight) - FontHeightOffset, x + w, y + (h - FontHeightOffset), true)
+            draw.SimpleText(text, "HL2MPBig", 0, 0, color_white)
+            render.SetScissorRect(0, 0, 0, 0, false)
+        end
+
         render.CullMode(MATERIAL_CULLMODE_CCW)
         cam.PopModelMatrix()
         render.PopFilterMag()

@@ -10,82 +10,136 @@ local function CreateFont(...)
     surface.CreateFont(unpack(args))
 end
 
-local function AddHUD()
-    local ElementsToHide = {
-        ["CHudBattery"] = true,
-        ["CHudHealth"] = true,
-        ["CHudAmmo"] = true,
-        ["CHudSecondaryAmmo"] = true,
+CreateFont("Arial_Black", {
+    font = "Arial Narrow Bold",
+    extended = false,
+    size = 45,
+    weight = 500,
+    blursize = 0,
+    scanlines = 0,
+    antialias = true,
+    underline = false,
+    italic = false,
+    strikeout = false,
+    symbol = false,
+    rotary = false,
+    shadow = false,
+    additive = false,
+    outline = false,
+})
+
+CreateFont("HL2MPBig", {
+    font = "HL2MP",
+    extended = false,
+    size = ScrW() * 0.065,
+    weight = 500,
+    blursize = 0,
+    scanlines = 0,
+    antialias = true,
+    underline = false,
+    italic = false,
+    strikeout = false,
+    symbol = false,
+    rotary = false,
+    shadow = false,
+    additive = false,
+    outline = false,
+})
+
+local function DropShadowArial(text, font, x, y, col, xalign, yalign) -- moh has a black shadow for its arial hud element
+    draw.SimpleText(text, font, x + 1, y + 1, color_black, xalign, yalign)
+    draw.SimpleText(text, font, x + 2, y + 2, color_black, xalign, yalign)
+    draw.SimpleText(text, font, x, y, col, xalign, yalign)
+end
+
+local AddShouldDraw, RemoveHUD = nil, nil
+local vector_one = Vector(1, 1, 1)
+local function AddMOHHud()
+    AddShouldDraw()
+    local Weapons = {
+        ["weapon_357"] = ".",
+        ["weapon_ar2"] = "2",
+        ["weapon_crossbow"] = "1",
+        ["weapon_pistol"] = "-",
+        ["weapon_shotgun"] = "0",
+        ["weapon_smg1"] = "/",
     }
 
-    CreateFont("Arial_Black", {
-        font = "Arial Narrow Bold",
-        extended = false,
-        size = 45,
-        weight = 500,
-        blursize = 0,
-        scanlines = 0,
-        antialias = true,
-        underline = false,
-        italic = false,
-        strikeout = false,
-        symbol = false,
-        rotary = false,
-        shadow = false,
-        additive = false,
-        outline = false,
-    })
-
-    local function DropShadowArial(text, font, x, y, col, xalign, yalign) -- moh has a black shadow for its arial hud element
-        draw.SimpleText(text, font, x + 1, y + 1, color_black, xalign, yalign)
-        draw.SimpleText(text, font, x + 2, y + 2, color_black, xalign, yalign)
-        draw.SimpleText(text, font, x, y, col, xalign, yalign)
-    end
-
-    local function MOHHUD(name)
-        if ElementsToHide[name] then -- get rid of stuff were overriding
-            return false
-        end
-
-        hook.Add("HUDPaint", "rv_hud", function()
-            if LocalPlayer():Alive() == false then return end
-            local HeightOffset = ScrH() * 0.015
-            surface.SetDrawColor(color_white)
-            surface.DrawRect(ScrW() * 0.5 - 1, 0, 1, ScrH())
-            surface.DrawRect(ScrW() * 0.5 - 1, 0, 1, ScrH())
-            local ply = LocalPlayer()
-            local weap = ply:GetActiveWeapon()
-            --local PrimaryAmmoType = weap:GetPrimaryAmmoType()
-            --local PrimaryAmmoCount = ply:GetAmmoCount(PrimaryAmmoType)
-            local clip1 = weap:Clip1()
-            local maxclip1 = weap:GetMaxClip1()
-            --local clip2 = weap:Clip2()
-            local SecondaryAmmoType = weap:GetSecondaryAmmoType()
-            local SecondaryAmmoCount = ply:GetAmmoCount(SecondaryAmmoType)
-            DropShadowArial(ply:Health() .. " HP", "Arial_Black", ScrW() * 0.5, ScrH() * 0.94 - HeightOffset, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
-            DropShadowArial(clip1 .. "/" .. maxclip1, "Arial_Black", ScrW() * 0.5, ScrH() - HeightOffset, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
-            DropShadowArial(SecondaryAmmoCount .. " ALT", "Arial_Black", ScrW() * 0.43, ScrH() - HeightOffset, color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM)
-            DropShadowArial(ply:Armor() .. " AP", "Arial_Black", ScrW() * 0.57, ScrH() - HeightOffset, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM)
-        end)
-    end
-
-    local HUDType = 1 -- determined from convar later 
-    local HUDTypes = {
-        [1] = MOHHUD
-    }
-
-    hook.Add("HUDShouldDraw", "rv_hud", function(name)
-        local Return = nil
-        if HUDTypes[HUDType] then --
-            Return = HUDTypes[HUDType](name)
-        end
-        return Return
+    hook.Add("HUDPaint", "rv_hud", function()
+        if LocalPlayer():Alive() == false then return end
+        local HeightOffset = ScrH() * 0.015
+        surface.SetDrawColor(color_white)
+        surface.DrawRect(ScrW() * 0.5 - 1, 0, 1, ScrH())
+        surface.DrawRect(ScrW() * 0.5 - 1, 0, 1, ScrH())
+        local ply = LocalPlayer()
+        local weap = ply:GetActiveWeapon()
+        --local PrimaryAmmoType = weap:GetPrimaryAmmoType()
+        --local PrimaryAmmoCount = ply:GetAmmoCount(PrimaryAmmoType)
+        local clip1 = weap:Clip1()
+        local maxclip1 = weap:GetMaxClip1()
+        --local clip2 = weap:Clip2()
+        local SecondaryAmmoType = weap:GetSecondaryAmmoType()
+        local SecondaryAmmoCount = ply:GetAmmoCount(SecondaryAmmoType)
+        DropShadowArial(ply:Health() .. " HP", "Arial_Black", ScrW() * 0.5, ScrH() * 0.94 - HeightOffset, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
+        DropShadowArial(clip1 .. "/" .. maxclip1, "Arial_Black", ScrW() * 0.5, ScrH() - HeightOffset, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
+        DropShadowArial(SecondaryAmmoCount .. " ALT", "Arial_Black", ScrW() * 0.43, ScrH() - HeightOffset, color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM)
+        DropShadowArial(ply:Armor() .. " AP", "Arial_Black", ScrW() * 0.57, ScrH() - HeightOffset, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM)
+        render.PushFilterMag(TEXFILTER.ANISOTROPIC)
+        render.PushFilterMin(TEXFILTER.ANISOTROPIC)
+        local m = Matrix()
+        m:Translate(Vector(x, y, 0))
+        m:Rotate(Angle(0, ang, 0))
+        m:Scale(vector_one * (scale or 1))
+        surface.SetFont("HL2MPBig")
+        local text = Weapons[weap:GetClass()]
+        local w, h = surface.GetTextSize(text)
+        m:Translate(Vector(-w / 2, -h / 2, 0))
+        cam.PushModelMatrix(m, true)
+        --
+        draw.SimpleText(text, "HL2MPBig", 0, 0)
+        --
+        cam.PopModelMatrix()
+        render.PopFilterMag()
+        render.PopFilterMin()
     end)
 end
 
-local function RemoveHUD()
+RemoveHUD = function()
     hook.Remove("HUDShouldDraw", "rv_hud")
     hook.Remove("HUDPaint", "rv_hud")
 end
 
-AddHUD()
+local HUDType = 1 -- determined from convar later 
+local HUDTypes = {
+    ["0"] = {
+        ["AddFunction"] = RemoveHUD
+    },
+    ["1"] = {
+        ["ElementsToHide"] = {
+            ["CHudBattery"] = true,
+            ["CHudHealth"] = true,
+            ["CHudAmmo"] = true,
+            ["CHudSecondaryAmmo"] = true,
+        },
+        ["AddFunction"] = AddMOHHud,
+    }
+}
+
+local function BadHUDElements(HUDtype, HUDElement)
+    if not HUDTypes[HUDtype]["ElementsToHide"] then return end
+    if HUDTypes[HUDtype]["ElementsToHide"][HUDElement] then --
+        return false
+    end
+end
+
+AddShouldDraw = function() hook.Add("HUDShouldDraw", "rv_hud", function(name) return BadHUDElements(HUDType, name) end) end
+local rv_hud = CreateClientConVar("rv_hud", "0", true, false, "Set hud type, 1 = ETHUD", 0)
+cvars.AddChangeCallback("rv_hud", function(convar, old, new)
+    HUDType = new
+    if not HUDTypes[HUDType] then return end
+    HUDTypes[HUDType]["AddFunction"]()
+end, "rv_hud")
+
+RemoveHUD()
+HUDType = rv_hud:GetString()
+HUDTypes[HUDType]["AddFunction"]()

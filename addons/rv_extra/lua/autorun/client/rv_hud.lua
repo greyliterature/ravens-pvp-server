@@ -31,7 +31,7 @@ CreateFont("Arial_Black", {
 CreateFont("HL2MPBig", {
     font = "HL2MP",
     extended = false,
-    size = ScrW() * 0.065,
+    size = ScrW() * 0.1,
     weight = 500,
     blursize = 0,
     scanlines = 0,
@@ -53,7 +53,10 @@ local function DropShadowArial(text, font, x, y, col, xalign, yalign) -- moh has
 end
 
 local AddShouldDraw, RemoveHUD = nil, nil
-local vector_one = Vector(1, 1, 1)
+local ScaleVec = Vector(-1, 1, 1)
+local x, y = ScrW() * 0.8, ScrH() * 0.97 -- make this dynamic later
+local TranslateVec = Vector(x, y, 0)
+local color_grey = Color(200, 200, 200)
 local function AddMOHHud()
     AddShouldDraw()
     local Weapons = {
@@ -63,6 +66,7 @@ local function AddMOHHud()
         ["weapon_pistol"] = "-",
         ["weapon_shotgun"] = "0",
         ["weapon_smg1"] = "/",
+        ["weapon_grav"] = "",
     }
 
     hook.Add("HUDPaint", "rv_hud", function()
@@ -84,20 +88,31 @@ local function AddMOHHud()
         DropShadowArial(clip1 .. "/" .. maxclip1, "Arial_Black", ScrW() * 0.5, ScrH() - HeightOffset, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
         DropShadowArial(SecondaryAmmoCount .. " ALT", "Arial_Black", ScrW() * 0.43, ScrH() - HeightOffset, color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM)
         DropShadowArial(ply:Armor() .. " AP", "Arial_Black", ScrW() * 0.57, ScrH() - HeightOffset, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM)
+        local text = Weapons[weap:GetClass()]
+        if not text then return end
+        -- from https://wiki.facepunch.com/gmod/VMatrix:IsZero#example
+        local vm = ply:GetViewModel()
+        if not IsValid(vm) then return false end
+        local seq = vm:GetSequence()
+        local act = vm:GetSequenceActivity(seq)
+        local IsReloading = false
+        if act == ACT_VM_RELOAD then IsReloading = true end
+        -- 
+        local SeqDuration = vm:SequenceDuration(seq)
+        --
         render.PushFilterMag(TEXFILTER.ANISOTROPIC)
         render.PushFilterMin(TEXFILTER.ANISOTROPIC)
         local m = Matrix()
-        m:Translate(Vector(x, y, 0))
-        m:Rotate(Angle(0, ang, 0))
-        m:Scale(vector_one * (scale or 1))
+        m:Translate(TranslateVec)
         surface.SetFont("HL2MPBig")
-        local text = Weapons[weap:GetClass()]
         local w, h = surface.GetTextSize(text)
+        m:Scale(ScaleVec)
         m:Translate(Vector(-w / 2, -h / 2, 0))
         cam.PushModelMatrix(m, true)
-        --
-        draw.SimpleText(text, "HL2MPBig", 0, 0)
-        --
+        render.CullMode(MATERIAL_CULLMODE_CW)
+        local col = (IsReloading == false and color_white) or color_grey
+        draw.SimpleText(text, "HL2MPBig", 0, 0, col)
+        render.CullMode(MATERIAL_CULLMODE_CCW)
         cam.PopModelMatrix()
         render.PopFilterMag()
         render.PopFilterMin()

@@ -42,7 +42,6 @@ local function AddHUD()
         draw.SimpleText(text, font, x, y, col, xalign, yalign)
     end
 
-    local HUDType = 1
     local function MOHHUD(name)
         if ElementsToHide[name] then -- get rid of stuff were overriding
             return false
@@ -70,12 +69,15 @@ local function AddHUD()
         end)
     end
 
+    local HUDType = 1 -- determined from convar later 
+    local HUDTypes = {
+        [1] = MOHHUD
+    }
+
     hook.Add("HUDShouldDraw", "rv_hud", function(name)
         local Return = nil
-        if HUDType == 1 then
-            Return = MOHHUD(name)
-        elseif HUDType == 2 then
-            --
+        if HUDTypes[HUDType] then --
+            Return = HUDTypes[HUDType](name)
         end
         return Return
     end)

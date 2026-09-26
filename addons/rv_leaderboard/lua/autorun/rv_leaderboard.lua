@@ -291,9 +291,9 @@
         return panel
     end
 
-    local WeaponStats = InfoHolder(Panel, 256, 128, "Weapon kills", "Stratum_Bold_Smaller", color_csgogrey, Panel:GetWide() * 0.01, Panel:GetTall() * 0.01)
-    local Percents = {1 / 4, 1 / 4, 1 / 4, 1 / 4}
-    local Labels = {"Acc", "test", "label"}
+    local WeaponStats = InfoHolder(Panel, Panel:GetWide() * 0.5, 128, "Weapon kills", "Stratum_Bold_Smaller", color_csgogrey, Panel:GetWide() * 0.01, Panel:GetTall() * 0.01)
+    local Percents = {1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8}
+    local Labels = {"Crowbar", "9MM", "357", "SMG", "AR2", "Shotgun", "Crossbow", "Grenade",}
     local Colors = {Color(128, 128, 0), Color(128, 0, 128), Color(0, 0, 128), Color(0, 128, 0), Color(128, 128, 128)}
     local PieChart = vgui.Create("SPieChart", WeaponStats)
     --PieChart:SetPos(Panel:GetWide() * 0.25, Panel:GetTall() * 0.5)
@@ -303,7 +303,7 @@
     PieChart:SetInnerCirclePercentage(0.7)
     PieChart:SetOutlineThickness(2)
     PieChart:SetBackgroundColor(color_white)
-    local PieChartSize = WeaponStats:GetWide() * 0.35
+    local PieChartSize = WeaponStats:GetTall() * 0.7
     PieChart:SetSize(PieChartSize, PieChartSize)
     PieChart:SetPos(WeaponStats:GetWide() * 0.05, WeaponStats:GetTall() * 0.25)
     local LabelHolder = vgui.Create("SLabelHolder", WeaponStats)

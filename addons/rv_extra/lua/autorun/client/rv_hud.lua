@@ -85,7 +85,10 @@ local function AddMOHHud()
         local SecondaryAmmoType = weap:GetSecondaryAmmoType()
         local SecondaryAmmoCount = ply:GetAmmoCount(SecondaryAmmoType)
         DropShadowArial(ply:Health() .. " HP", "Arial_Black", ScrW() * 0.5, ScrH() * 0.94 - HeightOffset, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
-        DropShadowArial(clip1 .. "/" .. maxclip1, "Arial_Black", ScrW() * 0.5, ScrH() - HeightOffset, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
+        if clip1 ~= -1 then --
+            DropShadowArial(clip1 .. "/" .. maxclip1, "Arial_Black", ScrW() * 0.5, ScrH() - HeightOffset, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
+        end
+
         DropShadowArial(SecondaryAmmoCount .. " ALT", "Arial_Black", ScrW() * 0.43, ScrH() - HeightOffset, color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM)
         DropShadowArial(ply:Armor() .. " AP", "Arial_Black", ScrW() * 0.57, ScrH() - HeightOffset, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM)
         local text = Weapons[weap:GetClass()]

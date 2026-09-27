@@ -1,3 +1,4 @@
+--[[
 hook.Add("PlayerSpawnedProp", "SetCollisionRules", function(ply, model, ent)
     --
     ent:SetCustomCollisionCheck(true)
@@ -9,3 +10,4 @@ hook.Add("ShouldCollide", "OnlyCollideEntWithSelf", function(ent1, ent2)
         return false
     end
 end)
+--]]

@@ -153,7 +153,7 @@ if SERVER then
 
     hook.Add("PlayerCanPickupItem", "ClassBlacklists", function(ply, item)
         local itemtable = GetListTable("SpawnableEntities", item:GetClass())
-        if IsClassBlacklisted(item) or (itemtable and (itemtable.Spawnable == false or itemtable.AdminOnly == true)) then -- 
+        if IsClassBlacklisted(item:GetClass()) or (itemtable and (itemtable.Spawnable == false or itemtable.AdminOnly == true)) then -- 
             return false
         end
     end)

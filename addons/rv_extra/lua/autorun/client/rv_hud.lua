@@ -172,6 +172,5 @@ cvars.AddChangeCallback("rv_hud", function(convar, old, new)
     HUDTypes[HUDType]["AddFunction"]()
 end, "rv_hud")
 
-RemoveHUD()
 HUDType = rv_hud:GetString()
 HUDTypes[HUDType]["AddFunction"]()

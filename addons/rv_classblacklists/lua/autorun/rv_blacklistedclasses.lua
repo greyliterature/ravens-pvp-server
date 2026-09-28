@@ -27,7 +27,7 @@ local BadClasses = {
     ["models/props_explosive/explosive_butane_can02.mdl"] = true,
 }
 
-local function IsClassBlacklisted(classname)
+function IsClassBlacklisted(classname)
     return BadClasses[classname]
 end
 

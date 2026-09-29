@@ -32,11 +32,13 @@ colortable = {
 }
 
 if CLIENT then
-    colortable.rv_outlinescolor = string.ToColor(GetConVar("rv_outlinescolor"):GetString())
-    cvars.AddChangeCallback("rv_outlinescolor", function(convar_name, value_old, value_new)
-        colortable.rv_outlinescolor = string.ToColor(value_new)
-        return
-    end, "rv_outlinescolor_util")
+    hook.Add("InitPostEntity", "GetOutlineColor", function()
+        colortable.rv_outlinescolor = string.ToColor(GetConVar("rv_outlinescolor"):GetString())
+        cvars.AddChangeCallback("rv_outlinescolor", function(convar_name, value_old, value_new)
+            colortable.rv_outlinescolor = string.ToColor(value_new)
+            return
+        end, "rv_outlinescolor_util")
+    end)
 end
 
 if SERVER then

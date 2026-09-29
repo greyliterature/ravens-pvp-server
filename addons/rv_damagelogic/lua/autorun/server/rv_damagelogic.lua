@@ -14,11 +14,16 @@ if SERVER then
 
     local HealConvars = {
         HealType = CreateConVar("rv_sv_healtype", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "Heal type per kill reward", 0),
+        HealthMargin = CreateConVar("rv_sv_healthmargin", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "What percentage of a player's spawn health to heal (float)", 0),
+        ArmorMargin = CreateConVar("rv_sv_armormargin", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "What percentage of a player's spawn armor to heal (float)", 0),
     }
 
     local RefillConvars = {}
     local HealTypes = {
-        [1] = function(ply) ply:SetHealth(LoadoutConvars.SpawnHealth:GetInt()) end,
+        [1] = function(ply)
+            ply:SetHealth(LoadoutConvars.SpawnHealth:GetInt() * HealConvars.HealthMargin:GetFloat())
+            ply:SetArmor(LoadoutConvars.SpawnArmor:GetInt() * HealConvars.ArmorMargin:GetFloat())
+        end,
     }
 
     local function HealPlayer(ply)

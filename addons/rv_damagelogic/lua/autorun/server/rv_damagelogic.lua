@@ -22,30 +22,48 @@ if SERVER then
         EnterCombatStopHealing = CreateConVar("rv_sv_healtype_2_entercombatstophealing", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "Whether or not to stop healing player when they enter combat", 0),
     }
 
-    local RefillConvars = {}
     local HealTypes = {
         [1] = function(ply)
+            -- classic
             ply:SetHealth(LoadoutConvars.SpawnHealth:GetInt() * HealConvars.HealthMargin:GetFloat())
             ply:SetArmor(LoadoutConvars.SpawnArmor:GetInt() * HealConvars.ArmorMargin:GetFloat())
         end,
         [2] = function(ply)
+            -- zonemod
             ply.Healing = true
             local HealthTarget = LoadoutConvars.SpawnHealth:GetInt() * HealConvars.HealthMargin:GetFloat()
             local ArmorTarget = LoadoutConvars.SpawnArmor:GetInt() * HealConvars.ArmorMargin:GetFloat()
+            local HealthCounts = (LoadoutConvars.SpawnHealth:GetInt() * HealConvars.HealthMargin:GetFloat()) / HealConvars.HealthPerTick:GetInt()
+            local HealthHealed = 0
+            local ArmorCounts = (LoadoutConvars.SpawnArmor:GetInt() * HealConvars.ArmorMargin:GetFloat()) / HealConvars.ArmorPerTick:GetInt()
+            local ArmorHealed = 0
             timer.Create("HealReward" .. ply:UserID(), HealConvars.HealTimerDelay:GetFloat(), 0, function()
                 if not ply.Healing then
                     timer.Remove("HealReward" .. ply:UserID())
                     return
                 end
 
-                if ply:Health() < HealthTarget then --
+                local Double = 2
+                if ply:Health() < HealthTarget and HealthHealed < HealthCounts then --
                     ply:SetHealth(math.Clamp(ply:Health() + HealConvars.HealthPerTick:GetInt(), 0, HealthTarget))
+                    HealthHealed = HealthHealed + 1
+                    Double = Double - 1
                 end
 
-                if ply:Armor() < ArmorTarget then --
+                if ply:Armor() < ArmorTarget and ArmorHealed < ArmorCounts then --
                     ply:SetArmor(math.Clamp(ply:Armor() + HealConvars.ArmorPerTick:GetInt(), 0, ArmorTarget))
+                    ArmorHealed = ArmorHealed + 1
+                    Double = Double - 1
+                end
+
+                if Double == 2 then -- player reached both armor and health target, or they used up their HealCounts 
+                    timer.Remove("HealReward" .. ply:UserID())
                 end
             end)
+        end,
+        [3] = function(ply)
+            -- medshot
+            print("Finish this later")
         end,
     }
 
@@ -78,7 +96,32 @@ if SERVER then
         HealPlayer(ply)
     end)
 
-    local function RefillAmmo(ply) -- fill players mags and give infinite ammo
+    local RefillAmmo = nil
+    local RefillConvars = {
+        RefillType = CreateConVar("rv_sv_refill_refilltype", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "Refill type per kill award", 0),
+        RefillMargin = CreateConVar("rv_sv_refill_refillmargin", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "What percentage of a player's CURRENT clip to refill (float)", 0),
+        RefillAllWeapons = CreateConVar("rv_sv_refill_refillallweapons", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "Whether or not to refill all of a player's weapons", 0),
+    }
+
+    local RefillTypes = {
+        [1] = function(ply)
+            print(ply, "hi")
+            local weap = ply:GetActiveWeapon()
+            if not IsValid(weap) then -- this shouldn't happen though, probably
+                return
+            end
+
+            local AmmoType = weap:GetPrimaryAmmoType()
+            ply:GiveAmmo(9999, AmmoType, true)
+            if RefillConvars.RefillAllWeapons:GetBool() == true then --
+                RefillAmmo(ply)
+            end
+        end,
+    }
+
+    RefillAmmo = function(ply)
+        print(ply, "HJIII")
+        -- fill players mags and give infinite ammo
         for Index, AmmoType in ipairs(game.GetAmmoTypes()) do
             if not BadAmmoTypes[AmmoType] then
                 ply:GiveAmmo(9999, Index, true)
@@ -101,6 +144,12 @@ if SERVER then
     hook.Add("RefillAmmo", "RefillAmmo", function(ply)
         local ShouldRefillPlayerAmmo = hook.Run("ShouldRefillPlayerAmmo", ply)
         if ShouldRefillPlayerAmmo == false then return end
+        local RefillType = RefillConvars.RefillType:GetInt()
+        if RefillTypes[RefillType] then
+            HealTypes[RefillType](ply)
+            return
+        end
+
         RefillAmmo(ply)
     end)
 
@@ -140,7 +189,7 @@ if SERVER then
             ply:Give(Loadout[i])
         end
 
-        if LoadoutConvars.RefillAmmoOnSpawn:GetBool() == true then RefillAmmo(ply) end
+        timer.Simple(0, function() if LoadoutConvars.RefillAmmoOnSpawn:GetBool() == true then RefillAmmo(ply) end end)
         ply:SetMaxHealth(LoadoutConvars.MaxHealth:GetInt())
         ply:SetHealth(LoadoutConvars.SpawnHealth:GetInt())
         ply:SetMaxArmor(LoadoutConvars.MaxArmor:GetInt())

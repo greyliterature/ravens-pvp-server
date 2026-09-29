@@ -220,4 +220,15 @@ if SERVER then
         ply:SetMaxArmor(LoadoutConvars.MaxArmor:GetInt())
         ply:SetArmor(LoadoutConvars.SpawnArmor:GetInt())
     end)
+
+    local function InformEnemyHealth(victim, attacker)
+        victim:ChatPrintColor({"RV_OUTLINESCOLOR", attacker:Nick(), "COLOR_WHITE", " had ", "COLOR_GREEN", tostring(attacker:Health()), "COLOR_WHITE", " health remaining."})
+    end
+
+    hook.Add("PlayerDeath", "InformEnemyHealth", function(victim, _, attacker)
+        if victim == attacker then return end
+        local ShouldInformEnemyHealth = hook.Run("ShouldInformEnemyHealth", victim, attacker)
+        if ShouldInformEnemyHealth == false then return end
+        InformEnemyHealth(victim, attacker)
+    end)
 end

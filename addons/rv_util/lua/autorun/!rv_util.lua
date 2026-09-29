@@ -26,7 +26,18 @@ colortable = {
     color_dead = Color(255, 24, 35),
     color_magenta = Color(255, 0, 255),
     color_team = Color(24, 162, 35),
+    color_kindared = Color(230, 0, 0),
+    color_kindagreen = Color(179, 239, 182),
+    rv_outlinescolor = nil
 }
+
+if CLIENT then
+    colortable.rv_outlinescolor = string.ToColor(GetConVar("rv_outlinescolor"):GetString())
+    cvars.AddChangeCallback("rv_outlinescolor", function(convar_name, value_old, value_new)
+        colortable.rv_outlinescolor = string.ToColor(value_new)
+        return
+    end, "rv_outlinescolor_util")
+end
 
 if SERVER then
     util.AddNetworkString("ChatPrint")
@@ -408,6 +419,39 @@ elseif CLIENT then
     hook.Add("InitPostEntity", "InitPostEntityStarted", function()
         net.Start("InitPostEntityStarted")
         net.SendToServer()
+    end)
+end
+
+if SERVER then
+    local PLAYERMETA = FindMetaTable("Player")
+    util.AddNetworkString("ChatPrintColor")
+    function PLAYERMETA:ChatPrintColor(messagetbl, Forced)
+        net.Start("ChatPrintColor", true)
+        local NumKeys = #messagetbl
+        net.WriteUInt(NumKeys, 7)
+        for i = 1, NumKeys do
+            net.WriteString(messagetbl[i])
+        end
+
+        net.Send(self)
+    end
+elseif CLIENT then
+    net.Receive("ChatPrintColor", function(_, _)
+        local tbl = {}
+        local NumKeys = net.ReadUInt(7)
+        for i = 1, NumKeys do
+            local word = net.ReadString()
+            local lower = string.lower(word)
+            if string.upper(word) == word and colortable[lower] then
+                tbl[#tbl + 1] = colortable[lower] -- the word is a coded color
+            elseif word == "COLOR_WHITE" or word == "COLOR_BLACK" then
+                tbl[#tbl + 1] = (word == "COLOR_WHITE" and color_white) or color_black
+            else
+                tbl[#tbl + 1] = word -- its just a word
+            end
+        end
+
+        chat.AddText(unpack(tbl))
     end)
 end
 

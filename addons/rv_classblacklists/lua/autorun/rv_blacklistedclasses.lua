@@ -27,8 +27,10 @@ local BadClasses = {
     ["models/props_explosive/explosive_butane_can02.mdl"] = true,
 }
 
-function IsClassBlacklisted(classname)
-    return BadClasses[classname]
+function IsClassBlacklisted(ply, object)
+    local ShouldBypassClassBlacklist = hook.Run("ShouldBypassClassBlacklist", ply, object)
+    if ShouldBypassClassBlacklist == true then return false end
+    return BadClasses[object]
 end
 
 if SERVER then
@@ -93,49 +95,49 @@ if SERVER then
         Blacklist hooks
     ----------------------------------]]
     hook.Add("PlayerSpawnProp", "ClassBlacklists", function(ply, model)
-        if IsClassBlacklisted(model) then --
+        if IsClassBlacklisted(ply, model) then --
             return false
         end
     end)
 
     hook.Add("PlayerSpawnEffect", "ClassBlacklists", function(ply, model)
-        if IsClassBlacklisted(model) then --
+        if IsClassBlacklisted(ply, model) then --
             return false
         end
     end)
 
     hook.Add("PlayerSpawnNPC", "ClassBlacklists", function(ply, class)
-        if IsClassBlacklisted(class) then --
+        if IsClassBlacklisted(ply, class) then --
             return false
         end
     end)
 
     hook.Add("PlayerSpawnRagdoll", "ClassBlacklists", function(ply, model)
-        if IsClassBlacklisted(model) then --
+        if IsClassBlacklisted(ply, model) then --
             return false
         end
     end)
 
     hook.Add("PlayerSpawnSENT", "ClassBlacklists", function(ply, class)
-        if IsClassBlacklisted(class) then --
+        if IsClassBlacklisted(ply, class) then --
             return false
         end
     end)
 
     hook.Add("PlayerSpawnSWEP", "ClassBlacklists", function(ply, weapon, sweptbl)
-        if IsClassBlacklisted(weapon) or sweptbl.Spawnable == false or sweptbl.AdminOnly == true then -- 
+        if IsClassBlacklisted(ply, weapon) or sweptbl.Spawnable == false or sweptbl.AdminOnly == true then -- 
             return false
         end
     end)
 
     hook.Add("PlayerSpawnVehicle", "ClassBlacklists", function(ply, model, name, tbl)
-        if IsClassBlacklisted(model) then -- 
+        if IsClassBlacklisted(ply, model) then -- 
             return false
         end
     end)
 
     hook.Add("PlayerGiveSWEP", "ClassBlacklists", function(ply, weapon, spawninfotbl)
-        if IsClassBlacklisted(weapon) or spawninfotbl.Spawnable == false or spawninfotbl.AdminOnly == true then -- 
+        if IsClassBlacklisted(ply, weapon) or spawninfotbl.Spawnable == false or spawninfotbl.AdminOnly == true then -- 
             return false
         end
     end)
@@ -146,20 +148,20 @@ if SERVER then
 
     hook.Add("PlayerCanPickupWeapon", "ClassBlacklists", function(ply, weapon)
         local weapontable = GetListTable("Weapon", weapon:GetClass())
-        if IsClassBlacklisted(weapon) or (weapontable and weapontable.Spawnable == false or weapontable.AdminOnly == true) then -- 
+        if IsClassBlacklisted(ply, weapon) or (weapontable and weapontable.Spawnable == false or weapontable.AdminOnly == true) then -- 
             return false
         end
     end)
 
     hook.Add("PlayerCanPickupItem", "ClassBlacklists", function(ply, item)
         local itemtable = GetListTable("SpawnableEntities", item:GetClass())
-        if IsClassBlacklisted(item:GetClass()) or (itemtable and (itemtable.Spawnable == false or itemtable.AdminOnly == true)) then -- 
+        if IsClassBlacklisted(ply, item:GetClass()) or (itemtable and (itemtable.Spawnable == false or itemtable.AdminOnly == true)) then -- 
             return false
         end
     end)
 
     hook.Add("WeaponEquip", "ClassBlacklists", function(weapon, ply)
-        if IsClassBlacklisted(weapon:GetClass()) then --
+        if IsClassBlacklisted(ply, weapon:GetClass()) then --
             weapon:Remove()
         end
     end)
@@ -185,7 +187,7 @@ elseif CLIENT then
             spawnname = parent["spawnname"]
         end
 
-        if IsClassBlacklisted(spawnname) then --
+        if IsClassBlacklisted(ply, spawnname) then --
             return
         end
         return spawnmenu.oldCreateContentIcon(type, panel, parent)
@@ -194,7 +196,7 @@ elseif CLIENT then
     local PANELMETA = FindMetaTable("Panel")
     if not oldSetModel then oldSetModel = PANELMETA.SetModel end
     function PANELMETA:SetModel(modelpath, skin, bodygroups)
-        if IsClassBlacklisted(modelpath) then
+        if IsClassBlacklisted(ply, modelpath) then
             self:GetParent():Remove()
             return
         end

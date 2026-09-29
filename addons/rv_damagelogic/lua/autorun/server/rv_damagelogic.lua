@@ -14,12 +14,13 @@ if SERVER then
 
     local HealConvars = {
         HealType = CreateConVar("rv_sv_healtype", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "Heal type per kill reward", 0),
-        HealthMargin = CreateConVar("rv_sv_healthmargin", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "What percentage of a player's spawn health to heal (float)", 0),
-        ArmorMargin = CreateConVar("rv_sv_armormargin", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "What percentage of a player's spawn armor to heal (float)", 0),
+        HealthMargin = CreateConVar("rv_sv_heal_healthmargin", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "What percentage of a player's spawn health to heal (float)", 0),
+        ArmorMargin = CreateConVar("rv_sv_heal_armormargin", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "What percentage of a player's spawn armor to heal (float)", 0),
         HealTimerDelay = CreateConVar("rv_sv_healtype_2_healtimerdelay", "0.1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "Delay between each heal in seconds", 0),
         HealthPerTick = CreateConVar("rv_sv_healtype_2_healthpertick", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "How much health to give player per tick", 0),
         ArmorPerTick = CreateConVar("rv_sv_healtype_2_armorpertick", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "How much armor to give player per tick", 0),
         EnterCombatStopHealing = CreateConVar("rv_sv_healtype_2_entercombatstophealing", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "Whether or not to stop healing player when they enter combat", 0),
+        RewardMargin = CreateConVar("rv_sv_heal_rewardmargin", "0.5", FCVAR_ARCHIVE + FCVAR_NOTIFY, "What percentage of a player's health must an enemy deal to be rewarded health", 0),
     }
 
     local HealTypes = {
@@ -90,7 +91,7 @@ if SERVER then
         end
     end
 
-    hook.Add("HealPlayer", "HealPlayer", function(ply)
+    hook.Add("HealPlayer", "HealPlayer", function(ply, victim)
         local ShouldHealPlayer = hook.Run("ShouldHealPlayer", ply)
         if ShouldHealPlayer == false then return end
         HealPlayer(ply)
@@ -101,6 +102,7 @@ if SERVER then
         RefillType = CreateConVar("rv_sv_refill_refilltype", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "Refill type per kill award", 0),
         RefillMargin = CreateConVar("rv_sv_refill_refillmargin", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "What percentage of a player's CURRENT clip to refill (float)", 0),
         RefillAllWeapons = CreateConVar("rv_sv_refill_refillallweapons", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "Whether or not to refill all of a player's weapons", 0),
+        RewardMargin = CreateConVar("rv_sv_refill_rewardmargin", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "What percentage of a player's health must an enemy deal to be rewarded ammo", 0),
     }
 
     local function ShotgunFix(ply, ammocount)
@@ -166,7 +168,7 @@ if SERVER then
         return false
     end)
     --]]
-    hook.Add("RefillAmmo", "RefillAmmo", function(ply)
+    hook.Add("RefillAmmo", "RefillAmmo", function(ply, victim)
         local ShouldRefillPlayerAmmo = hook.Run("ShouldRefillPlayerAmmo", ply)
         if ShouldRefillPlayerAmmo == false then return end
         local RefillType = RefillConvars.RefillType:GetInt()
@@ -184,16 +186,16 @@ if SERVER then
         return false
     end)
     --]]
-    hook.Add("RewardPlayer", "RewardPlayer", function(ply)
+    hook.Add("RewardPlayer", "RewardPlayer", function(ply, victim)
         local ShouldRewardPlayer = hook.Run("ShouldRewardPlayer", ply)
         if ShouldRewardPlayer == false then return end
-        hook.Run("HealPlayer", ply)
-        hook.Run("RefillAmmo", ply)
+        hook.Run("HealPlayer", ply, victim)
+        hook.Run("RefillAmmo", ply, victim)
     end)
 
     hook.Add("PlayerDeath", "RewardPlayer", function(victim, _, attacker)
         if victim ~= attacker then --
-            hook.Run("RewardPlayer", attacker)
+            hook.Run("RewardPlayer", attacker, victim)
         end
     end)
 

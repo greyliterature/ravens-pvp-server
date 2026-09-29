@@ -104,6 +104,11 @@ if SERVER then
     }
 
     local function ShotgunFix(ply, ammocount)
+        local shotgun = ply:GetWeapon("weapon_shotgun")
+        if shotgun:Clip1() == shotgun:GetMaxClip1() then -- 6 / 6 shots means the shotgun is probably pumped
+            return
+        end
+
         local current = ply:GetActiveWeapon()
         local lastweap = ply:GetInternalVariable("m_hLastWeapon")
         if not IsValid(lastweap) or lastweap:GetClass() == "weapon_shotgun" then lastweap = nil end
@@ -126,12 +131,16 @@ if SERVER then
                 ply:GiveAmmo(9999, AmmoType, true)
             end
 
-            weap:SetClip1(math.Clamp(weap:GetMaxClip1() * RefillConvars.RefillMargin:GetFloat(), weap:Clip1(), weap:GetMaxClip1()))
-            if RefillConvars.RefillAllWeapons:GetBool() == true then --
-                RefillAmmo(ply)
+            if weap:GetClass() == "weapon_shotgun" then
+                ShotgunFix(ply)
+            else
+                weap:SetClip1(math.Clamp(weap:GetMaxClip1() * RefillConvars.RefillMargin:GetFloat(), weap:Clip1(), weap:GetMaxClip1()))
             end
 
-            ShotgunFix(ply)
+            if RefillConvars.RefillAllWeapons:GetBool() == true then --
+                RefillAmmo(ply)
+                ShotgunFix(ply)
+            end
         end,
     }
 
@@ -145,11 +154,10 @@ if SERVER then
             end
         end
 
+        ShotgunFix(ply)
         for _, weapon in ipairs(ply:GetWeapons()) do
             weapon:SetClip1(weapon:GetMaxClip1())
         end
-
-        ShotgunFix(ply)
     end
 
     --[[

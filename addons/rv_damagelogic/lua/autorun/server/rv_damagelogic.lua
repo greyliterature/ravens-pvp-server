@@ -94,7 +94,7 @@ if SERVER then
     hook.Add("HealPlayer", "HealPlayer", function(ply, victim)
         local ShouldHealPlayer = hook.Run("ShouldHealPlayer", ply)
         if ShouldHealPlayer == false then return end
-        HealPlayer(ply)
+        HealPlayer(ply, victim)
     end)
 
     local RefillAmmo = nil
@@ -168,9 +168,10 @@ if SERVER then
         return false
     end)
     --]]
-    hook.Add("RefillAmmo", "RefillAmmo", function(ply, victim)
-        local ShouldRefillPlayerAmmo = hook.Run("ShouldRefillPlayerAmmo", ply)
-        if ShouldRefillPlayerAmmo == false then return end
+    local function RefillPlayer(ply, victim)
+        local ShouldHealPlayer = hook.Run("ShouldHealPlayer", ply)
+        if ShouldHealPlayer == false then return end
+        HealPlayer(ply, victim)
         local RefillType = RefillConvars.RefillType:GetInt()
         if RefillTypes[RefillType] then
             RefillTypes[RefillType](ply)
@@ -178,6 +179,12 @@ if SERVER then
         end
 
         RefillAmmo(ply)
+    end
+
+    hook.Add("RefillAmmo", "RefillAmmo", function(ply, victim)
+        local ShouldRefillPlayerAmmo = hook.Run("ShouldRefillPlayerAmmo", ply)
+        if ShouldRefillPlayerAmmo == false then return end
+        RefillPlayer(ply, victim)
     end)
 
     --[[

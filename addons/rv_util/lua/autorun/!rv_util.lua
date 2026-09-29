@@ -441,8 +441,9 @@ elseif CLIENT then
         local NumKeys = net.ReadUInt(7)
         for i = 1, NumKeys do
             local word = net.ReadString()
-            if string.upper(word) == word and colortable[word] then
-                tbl[#tbl + 1] = colortable[word] -- the word is a coded color
+            local lower = string.lower(word)
+            if string.upper(word) == word and colortable[lower] then
+                tbl[#tbl + 1] = colortable[lower] -- the word is a coded color
             elseif word == "COLOR_WHITE" or word == "COLOR_BLACK" then
                 tbl[#tbl + 1] = (word == "COLOR_WHITE" and color_white) or color_black
             else

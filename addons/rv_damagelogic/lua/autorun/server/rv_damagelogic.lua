@@ -68,14 +68,20 @@ if SERVER then
         end,
     }
 
-    local function HandleHealTimers(victim, attacker)
-        if not victim.Healing then return end
-        victim.Healing = nil
-    end
-
-    if HealConvars.EnterCombatStopHealing:GetBool() == true then --
-        hook.Add("PlayerHurt", "RemoveHealTimer", HandleHealTimers)
-    end
+    hook.Add("PlayerHurt", "DamageContributions", function(victim, attacker, healthRemaining, damageTaken)
+        if not IsValid(attacker) then return end
+        victim.LastTickHealth = victim.LastTickHealth or victim:GetSpawnHealth()
+        local LastTickHealth = victim.LastTickHealth
+        victim.LastTickHealth = healthRemaining
+        healthRemaining = math.max(healthRemaining, 0)
+        local TrueDamageTaken = LastTickHealth - healthRemaining
+        victim.DamageContributions = victim.DamageContributions or {}
+        victim.DamageContributions[attacker] = (victim.DamageContributions[attacker] or 0) + TrueDamageTaken
+        if HealConvars.EnterCombatStopHealing:GetBool() == true then --
+            victim.Healing = nil
+            attacker.Healing = nil
+        end
+    end)
 
     cvars.AddChangeCallback("rv_sv_healtype_entercombatstophealing", function(_, _, new)
         if new == "1" then --
@@ -94,6 +100,7 @@ if SERVER then
     hook.Add("HealPlayer", "HealPlayer", function(ply, victim)
         local ShouldHealPlayer = hook.Run("ShouldHealPlayer", ply)
         if ShouldHealPlayer == false then return end
+        if victim.DamageContributions[ply] < victim:GetSpawnHealth() * HealConvars.RewardMargin:GetFloat() then return end
         HealPlayer(ply, victim)
     end)
 
@@ -184,6 +191,7 @@ if SERVER then
     hook.Add("RefillAmmo", "RefillAmmo", function(ply, victim)
         local ShouldRefillPlayerAmmo = hook.Run("ShouldRefillPlayerAmmo", ply)
         if ShouldRefillPlayerAmmo == false then return end
+        if victim.DamageContributions[ply] < victim:GetMaxHealth() * RefillConvars.RewardMargin:GetFloat() then return end
         RefillPlayer(ply, victim)
     end)
 
@@ -198,13 +206,30 @@ if SERVER then
         if ShouldRewardPlayer == false then return end
         hook.Run("HealPlayer", ply, victim)
         hook.Run("RefillAmmo", ply, victim)
+        victim.DamageContributions = {}
     end)
 
     hook.Add("PlayerDeath", "RewardPlayer", function(victim, _, attacker)
         if victim ~= attacker then --
             hook.Run("RewardPlayer", attacker, victim)
         end
+
+        victim.LastTickHealth = nil
+        victim.DamageContributions = {}
+        attacker.DamageContributions = {}
     end)
+
+    local PLAYERMETA = FindMetaTable("Player")
+    local ENTMETA = FindMetaTable("Entity")
+    if not ENTMETA.oldSetHealth then ENTMETA.oldSetHealth = ENTMETA.SetHealth end
+    function ENTMETA:SetHealth(hp)
+        ENTMETA.oldSetHealth(self, hp)
+        self.LastTickHealth = hp
+    end
+
+    function PLAYERMETA:GetSpawnHealth()
+        return LoadoutConvars.SpawnHealth:GetInt()
+    end
 
     local Loadout = {
         "weapon_357", --formatterexpandtable 

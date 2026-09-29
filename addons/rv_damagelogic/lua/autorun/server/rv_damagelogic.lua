@@ -16,6 +16,10 @@ if SERVER then
         HealType = CreateConVar("rv_sv_healtype", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "Heal type per kill reward", 0),
         HealthMargin = CreateConVar("rv_sv_healthmargin", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "What percentage of a player's spawn health to heal (float)", 0),
         ArmorMargin = CreateConVar("rv_sv_armormargin", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "What percentage of a player's spawn armor to heal (float)", 0),
+        HealTimerDelay = CreateConVar("rv_sv_healtype_2_healtimerdelay", "0.1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "Delay between each heal in seconds", 0),
+        HealthPerTick = CreateConVar("rv_sv_healtype_2_healthpertick", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "How much health to give player per tick", 0),
+        ArmorPerTick = CreateConVar("rv_sv_healtype_2_armorpertick", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "How much armor to give player per tick", 0),
+        EnterCombatStopHealing = CreateConVar("rv_sv_healtype_2_entercombatstophealing", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "Whether or not to stop healing player when they enter combat", 0),
     }
 
     local RefillConvars = {}
@@ -24,7 +28,41 @@ if SERVER then
             ply:SetHealth(LoadoutConvars.SpawnHealth:GetInt() * HealConvars.HealthMargin:GetFloat())
             ply:SetArmor(LoadoutConvars.SpawnArmor:GetInt() * HealConvars.ArmorMargin:GetFloat())
         end,
+        [2] = function(ply)
+            ply.Healing = true
+            local HealthTarget = LoadoutConvars.SpawnHealth:GetInt() * HealConvars.HealthMargin:GetFloat()
+            local ArmorTarget = LoadoutConvars.SpawnArmor:GetInt() * HealConvars.ArmorMargin:GetFloat()
+            timer.Create("HealReward" .. ply:UserID(), HealConvars.HealTimerDelay:GetFloat(), 0, function()
+                if not ply.Healing then
+                    timer.Remove("HealReward" .. ply:UserID())
+                    return
+                end
+
+                if ply:Health() < HealthTarget then --
+                    ply:SetHealth(math.Clamp(ply:Health() + HealConvars.HealthPerTick:GetInt(), 0, HealthTarget))
+                end
+
+                if ply:Armor() < ArmorTarget then --
+                    ply:SetArmor(math.Clamp(ply:Armor() + HealConvars.ArmorPerTick:GetInt(), 0, ArmorTarget))
+                end
+            end)
+        end,
     }
+
+    local function HandleHealTimers(victim, attacker)
+        if not victim.Healing then return end
+        victim.Healing = nil
+    end
+
+    if HealConvars.EnterCombatStopHealing:GetBool() == true then --
+        hook.Add("PlayerHurt", "RemoveHealTimer", HandleHealTimers)
+    end
+
+    cvars.AddChangeCallback("rv_sv_healtype_entercombatstophealing", function(_, _, new)
+        if new == "1" then --
+            hook.Add("PlayerHurt", "RemoveHealTimer", HandleHealTimers)
+        end
+    end, "rv_sv_healtype_entercombatstophealing")
 
     local function HealPlayer(ply)
         local HealType = HealConvars.HealType:GetInt()

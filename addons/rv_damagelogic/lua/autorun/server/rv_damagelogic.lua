@@ -103,9 +103,19 @@ if SERVER then
         RefillAllWeapons = CreateConVar("rv_sv_refill_refillallweapons", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "Whether or not to refill all of a player's weapons", 0),
     }
 
+    local function ShotgunFix(ply, ammocount)
+        local current = ply:GetActiveWeapon()
+        local lastweap = ply:GetInternalVariable("m_hLastWeapon")
+        if not IsValid(lastweap) or lastweap:GetClass() == "weapon_shotgun" then lastweap = nil end
+        ply:StripWeapon("weapon_shotgun")
+        local weap = ply:Give("weapon_shotgun")
+        weap:SetClip1(ammocount or weap:GetMaxClip1())
+        ply:SelectWeapon(lastweap or weap)
+        ply:SelectWeapon(current)
+    end
+
     local RefillTypes = {
         [1] = function(ply)
-            print(ply, "hi")
             local weap = ply:GetActiveWeapon()
             if not IsValid(weap) then -- this shouldn't happen though, probably
                 return
@@ -120,6 +130,8 @@ if SERVER then
             if RefillConvars.RefillAllWeapons:GetBool() == true then --
                 RefillAmmo(ply)
             end
+
+            ShotgunFix(ply)
         end,
     }
 
@@ -136,6 +148,8 @@ if SERVER then
         for _, weapon in ipairs(ply:GetWeapons()) do
             weapon:SetClip1(weapon:GetMaxClip1())
         end
+
+        ShotgunFix(ply)
     end
 
     --[[

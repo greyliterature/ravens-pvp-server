@@ -112,7 +112,11 @@ if SERVER then
             end
 
             local AmmoType = weap:GetPrimaryAmmoType()
-            ply:GiveAmmo(9999, AmmoType, true)
+            if not BadAmmoTypes[AmmoType] then --
+                ply:GiveAmmo(9999, AmmoType, true)
+            end
+
+            weap:SetClip1(math.Clamp(weap:GetMaxClip1() * RefillConvars.RefillMargin:GetFloat(), weap:Clip1(), weap:GetMaxClip1()))
             if RefillConvars.RefillAllWeapons:GetBool() == true then --
                 RefillAmmo(ply)
             end
@@ -120,7 +124,6 @@ if SERVER then
     }
 
     RefillAmmo = function(ply)
-        print(ply, "HJIII")
         -- fill players mags and give infinite ammo
         for Index, AmmoType in ipairs(game.GetAmmoTypes()) do
             if not BadAmmoTypes[AmmoType] then
@@ -146,7 +149,7 @@ if SERVER then
         if ShouldRefillPlayerAmmo == false then return end
         local RefillType = RefillConvars.RefillType:GetInt()
         if RefillTypes[RefillType] then
-            HealTypes[RefillType](ply)
+            RefillTypes[RefillType](ply)
             return
         end
 

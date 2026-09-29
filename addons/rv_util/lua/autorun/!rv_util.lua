@@ -28,7 +28,16 @@ colortable = {
     color_team = Color(24, 162, 35),
     color_kindared = Color(230, 0, 0),
     color_kindagreen = Color(179, 239, 182),
+    rv_outlinescolor = nil
 }
+
+if CLIENT then
+    colortable.rv_outlinescolor = string.ToColor(GetConVar("rv_outlinescolor"):GetString())
+    cvars.AddChangeCallback("rv_outlinescolor", function(convar_name, value_old, value_new)
+        colortable.rv_outlinescolor = string.ToColor(value_new)
+        return
+    end, "rv_outlinescolor_util")
+end
 
 if SERVER then
     util.AddNetworkString("ChatPrint")
@@ -416,7 +425,7 @@ end
 if SERVER then
     local PLAYERMETA = FindMetaTable("Player")
     util.AddNetworkString("ChatPrintColor")
-    function PLAYERMETA:ChatPrintColor(messagetbl)
+    function PLAYERMETA:ChatPrintColor(messagetbl, Forced)
         net.Start("ChatPrintColor", true)
         local NumKeys = #messagetbl
         net.WriteUInt(NumKeys, 7)

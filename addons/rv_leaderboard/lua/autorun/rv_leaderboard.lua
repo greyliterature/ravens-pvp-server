@@ -1,4 +1,5 @@
 -- this file is just used to track changes, it's not finished, it doesn't even run (relies on another library i'm working on still)
+
     --[[--------------------------------------
     panel tests
     ----------------------------------------]]
@@ -293,30 +294,47 @@
 
     local WeaponStats = InfoHolder(Panel, Panel:GetWide() * 0.5, 128, "Weapon kills", "Stratum_Bold_Smaller", color_csgogrey, Panel:GetWide() * 0.01, Panel:GetTall() * 0.01)
     local Percents = {1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8}
-    local Labels = {"Crowbar", "9MM", "357", "SMG", "AR2", "Shotgun", "Crossbow", "Grenade",}
-    local Colors = {Color(128, 128, 0), Color(128, 0, 128), Color(0, 0, 128), Color(0, 128, 0), Color(128, 128, 128)}
+    local Labels = {{"Crowbar", "9MM", "357", "SMG", "AR2", "Shotgun", "Crossbow", "Grenade"},}
+    local Colors = {
+        [1] = {Color(128, 128, 0), Color(128, 0, 128), Color(0, 0, 128), Color(0, 128, 0), Color(128, 128, 128), Color(0, 0, 0, 255), Color(0, 255, 255)},
+    }
+
     local PieChart = vgui.Create("SPieChart", WeaponStats)
     --PieChart:SetPos(Panel:GetWide() * 0.25, Panel:GetTall() * 0.5)
     PieChart:SetPercents(Percents)
-    PieChart:SetLabels(Labels)
-    PieChart:SetColors(Colors)
+    PieChart:SetLabels(Labels[1])
+    PieChart:SetColors(Colors[1])
     PieChart:SetInnerCirclePercentage(0.7)
     PieChart:SetOutlineThickness(2)
-    PieChart:SetBackgroundColor(color_white)
+    --PieChart:SetBackgroundColor(color_white)
     local PieChartSize = WeaponStats:GetTall() * 0.7
     PieChart:SetSize(PieChartSize, PieChartSize)
     PieChart:SetPos(WeaponStats:GetWide() * 0.05, WeaponStats:GetTall() * 0.25)
     local LabelHolder = vgui.Create("SLabelHolder", WeaponStats)
-    local LabelHolderGap = ScrH() * 0.02
     LabelHolder:SetBackgroundColor(color_null)
     --LabelHolder:SetTall(LabelHolder:GetRowHeight() * 7)
     LabelHolder:SetLabelFont("Stratum_Bold_Smallest")
     LabelHolder:SetLabelBoxHeight(0.01)
     LabelHolder:SetLabelBoxWidth(0.01)
+    LabelHolder:SetColumnCount(1)
     -- you have to set the font and anything that changes width BEFORE calling attach
-    LabelHolder:SetWide(WeaponStats:GetWide() * 0.51)
-    LabelHolder:Attach(PieChart)
+    LabelHolder:SetWide(WeaponStats:GetWide() * 0.25)
+    LabelHolder:Attach(PieChart, {1, 2, 3, 4})
     LabelHolder:SetPos(PieChart:GetWide() * 1.3, PieChart:GetY() + (PieChart:GetTall() - LabelHolder:GetTall()) * 0.5)
+    LabelHolder:SetOverallAlignment(SGRID_ALIGN_LEFT)
+    -- MAKE THIS WORK LATER, SETTING AS TWO COLUMNS IS BETTER THAN MESSING WITH ARRANGEMENT
+    local LabelHolder_2 = vgui.Create("SLabelHolder", WeaponStats)
+    LabelHolder_2:SetBackgroundColor(color_null)
+    LabelHolder_2:SetLabelFont("Stratum_Bold_Smallest")
+    LabelHolder_2:SetLabelBoxHeight(0.01)
+    LabelHolder_2:SetLabelBoxWidth(0.01)
+    LabelHolder_2:SetColumnCount(1)
+    LabelHolder_2:SetWide(WeaponStats:GetWide() * 0.276)
+    LabelHolder_2:SetTall(PieChart:GetTall())
+    LabelHolder_2:Attach(PieChart, {5, 6, 7, 8})
+    LabelHolder_2:SetX(LabelHolder:GetX() + LabelHolder:GetWide())
+    LabelHolder_2:SetY(LabelHolder:GetY())
+    LabelHolder_2:SetOverallAlignment(SGRID_ALIGN_LEFT)
     --[[
     function LabelHolder:Paint(w, h)
         surface.DrawRect(0, 0, w, h)
@@ -326,5 +344,4 @@
     --LabelHolder:SetX(PieChart:GetX() + (PieChart:GetWide() - LabelHolder:GetWide()) * 0.5)
     --LabelHolder:SetX(PieChart:GetX())
     --LabelHolder:SetJustify(PieChart:GetX())
-    LabelHolder:SetOverallAlignment(SGRID_ALIGN_LEFT)
 end

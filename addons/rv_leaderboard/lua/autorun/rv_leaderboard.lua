@@ -344,4 +344,68 @@
     --LabelHolder:SetX(PieChart:GetX() + (PieChart:GetWide() - LabelHolder:GetWide()) * 0.5)
     --LabelHolder:SetX(PieChart:GetX())
     --LabelHolder:SetJustify(PieChart:GetX())
+    local Percents_2 = {4.5, 2, 4, 4, 5}
+    local RadarChart = vgui.Create("SRadarChart", Panel)
+    local RadarChartSize = Panel:GetWide() * 0.4
+    RadarChart:SetSize(RadarChartSize, RadarChartSize)
+    RadarChart:SetPos(Panel:GetWide() * 0.5, Panel:GetTall() * 0.5)
+    --RadarChart:SetRadarColor()
+    --RadarChart:SetSegmentCount(9)
+    RadarChart:SetPercents(Percents_2)
+    local IconWSIDs = {"105982362", "3667352947", "3769721895", "3751308439", "3751311698"}
+    local IconMaterials = {}
+    for i = 1, #IconWSIDs do
+        steamworks.FileInfo(IconWSIDs[i], function(result)
+            steamworks.Download(result.previewid, true, function(name)
+                --
+                IconMaterials[#IconMaterials + 1] = AddonMaterial(name)
+            end)
+        end)
+    end
+
+    local function HasLoadedEverything()
+        return #IconMaterials == #IconWSIDs
+    end
+
+    local RectWidthPercentage = 0.15
+    local RectDistPercentage = 0.4
+    local function DrawMapRect(w, h, segmentX, segmentY, SegmentIndex)
+        if not HasLoadedEverything() then return end
+        local cx = w * 0.5 -- we know cx is always this so it doesnt have to be passed
+        local cy = cx
+        local distx, disty = segmentX - cx, segmentY - cy
+        local newX = segmentX + distx * RectDistPercentage
+        local newY = segmentY + disty * RectDistPercentage
+        local RectWidth = w * RectWidthPercentage
+        surface.SetMaterial(IconMaterials[SegmentIndex])
+        surface.SetDrawColor(color_white)
+        surface.DrawTexturedRect(newX - RectWidth * 0.5, newY - RectWidth * 0.5, RectWidth, RectWidth)
+        surface.SetDrawColor(color_black)
+        surface.DrawOutlinedRect(newX - RectWidth * 0.5, newY - RectWidth * 0.5, RectWidth, RectWidth, 1)
+    end
+
+    local LabelFuncs = {
+        function(w, h, segmentX, segmentY)
+            -- 
+            DrawMapRect(w, h, segmentX, segmentY, 1)
+        end,
+        function(w, h, segmentX, segmentY)
+            -- 
+            DrawMapRect(w, h, segmentX, segmentY, 2)
+        end,
+        function(w, h, segmentX, segmentY)
+            -- 
+            DrawMapRect(w, h, segmentX, segmentY, 3)
+        end,
+        function(w, h, segmentX, segmentY)
+            -- 
+            DrawMapRect(w, h, segmentX, segmentY, 4)
+        end,
+        function(w, h, segmentX, segmentY)
+            -- 
+            DrawMapRect(w, h, segmentX, segmentY, 5)
+        end,
+    }
+
+    RadarChart:SetLabels(LabelFuncs)
 end

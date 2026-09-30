@@ -249,14 +249,15 @@ if SERVER then
             local weap = ply:Give(weapon)
             if not IsValid(weap) then continue end
             local AmmoType = weap:GetPrimaryAmmoType()
-            ply:GiveAmmo(ammocount, AmmoType, true)
+            ply:SetAmmo(ammocount, AmmoType)
         end
 
-        timer.Simple(0, function() if LoadoutConvars.RefillAmmoOnSpawn:GetBool() == true then RefillAmmo(ply) end end)
+        timer.Simple(0, function() if LoadoutConvars.RefillAmmoOnSpawn:GetBool() == true and hook.Run("ShouldRefillAmmoOnSpawn", ply) ~= false then RefillAmmo(ply) end end)
         ply:SetMaxHealth(hook.Run("GetDamageLogicRules", ply, "MAXHEALTH") or LoadoutConvars.MaxHealth:GetInt())
         ply:SetHealth(hook.Run("GetDamageLogicRules", ply, "SPAWNHEALTH") or LoadoutConvars.SpawnHealth:GetInt())
         ply:SetMaxArmor(hook.Run("GetDamageLogicRules", ply, "MAXARMOR") or LoadoutConvars.MaxArmor:GetInt())
         ply:SetArmor(hook.Run("GetDamageLogicRules", ply, "MAXHEALTH") or LoadoutConvars.SpawnArmor:GetInt())
+        return true
     end)
 
     local function InformEnemyHealth(victim, attacker)

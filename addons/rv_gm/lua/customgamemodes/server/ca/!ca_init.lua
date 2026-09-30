@@ -874,13 +874,12 @@ AddGamemodeHook("PlayerLoadout", "CustomLoadout", function(ply)
     return true
 end, PRE_HOOK_RETURN)
 --]]
-hook.Add("ShouldBypassPlayerCanPickupWeaponBlacklist", "CustomLoadout", function(ply, weaponentity)
+AddGamemodeHook("ShouldBypassPlayerCanPickupWeaponBlacklist", "CustomLoadout", function(ply, weaponentity)
     if weaponentity:GetClass() == "weapon_frag" then --
         return true
     end
 end)
 
-RunConsoleCommand("unblacklistclass", "weapon_frag")
 AddGamemodeHook("ShouldRefillAmmoOnSpawn", "CustomLoadout", function(ply)
     --
     return false

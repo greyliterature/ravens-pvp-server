@@ -137,8 +137,6 @@ if SERVER then
     end)
 
     hook.Add("PlayerGiveSWEP", "ClassBlacklists", function(ply, weapon, spawninfotbl)
-        local ShouldBypassGiveSWEPBlacklist = hook.Run("ShouldBypassGiveSWEPBlacklist", ply)
-        if ShouldBypassGiveSWEPBlacklist == true then return end
         if IsClassBlacklisted(ply, weapon) or spawninfotbl.Spawnable == false or spawninfotbl.AdminOnly == true then -- 
             return false
         end
@@ -149,6 +147,8 @@ if SERVER then
     end
 
     hook.Add("PlayerCanPickupWeapon", "ClassBlacklists", function(ply, weapon)
+        local ShouldBypassPlayerCanPickupWeaponBlacklist = hook.Run("ShouldBypassPlayerCanPickupWeaponBlacklist", ply)
+        if ShouldBypassPlayerCanPickupWeaponBlacklist == true then return end
         local weapontable = GetListTable("Weapon", weapon:GetClass())
         if IsClassBlacklisted(ply, weapon) or (weapontable and weapontable.Spawnable == false or weapontable.AdminOnly == true) then -- 
             return false

@@ -790,12 +790,12 @@ util.AddNetworkString("RemoveConflictingHooks")
 timer.Remove("AutoRTV")
 hook.Remove("PlayerInitialSpawn", "NetworkMOTD")
 hook.Remove("OnRequestFullUpdate", "NetworkMOTD")
-hook.Remove("PlayerDeath", "RewardPlayer")
-hook.Remove("PlayerHurt", "HurtContributions")
+--hook.Remove("PlayerDeath", "RewardPlayer")
+--hook.Remove("PlayerHurt", "HurtContributions")
 hook.Remove("ScalePlayerDamage", "RestrictTeamDamage")
 --AddGamemodeHook("PlayerSpawn", "SetCollisionRulesOnSpawnReturn", function() return ConflictingHookReturn() end,  POST_HOOK_RETURN)
 hook.Remove("PlayerSay", "HandleChatCommands")
-hook.Remove("PlayerLoadout", "GiveSpawnWeapons")
+--hook.Remove("PlayerLoadout", "GiveSpawnWeapons")
 hook.Remove("ShouldCollide", "MakePlayersNotCollide")
 hook.Remove("ShouldCollide", "OnlyCollideEntWithSelf")
 hook.Remove("PlayerSpawn", "SetSpawnHealthArmor")
@@ -832,11 +832,12 @@ AddGamemodeHook("PlayerInitialSpawn", "dfasfa", function(ply, trans)
     net.Send(ply)
 end)
 
+--[[
 AddGamemodeHook("PlayerGiveSWEP", "PreventWeaponGiving", function(ply, class, spawninfo)
     if ShouldRunHook() == false then return end
     return false
 end)
-
+--]]
 local Loadout = {
     ["weapon_357"] = 9999,
     ["weapon_ar2"] = 9999,
@@ -850,6 +851,7 @@ local Loadout = {
 }
 
 --PrintTable(FindHooksByName("PlayerLoadout"))
+--[[
 local CustomHealth = 100
 local CustomArmor = 100
 function gm.GiveCustomLoadout(ply)
@@ -866,17 +868,52 @@ function gm.GiveCustomLoadout(ply)
     end
 end
 
-removedClasses["weapon_frag"] = nil
 AddGamemodeHook("PlayerLoadout", "CustomLoadout", function(ply)
     if ShouldRunHook() == false then return end
     gm.GiveCustomLoadout(ply)
     return true
 end, PRE_HOOK_RETURN)
+--]]
+AddGamemodeHook("ShouldBypassPlayerCanPickupWeaponBlacklist", "CustomLoadout", function(ply, weaponentity)
+    if weaponentity:GetClass() == "weapon_frag" then --
+        return true
+    end
+end)
+
+AddGamemodeHook("ShouldRefillAmmoOnSpawn", "CustomLoadout", function(ply)
+    --
+    return false
+end)
+
+AddGamemodeHook("ShouldRewardPlayer", "CustomLoadout", function(ply)
+    --
+    return false
+end)
+
+AddGamemodeHook("GetCustomLoadout", "CustomLoadout", function(ply)
+    --
+    return Loadout
+end)
+
+local CustomHealth = 100
+local CustomArmor = 100
+local Codes = {
+    ["SPAWNHEALTH"] = Customhealth,
+    ["MAXHEALTH"] = CustomHealth,
+    ["MAXARMOR"] = CustomArmor,
+    ["SPAWNARMOR"] = CustomArmor,
+}
+
+AddGamemodeHook("GetDamageLogicRules", "CustomLoadout", function(ply, CODE)
+    --
+    if Codes[CODE] then return Codes[CODE] end
+end)
 
 AddGamemodeHook("PlayerSpawn", "FixMetaSpawnNotWorkingOnPlayers", function(ply, trans)
     if ShouldRunHook() == false then return end
-    gm.GiveCustomLoadout(ply)
-end, PRE_HOOK_RETURN)
+    hook.Run("PlayerLoadout", ply)
+    hook.Run("RefillAmmo", ply)
+end)
 
 --[[------------------------------
         Gamemode Inits

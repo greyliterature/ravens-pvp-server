@@ -832,10 +832,12 @@ AddGamemodeHook("PlayerInitialSpawn", "dfasfa", function(ply, trans)
     net.Send(ply)
 end)
 
+--[[
 AddGamemodeHook("PlayerGiveSWEP", "PreventWeaponGiving", function(ply, class, spawninfo)
     if ShouldRunHook() == false then return end
     return false
 end)
+--]]
 
 local Loadout = {
     ["weapon_357"] = 9999,

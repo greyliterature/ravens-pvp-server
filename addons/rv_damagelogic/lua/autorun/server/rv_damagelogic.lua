@@ -114,6 +114,8 @@ if SERVER then
 
     local function ShotgunFix(ply, ammocount)
         local shotgun = ply:GetWeapon("weapon_shotgun")
+        if not IsValid(shotgun) then shotgun = ply:Give("weapon_shotgun") end
+        if not IsValid(shotgun) then return end
         if shotgun:Clip1() == shotgun:GetMaxClip1() then -- 6 / 6 shots means the shotgun is probably pumped
             return
         end

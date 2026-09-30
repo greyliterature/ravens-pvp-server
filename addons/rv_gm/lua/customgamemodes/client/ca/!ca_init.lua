@@ -793,6 +793,7 @@ AddGamemodeHook("FSpectate_canSpectatePlayer", "OnlySpectateTeam", function(ply)
     if LocalPlayer():Team() == TEAM_SPECTATOR then return end
     if not IsValid(ply) then return end
     if not ply:IsPlayer() then return end
+    if ply:Alive() == false then return false end
     return ply:Team() == LocalPlayer():Team()
 end)
 

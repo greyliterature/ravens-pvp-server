@@ -776,6 +776,17 @@ AddGamemodeHook("FSpectate_canShowESP", "NoESP", function()
     return false
 end)
 
+gameevent.Listen("entity_killed")
+hook.Add("entity_killed", "SpectateNextPlayer", function(data)
+    local victim = Entity(data.entindex_killed)
+    if not victim:IsPlayer() then return end
+    if victim == FSpectate.getSpecEnt() then
+        timer.Simple(2, function()
+            spectateNextPlayer(1) --
+        end)
+    end
+end)
+
 --[[
 AddGamemodeHook("FSpectate_canThirdPerson", "NoThirdperson", function()
     --

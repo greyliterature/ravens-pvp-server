@@ -232,27 +232,31 @@ if SERVER then
     end
 
     local Loadout = {
-        "weapon_357", --formatterexpandtable 
-        "weapon_ar2",
-        "weapon_crossbow",
-        "weapon_crowbar",
-        "weapon_frag",
-        "weapon_physcannon",
-        "weapon_pistol",
-        "weapon_shotgun",
-        "weapon_smg1",
+        ["weapon_357"] = 9999,
+        ["weapon_ar2"] = 9999,
+        ["weapon_crossbow"] = 9999,
+        ["weapon_crowbar"] = 9999,
+        ["weapon_frag"] = 0,
+        ["weapon_physcannon"] = 9999,
+        ["weapon_pistol"] = 9999,
+        ["weapon_shotgun"] = 9999,
+        ["weapon_smg1"] = 9999,
     }
 
     hook.Add("PlayerLoadout", "GiveSpawnWeapons", function(ply)
-        for i = 1, #Loadout do
-            ply:Give(Loadout[i])
+        local HookLoadout = hook.Run("GetCustomLoadout", ply) or Loadout
+        for weapon, ammocount in pairs(HookLoadout) do
+            local weap = ply:Give(weapon)
+            if not IsValid(weap) then continue end
+            local AmmoType = weap:GetPrimaryAmmoType()
+            ply:GiveAmmo(ammocount, AmmoType, true)
         end
 
         timer.Simple(0, function() if LoadoutConvars.RefillAmmoOnSpawn:GetBool() == true then RefillAmmo(ply) end end)
-        ply:SetMaxHealth(LoadoutConvars.MaxHealth:GetInt())
-        ply:SetHealth(LoadoutConvars.SpawnHealth:GetInt())
-        ply:SetMaxArmor(LoadoutConvars.MaxArmor:GetInt())
-        ply:SetArmor(LoadoutConvars.SpawnArmor:GetInt())
+        ply:SetMaxHealth(hook.Run("GetDamageLogicRules", ply, "MAXHEALTH") or LoadoutConvars.MaxHealth:GetInt())
+        ply:SetHealth(hook.Run("GetDamageLogicRules", ply, "SPAWNHEALTH") or LoadoutConvars.SpawnHealth:GetInt())
+        ply:SetMaxArmor(hook.Run("GetDamageLogicRules", ply, "MAXARMOR") or LoadoutConvars.MaxArmor:GetInt())
+        ply:SetArmor(hook.Run("GetDamageLogicRules", ply, "MAXHEALTH") or LoadoutConvars.SpawnArmor:GetInt())
     end)
 
     local function InformEnemyHealth(victim, attacker)

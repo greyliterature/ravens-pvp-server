@@ -895,6 +895,20 @@ AddGamemodeHook("GetCustomLoadout", "CustomLoadout", function(ply)
     return Loadout
 end)
 
+local CustomHealth = 100
+local CustomArmor = 100
+local Codes = {
+    ["SPAWNHEALTH"] = Customhealth,
+    ["MAXHEALTH"] = CustomHealth,
+    ["MAXARMOR"] = CustomArmor,
+    ["SPAWNARMOR"] = CustomArmor,
+}
+
+AddGamemodeHook("GetDamageLogicRules", "CustomLoadout", function(ply, CODE)
+    --
+    if Codes[CODE] then return Codes[CODE] end
+end)
+
 AddGamemodeHook("PlayerSpawn", "FixMetaSpawnNotWorkingOnPlayers", function(ply, trans)
     if ShouldRunHook() == false then return end
     --hook.Run("PlayerLoadout", ply)

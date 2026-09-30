@@ -790,12 +790,12 @@ util.AddNetworkString("RemoveConflictingHooks")
 timer.Remove("AutoRTV")
 hook.Remove("PlayerInitialSpawn", "NetworkMOTD")
 hook.Remove("OnRequestFullUpdate", "NetworkMOTD")
-hook.Remove("PlayerDeath", "RewardPlayer")
-hook.Remove("PlayerHurt", "HurtContributions")
+--hook.Remove("PlayerDeath", "RewardPlayer")
+--hook.Remove("PlayerHurt", "HurtContributions")
 hook.Remove("ScalePlayerDamage", "RestrictTeamDamage")
 --AddGamemodeHook("PlayerSpawn", "SetCollisionRulesOnSpawnReturn", function() return ConflictingHookReturn() end,  POST_HOOK_RETURN)
 hook.Remove("PlayerSay", "HandleChatCommands")
-hook.Remove("PlayerLoadout", "GiveSpawnWeapons")
+--hook.Remove("PlayerLoadout", "GiveSpawnWeapons")
 hook.Remove("ShouldCollide", "MakePlayersNotCollide")
 hook.Remove("ShouldCollide", "OnlyCollideEntWithSelf")
 hook.Remove("PlayerSpawn", "SetSpawnHealthArmor")
@@ -850,6 +850,7 @@ local Loadout = {
 }
 
 --PrintTable(FindHooksByName("PlayerLoadout"))
+--[[
 local CustomHealth = 100
 local CustomArmor = 100
 function gm.GiveCustomLoadout(ply)
@@ -866,16 +867,31 @@ function gm.GiveCustomLoadout(ply)
     end
 end
 
-removedClasses["weapon_frag"] = nil
 AddGamemodeHook("PlayerLoadout", "CustomLoadout", function(ply)
     if ShouldRunHook() == false then return end
     gm.GiveCustomLoadout(ply)
     return true
 end, PRE_HOOK_RETURN)
+--]]
+RunConsoleCommand("unblacklistclass", "weapon_frag")
+AddGamemodeHook("ShouldRefillAmmoOnSpawn", "CustomLoadout", function(ply)
+    --
+    return false
+end)
+
+AddGamemodeHook("ShouldRewardPlayer", "CustomLoadout", function(ply)
+    --
+    return false
+end)
+
+AddGamemodeHook("GetCustomLoadout", "CustomLoadout", function(ply)
+    --
+    return Loadout
+end)
 
 AddGamemodeHook("PlayerSpawn", "FixMetaSpawnNotWorkingOnPlayers", function(ply, trans)
     if ShouldRunHook() == false then return end
-    gm.GiveCustomLoadout(ply)
+    --hook.Run("PlayerLoadout", ply)
 end, PRE_HOOK_RETURN)
 
 --[[------------------------------

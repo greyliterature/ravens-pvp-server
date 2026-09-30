@@ -16,7 +16,7 @@ end)
 
 RunConsoleCommand("blacklistclass", "weapon_frag")
 include("autorun/server/rv_motd.lua")
-include("autorun/damagelogic.lua")
+--include("autorun/damagelogic.lua")
 include("autorun/server/rv_duels.lua")
 include("autorun/server/rv_autortv.lua")
 PrintMessage(HUD_PRINTTALK, "(server) set gamemode to ffa")

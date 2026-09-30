@@ -163,6 +163,8 @@ if SERVER then
     end)
 
     hook.Add("WeaponEquip", "ClassBlacklists", function(weapon, ply)
+        local ShouldBypassPlayerCanPickupWeaponBlacklist = hook.Run("ShouldBypassPlayerCanPickupWeaponBlacklist", ply, weapon)
+        if ShouldBypassPlayerCanPickupWeaponBlacklist == true then return end
         if IsClassBlacklisted(ply, weapon:GetClass()) then --
             weapon:Remove()
         end

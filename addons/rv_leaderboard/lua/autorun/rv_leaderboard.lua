@@ -1,6 +1,4 @@
--- this file is just used to track changes, it's not finished, it doesn't even run (relies on another library i'm working on still)
-
-    --[[--------------------------------------
+ --[[--------------------------------------
     panel tests
     ----------------------------------------]]
     surface.CreateFont("Roboto_Black", {
@@ -139,6 +137,9 @@
     local color_transparentish_black = Color(0, 0, 0, 200)
     local color_null = Color(0, 0, 0, 0)
     local color_csgogrey = Color(190, 186, 187)
+    local color_green = Color(83, 192, 83)
+    local color_fadedyellow = Color(200, 200, 93)
+    local color_fadedred = Color(132, 40, 36)
     --[[--------------------------------------
         Materials
     ----------------------------------------]]
@@ -170,7 +171,7 @@
     local RNDX = include("autorun/rndx.lua")
     if IsValid(Panel) then Panel:Remove() end
     Panel = vgui.Create("DPanel")
-    Panel:SetWide(ScrW() * 0.45)
+    Panel:SetWide(ScrW() * 0.7)
     Panel:SetX((ScrW() - Panel:GetWide()) * 0.5)
     Panel:SetTall(ScrH() * 0.75)
     Panel:SetY((ScrH() - Panel:GetTall()) * 0.5)
@@ -283,22 +284,22 @@
         local _, TextH = GetTextSize(HeaderFont, HeaderText)
         header:SetWide(panel:GetWide())
         header:SetTall(TextH)
-        function header.Paint(self, w, h)
-        end
-
         function header:Paint(w, h)
             draw.DrawText(HeaderText, HeaderFont, 0, 0, HeaderColor, TEXT_ALIGN_LEFT)
         end
         return panel
     end
 
-    local WeaponStats = InfoHolder(Panel, Panel:GetWide() * 0.5, 128, "Weapon kills", "Stratum_Bold_Smaller", color_csgogrey, Panel:GetWide() * 0.01, Panel:GetTall() * 0.01)
+    local WeaponStats = InfoHolder(Panel, Panel:GetWide() * 0.5, 128, "Weapon Kills", "Stratum_Bold_Smaller", color_csgogrey, Panel:GetWide() * 0.01, Panel:GetTall() * 0.01)
     local Percents = {1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8}
     local Labels = {{"Crowbar", "9MM", "357", "SMG", "AR2", "Shotgun", "Crossbow", "Grenade"},}
     local Colors = {
         [1] = {Color(128, 128, 0), Color(128, 0, 128), Color(0, 0, 128), Color(0, 128, 0), Color(128, 128, 128), Color(0, 0, 0, 255), Color(0, 255, 255)},
     }
 
+    local BottomMarginFromEdge = MarginFromEdge --Panel:GetTall() * 0.03
+    WeaponStats:SetSize(ScrW() * 0.23, ScrH() * 0.33)
+    WeaponStats:SetPos((Panel:GetWide() - WeaponStats:GetWide()) - BottomMarginFromEdge, Panel:GetTall() - WeaponStats:GetTall() - BottomMarginFromEdge)
     local PieChart = vgui.Create("SPieChart", WeaponStats)
     --PieChart:SetPos(Panel:GetWide() * 0.25, Panel:GetTall() * 0.5)
     PieChart:SetPercents(Percents)
@@ -307,21 +308,23 @@
     PieChart:SetInnerCirclePercentage(0.7)
     PieChart:SetOutlineThickness(2)
     --PieChart:SetBackgroundColor(color_white)
-    local PieChartSize = WeaponStats:GetTall() * 0.7
+    local PieChartSize = ScrH() * 0.19
     PieChart:SetSize(PieChartSize, PieChartSize)
     PieChart:SetPos(WeaponStats:GetWide() * 0.05, WeaponStats:GetTall() * 0.25)
     local LabelHolder = vgui.Create("SLabelHolder", WeaponStats)
     LabelHolder:SetBackgroundColor(color_null)
     --LabelHolder:SetTall(LabelHolder:GetRowHeight() * 7)
-    LabelHolder:SetLabelFont("Stratum_Bold_Smallest")
-    LabelHolder:SetLabelBoxHeight(0.01)
-    LabelHolder:SetLabelBoxWidth(0.01)
+    LabelHolder:SetLabelFont("Stratum_Bold_Smaller")
+    LabelHolder:SetLabelBoxHeight(0.015)
+    LabelHolder:SetLabelBoxWidth(0.015)
     LabelHolder:SetColumnCount(1)
     -- you have to set the font and anything that changes width BEFORE calling attach
-    LabelHolder:SetWide(WeaponStats:GetWide() * 0.25)
-    LabelHolder:Attach(PieChart, {1, 2, 3, 4})
-    LabelHolder:SetPos(PieChart:GetWide() * 1.3, PieChart:GetY() + (PieChart:GetTall() - LabelHolder:GetTall()) * 0.5)
+    LabelHolder:SetWide(WeaponStats:GetWide() * 0.45)
+    LabelHolder:Attach(PieChart) --, {1, 2, 3, 4})
+    LabelHolder:SetX(PieChart:GetWide() * 1.3)
+    LabelHolder:SetY(PieChart:GetY() + (PieChart:GetTall() - LabelHolder:GetTall()) * 0.3)
     LabelHolder:SetOverallAlignment(SGRID_ALIGN_LEFT)
+    --[[
     -- MAKE THIS WORK LATER, SETTING AS TWO COLUMNS IS BETTER THAN MESSING WITH ARRANGEMENT
     local LabelHolder_2 = vgui.Create("SLabelHolder", WeaponStats)
     LabelHolder_2:SetBackgroundColor(color_null)
@@ -335,6 +338,7 @@
     LabelHolder_2:SetX(LabelHolder:GetX() + LabelHolder:GetWide())
     LabelHolder_2:SetY(LabelHolder:GetY())
     LabelHolder_2:SetOverallAlignment(SGRID_ALIGN_LEFT)
+    --]]
     --[[
     function LabelHolder:Paint(w, h)
         surface.DrawRect(0, 0, w, h)
@@ -344,15 +348,21 @@
     --LabelHolder:SetX(PieChart:GetX() + (PieChart:GetWide() - LabelHolder:GetWide()) * 0.5)
     --LabelHolder:SetX(PieChart:GetX())
     --LabelHolder:SetJustify(PieChart:GetX())
-    local Percents_2 = {4.5, 2, 4, 4, 5}
-    local RadarChart = vgui.Create("SRadarChart", Panel)
-    local RadarChartSize = Panel:GetWide() * 0.4
+    local MapPerformance = InfoHolder(Panel, Panel:GetWide() * 0.5, 128, "Map Win Rates", "Stratum_Bold_Smaller", color_csgogrey, Panel:GetWide() * 0.01, Panel:GetTall() * 0.01)
+    MapPerformance:SetSize(ScrW() * 0.23, WeaponStats:GetTall())
+    MapPerformance:SetY(Panel:GetTall() - MapPerformance:GetTall() - BottomMarginFromEdge)
+    MapPerformance:SetX((WeaponStats:GetX() - MapPerformance:GetWide()) - BottomMarginFromEdge)
+    local Percents_2 = {4.5, 2, 4, 4, 5, 7, 8, 8}
+    local RadarChart = vgui.Create("SRadarChart", MapPerformance)
+    local RadarChartSize = ScrH() * 0.3
     RadarChart:SetSize(RadarChartSize, RadarChartSize)
-    RadarChart:SetPos(Panel:GetWide() * 0.5, Panel:GetTall() * 0.5)
+    local MarginDown = ScrH() * 0.013
+    RadarChart:SetX((MapPerformance:GetWide() - RadarChart:GetWide()) * 0.5)
+    RadarChart:SetY((MapPerformance:GetTall() - RadarChart:GetTall()) * 0.5 + MarginDown)
     --RadarChart:SetRadarColor()
     --RadarChart:SetSegmentCount(9)
     RadarChart:SetPercents(Percents_2)
-    local IconWSIDs = {"105982362", "3667352947", "3769721895", "3751308439", "3751311698"}
+    local IconWSIDs = {"105982362", "3667352947", "3769721895", "3751308439", "3751311698", "3707205770", "3705916707", "3769721895"}
     local IconMaterials = {}
     for i = 1, #IconWSIDs do
         steamworks.FileInfo(IconWSIDs[i], function(result)
@@ -384,28 +394,52 @@
         surface.DrawOutlinedRect(newX - RectWidth * 0.5, newY - RectWidth * 0.5, RectWidth, RectWidth, 1)
     end
 
-    local LabelFuncs = {
-        function(w, h, segmentX, segmentY)
+    local LabelFuncs = {}
+    for i = 1, #IconWSIDs do
+        LabelFuncs[i] = function(w, h, segmentX, segmentY)
             -- 
-            DrawMapRect(w, h, segmentX, segmentY, 1)
-        end,
-        function(w, h, segmentX, segmentY)
-            -- 
-            DrawMapRect(w, h, segmentX, segmentY, 2)
-        end,
-        function(w, h, segmentX, segmentY)
-            -- 
-            DrawMapRect(w, h, segmentX, segmentY, 3)
-        end,
-        function(w, h, segmentX, segmentY)
-            -- 
-            DrawMapRect(w, h, segmentX, segmentY, 4)
-        end,
-        function(w, h, segmentX, segmentY)
-            -- 
-            DrawMapRect(w, h, segmentX, segmentY, 5)
-        end,
-    }
+            DrawMapRect(w, h, segmentX, segmentY, i)
+        end
+    end
 
     RadarChart:SetLabels(LabelFuncs)
+    local MatchesPlayed = InfoHolder(Panel, Panel:GetWide() * 0.5, 128, "Matches Played", "Stratum_Bold_Smaller", color_csgogrey, Panel:GetWide() * 0.01, Panel:GetTall() * 0.01)
+    MatchesPlayed:SetX(MarginFromEdge)
+    MatchesPlayed:SetY(Header:GetY() + MarginFromEdge)
+    MatchesPlayed:SetWide(ScrW() * 0.10)
+    MatchesPlayed:SetTall(MapPerformance:GetY() - MatchesPlayed:GetY() - MarginFromEdge)
+    local MatchesPlayed_number = 243
+    local Wins = 0
+    local Ties = 0
+    local Losses = 7
+    local DotsHeight = Panel:GetWide() * 0.01
+    local DotsY = ScrH() * 0.19
+    local DotsMargin = ScrH() * 0.015
+    local TextMargin = ScrW() * 0.007
+    function MatchesPlayed.PaintOver(self, w, h)
+        draw.DrawText(MatchesPlayed_number, "Stratum_Bold", Panel:GetWide() * 0.01, h * 0.1, color_csgogrey, TEXT_ALIGN_LEFT)
+        surface.SetDrawColor(color_green)
+        draw.Circle(DotsHeight, DotsY, h * 0.02, 255)
+        draw.SimpleText(Wins, "Stratum_Bold_Smaller", DotsHeight + TextMargin, DotsY + DotsMargin * 0, color_csgogrey, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        surface.SetDrawColor(color_fadedyellow)
+        draw.Circle(DotsHeight, DotsY + DotsMargin * 1, h * 0.02, 255)
+        draw.SimpleText(Ties, "Stratum_Bold_Smaller", DotsHeight + TextMargin, DotsY + DotsMargin * 1, color_csgogrey, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        surface.SetDrawColor(color_fadedred)
+        draw.Circle(DotsHeight, DotsY + DotsMargin * 2, h * 0.02, 255)
+        draw.SimpleText(Losses, "Stratum_Bold_Smaller", DotsHeight + TextMargin, DotsY + DotsMargin * 2, color_csgogrey, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+    end
+
+    ----
+    local SeperatorY = Panel:GetTall() * 0.01
+    local ADM = InfoHolder(Panel, Panel:GetWide() * 0.5, 128, "ADM", "Stratum_Bold_Smaller", color_csgogrey, Panel:GetWide() * 0.01, Panel:GetTall() * 0.01)
+    ADM:SetX(MatchesPlayed:GetX() + MatchesPlayed:GetWide())
+    ADM:SetY(Header:GetY() + MarginFromEdge)
+    ADM:SetWide(ScrW() * 0.10)
+    ADM:SetTall(MapPerformance:GetY() - MatchesPlayed:GetY() - MarginFromEdge)
+    local ADM_number = 76.9
+    function ADM.PaintOver(self, w, h)
+        surface.SetDrawColor(color_csgogrey)
+        surface.DrawRect(0, SeperatorY, 1, h - SeperatorY * 2)
+        draw.DrawText(ADM_number, "Stratum_Bold", Panel:GetWide() * 0.01, h * 0.1, color_csgogrey, TEXT_ALIGN_LEFT)
+    end
 end

@@ -838,7 +838,6 @@ AddGamemodeHook("PlayerGiveSWEP", "PreventWeaponGiving", function(ply, class, sp
     return false
 end)
 --]]
-
 local Loadout = {
     ["weapon_357"] = 9999,
     ["weapon_ar2"] = 9999,
@@ -875,6 +874,12 @@ AddGamemodeHook("PlayerLoadout", "CustomLoadout", function(ply)
     return true
 end, PRE_HOOK_RETURN)
 --]]
+hook.Add("ShouldBypassPlayerCanPickupWeaponBlacklist", "CustomLoadout", function(ply, weaponentity)
+    if weaponentity:GetClass() == "weapon_frag" then --
+        return true
+    end
+end)
+
 RunConsoleCommand("unblacklistclass", "weapon_frag")
 AddGamemodeHook("ShouldRefillAmmoOnSpawn", "CustomLoadout", function(ply)
     --

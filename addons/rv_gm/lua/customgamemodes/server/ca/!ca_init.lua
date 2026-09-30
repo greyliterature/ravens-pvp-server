@@ -911,8 +911,9 @@ end)
 
 AddGamemodeHook("PlayerSpawn", "FixMetaSpawnNotWorkingOnPlayers", function(ply, trans)
     if ShouldRunHook() == false then return end
-    --hook.Run("PlayerLoadout", ply)
-end, PRE_HOOK_RETURN)
+    hook.Run("PlayerLoadout", ply)
+    hook.Run("RefillAmmo", ply)
+end)
 
 --[[------------------------------
         Gamemode Inits

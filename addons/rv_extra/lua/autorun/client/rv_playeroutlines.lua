@@ -36,6 +36,8 @@ cvars.AddChangeCallback("rv_outlinesmaxplayers", function(convar_name, value_old
 rv_outlinesthicknessint = GetConVar("rv_outlinesthickness"):GetInt()
 cvars.AddChangeCallback("rv_outlinesthickness", function(convar_name, value_old, value_new) rv_outlinesthicknessint = tonumber(value_new) end, "rv_outlinesthickness")
 rv_outlinesbool = tobool(GetConVar("rv_outlines"):GetBool())
+--
+PlayerOutlineTeamFlip = true
 local function rv_drawoutlines()
 	if rv_outlinesbool == false then -- unnecessary but whatever
 		return
@@ -59,8 +61,9 @@ local function rv_drawoutlines()
 	for candidate, v in SortedPairsByValue(OutlineCandidates, true) do
 		if not IsValid(candidate) then continue end
 		ShouldDraw = PlayersDrawn < rv_outlinesmaxplayersint
-		local IsInSameDuel = candidate:Team() == LocalPlayer():Team()
-		if ShouldDraw and IsInSameDuel then
+		local IsInSameTeam = candidate:Team() == LocalPlayer():Team()
+		IsInSameTeam = (PlayerOutlineTeamFlip == nil and IsInSameTeam) or not IsInSameTeam
+		if ShouldDraw and IsInSameTeam == true then
 			outline.Add(candidate, rv_outlinescolorstringcolor, 2, rv_outlinesthicknessint)
 			PlayersDrawn = PlayersDrawn + 1
 		end

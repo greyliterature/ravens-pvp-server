@@ -97,9 +97,9 @@ if SERVER then
         end
     end
 
-    hook.Add("HealPlayer", "HealPlayer", function(ply, victim)
-        local ShouldHealPlayer = hook.Run("ShouldHealPlayer", ply)
-        if ShouldHealPlayer == false then return end
+    hook.Add("AwardPlayerHealth", "AwardPlayerHealth", function(ply, victim)
+        local ShouldAwardPlayerHealth = hook.Run("ShouldAwardPlayerHealth", ply)
+        if ShouldAwardPlayerHealth == false then return end
         if victim.DamageContributions[ply] < victim:GetSpawnHealth() * HealConvars.RewardMargin:GetFloat() then return end
         HealPlayer(ply, victim)
     end)
@@ -188,11 +188,16 @@ if SERVER then
         RefillAmmo(ply)
     end
 
-    hook.Add("RefillAmmo", "RefillAmmo", function(ply, victim)
-        local ShouldRefillPlayerAmmo = hook.Run("ShouldRefillPlayerAmmo", ply)
-        if ShouldRefillPlayerAmmo == false then return end
+    hook.Add("AwardPlayerAmmo", "AwardPlayerAmmo", function(ply, victim)
+        local ShouldAwardPlayerAmmo = hook.Run("ShouldAwardPlayerAmmo", ply)
+        if ShouldAwardPlayerAmmo == false then return end
         if victim.DamageContributions[ply] < victim:GetMaxHealth() * RefillConvars.RewardMargin:GetFloat() then return end
         RefillPlayer(ply, victim)
+    end)
+
+    hook.Add("RefillAmmo", "RefillAmmo", function(ply)
+        RefillAmmo(ply)
+        return
     end)
 
     --[[
@@ -204,8 +209,8 @@ if SERVER then
     hook.Add("RewardPlayer", "RewardPlayer", function(ply, victim)
         local ShouldRewardPlayer = hook.Run("ShouldRewardPlayer", ply)
         if ShouldRewardPlayer == false then return end
-        hook.Run("HealPlayer", ply, victim)
-        hook.Run("RefillAmmo", ply, victim)
+        hook.Run("AwardPlayerHealth", ply, victim)
+        hook.Run("AwardPlayerAmmo", ply, victim)
         victim.DamageContributions = {}
     end)
 
@@ -247,6 +252,7 @@ if SERVER then
         local HookLoadout = hook.Run("GetCustomLoadout", ply) or Loadout
         for weapon, ammocount in pairs(HookLoadout) do
             local weap = ply:Give(weapon)
+            if not IsValid(weap) then weap = ply:GetWeapon(weapon) end
             if not IsValid(weap) then continue end
             local AmmoType = weap:GetPrimaryAmmoType()
             ply:SetAmmo(ammocount, AmmoType)
@@ -256,7 +262,7 @@ if SERVER then
         ply:SetMaxHealth(hook.Run("GetDamageLogicRules", ply, "MAXHEALTH") or LoadoutConvars.MaxHealth:GetInt())
         ply:SetHealth(hook.Run("GetDamageLogicRules", ply, "SPAWNHEALTH") or LoadoutConvars.SpawnHealth:GetInt())
         ply:SetMaxArmor(hook.Run("GetDamageLogicRules", ply, "MAXARMOR") or LoadoutConvars.MaxArmor:GetInt())
-        ply:SetArmor(hook.Run("GetDamageLogicRules", ply, "MAXHEALTH") or LoadoutConvars.SpawnArmor:GetInt())
+        ply:SetArmor(hook.Run("GetDamageLogicRules", ply, "SPAWNARMOR") or LoadoutConvars.SpawnArmor:GetInt())
         return true
     end)
 

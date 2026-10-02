@@ -54,7 +54,7 @@ local function UpdateDatabaseGlicko(winner, winnerscore, loser, loserscore, cate
     local highestmatchid = sql.QueryTyped("SELECT MAX(match_id) FROM match_data WHERE match_id")
     local matches_count = (highestmatchid[1]["MAX(match_id)"] or 0) + 1
     ratingperiod = math.ceil(matches_count / RatingPeriodInterval)
-    sql.QueryTyped("INSERT INTO match_data (winner_SteamID64, loser_SteamID64, category, matchdate, forfeited, winnerscore, loserscore, ratingperiod, rated ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", --
+    sql.QueryTyped("INSERT INTO match_data (winner_SteamID64, loser_SteamID64, category, matchdate, forfeited, winnerscore, loserscore, rated ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", --
         IsValid(winner) and winner:SteamID64() or winner, -- winnersteamid64
         IsValid(loser) and loser:SteamID64() or loser, -- losersteamid64
         category, -- category

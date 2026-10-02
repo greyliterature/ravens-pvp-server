@@ -249,7 +249,7 @@
     end
 
     local Avatar = vgui.Create("AvatarImage", PlayerInfoHolder)
-    Avatar:SetSteamID("76561198239588280")
+    Avatar:SetSteamID("")
     Avatar:SetPos(AvatarMargin, AvatarMargin)
     Avatar:SetSize(AvatarSize, AvatarSize)
     local NickHolder = vgui.Create("DPanel", PlayerInfoHolder)
@@ -563,20 +563,20 @@
         {
             map = "105982362",
             mapname = "gm_bigcity",
-            winnersteamid64 = "765611982395",
+            winnersteamid64 = "",
             winnerscore = "16",
             loserscore = "9",
-            losersteamid64 = "7656119877892",
+            losersteamid64 = "",
             winnerglicko = 1300, -- this can be inferred from sql queries though, dont actually track this
             loserglicko = 15000,
         },
         {
             map = "105982362",
             mapname = "gm_bigcity",
-            winnersteamid64 = "7656119877892",
+            winnersteamid64 = "",
             winnerscore = "20",
             loserscore = "7",
-            losersteamid64 = "7656119823958",
+            losersteamid64 = "",
             winnerglicko = 1300, -- this can be inferred from sql queries though, dont actually track this
             loserglicko = 15000,
         }
@@ -642,4 +642,120 @@
             self:DrawOutlinedRect()
         end
     end
+end
+
+local Queries = {
+    ["MATCH_DATA"] = {
+        query = "SELECT * FROM match_data WHERE winner_SteamID64 = ? OR loser_SteamID64 = ? LIMIT 10",
+        expectedargs = {"string", "string"},
+        expectedresponse = {
+            ["category"] = "String", --
+            ["forfeited"] = "Bool",
+            ["loserscore"] = {
+                "UInt", --
+                5
+            },
+            ["loserglicko"] = {
+                "Int", --
+                14,
+            },
+            ["loser_SteamID64"] = "UInt64",
+            ["match_id"] = {
+                "UInt", --
+                10
+            },
+            ["matchdate"] = "UInt64", -- https://en.wikipedia.org/wiki/Year_2038_problem
+            ["winner_SteamID64"] = "UInt64",
+            ["winnerscore"] = {
+                "UInt", --
+                5
+            },
+            ["winnerglicko"] = {
+                "Int", --
+                14
+            },
+        }
+    },
+}
+
+if CLIENT then
+    function sql.AskServer(querycode, argstbl)
+        if not Queries[querycode] then return end
+        net.Start("sql.AskServer")
+        net.WriteString(querycode)
+        for i = 1, #argstbl do
+            local expectedarg = Queries[querycode].expectedargs[i]
+            expectedarg = string.upper(string.sub(expectedarg, 1, 1)) .. string.sub(expectedarg, 2) -- string -> String for: net.WriteString
+            net["Write" .. expectedarg](argstbl[i])
+        end
+
+        net.SendToServer()
+    end
+
+    net.Receive("sql.Reply", function(_, _)
+        local NumSQLResultKeys = net.ReadUInt(8)
+        local querycode = net.ReadString() -- client has to know what hes getting back 
+        local resulttbl = {}
+        for i = 1, NumSQLResultKeys do
+            resulttbl[#resulttbl + 1] = {}
+            for responsename, responsetype in pairs(Queries[querycode].expectedresponse) do
+                local UIntBitCount = nil
+                if istable(responsetype) then -- its a UInt table
+                    UIntBitCount = responsetype[2]
+                    responsetype = responsetype[1]
+                end
+
+                resulttbl[#resulttbl][responsename] = net["Read" .. responsetype](UIntBitCount)
+            end
+        end
+
+        PrintTable(resulttbl)
+    end)
+elseif SERVER then
+    util.AddNetworkString("sql.AskServer")
+    util.AddNetworkString("sql.Reply")
+    local RateLimit = 5
+    local RateLimits = {}
+    net.Receive("sql.AskServer", function(len, ply)
+        RateLimits[ply] = RateLimits[ply] or {}
+        local querycode = net.ReadString()
+        RateLimits[ply][querycode] = RateLimits[ply][querycode] or 0
+        if RateLimits[ply][querycode] + RateLimit > CurTime() then
+            print("Rate limiting sql.askserver for " .. ply:Nick() .. ", " .. ply:SteamID())
+            return
+        end
+
+        RateLimits[ply][querycode] = CurTime()
+        local query = Queries[querycode].query
+        if not query then return end
+        local args = {}
+        local expectedargs = Queries[querycode].expectedargs
+        for i = 1, #expectedargs do
+            local expectedarg = expectedargs[i]
+            expectedarg = string.upper(string.sub(expectedarg, 1, 1)) .. string.sub(expectedarg, 2) -- string -> String for: net.WriteString
+            args[#args + 1] = net["Read" .. expectedarg]()
+        end
+
+        -- response
+        local result = sql.QueryTyped(query, unpack(args))
+        PrintTable(result)
+        net.Start("sql.Reply")
+        local NumSQLResultKeys = #result
+        net.WriteUInt(NumSQLResultKeys, 8)
+        net.WriteString(querycode) -- client has to know what hes getting back 
+        for i = 1, NumSQLResultKeys do
+            local resulttbl = result[i]
+            for responsename, responsetype in pairs(Queries[querycode].expectedresponse) do
+                local UIntBitCount = nil
+                if istable(responsetype) then -- its a UInt table
+                    UIntBitCount = responsetype[2]
+                    responsetype = responsetype[1]
+                end
+
+                net["Write" .. responsetype](resulttbl[responsename], UIntBitCount)
+            end
+        end
+
+        net.Send(ply)
+    end)
 end

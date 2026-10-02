@@ -130,7 +130,7 @@ local function RequestDuel(CallingPly, InvitedPlyName) -- add a score variable t
     SendDuelRequest(CallingPly, InvitedPly)
 end
 
---RequestDuel(Entity(2), "ture")
+-- RequestDuel(Entity(2), "p")
 --[[
 -- I have no made it function with multiple duels running at the same time, hopefully this isn't needed.
 
@@ -165,7 +165,10 @@ local function EndDuel(winner, loser, arenanumber, reason)
     local ShouldUpdateGlickos = loser.OptedIn == true and winner.OptedIn == true
     for k, ply in ipairs(team.GetPlayers(arenanumber)) do
         ply.OldRating = select(2, GetGlicko(ply:SteamID64(), "Duel"))
-        if k == 1 then UpdateDatabaseGlicko(WinnerSteamID64, winner.DuelScore, LoserSteamID64, loser.DuelScore, "Duel", reason == "(Player forfeited)" or reason == "(Player disconnected)", ShouldUpdateGlickos) end
+        if k == 1 then --
+            UpdateDatabaseGlicko(WinnerSteamID64, winner.DuelScore, LoserSteamID64, loser.DuelScore, "Duel", reason == "(Player forfeited)" or reason == "(Player disconnected)", ShouldUpdateGlickos)
+        end
+
         ply.NewRating = select(2, GetGlicko(ply:SteamID64(), "Duel"))
         ply.NewRD = select(1, GetGlicko(ply:SteamID64(), "Duel"))
         ply:SetNWString("DuelRating", tostring(math.Truncate(ply.NewRating, 0)))
@@ -262,7 +265,7 @@ local function StartDuel(CallingPly, InvitedPly)
         ply.DuelScore = 0
         ply.LastScore = 0
         ply.InDuel = true
-        ply.OptedIn = tobool(ply:GetInfoNum("rv_optin", 0))
+        ply.OptedIn = tobool(ply:GetInfoNum("rv_optin", 0)) or ply:IsBot()
         ply:SetNWBool("Duelling", true)
         SendHUD(ply)
         ply:SetNWInt("ArenaNumber", BestArenaIndex)

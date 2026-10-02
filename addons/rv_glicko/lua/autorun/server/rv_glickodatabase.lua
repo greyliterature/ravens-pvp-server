@@ -1,6 +1,6 @@
 -- TODO
 -- local matches_count = (highestmatchid[1]["MAX(match_id)"] or 0) + 1 -- this line makes the first match ALWAYS rating period 1, then after that are different rating periods. WRONG!
-local CalculateNewGlicko, _ = include("autorun/server/rv_glicko.lua")
+local CalculateNewGlicko, GetGlicko = include("autorun/server/rv_glicko.lua")
 --[[-----------------------
     Constants
 -------------------------]]
@@ -39,7 +39,7 @@ local function UpdateGlicko(ply, newrating, newrd, category, matchid)
 end
 
 -- Make match_data and player_glickos table
-sql.QueryTyped("CREATE TABLE IF NOT EXISTS match_data ( match_id INTEGER PRIMARY KEY AUTOINCREMENT, winner_SteamID64 TEXT, loser_SteamID64 TEXT, category TEXT, matchdate TEXT, forfeited BOOLEAN, winnerscore INTEGER, loserscore INTEGER, ratingperiod INTEGER, rated INTEGER DEFAULT 0 )")
+sql.QueryTyped("CREATE TABLE IF NOT EXISTS match_data ( match_id INTEGER PRIMARY KEY AUTOINCREMENT, winner_SteamID64 TEXT, loser_SteamID64 TEXT, category TEXT, matchdate TEXT, forfeited BOOLEAN, winnerscore INTEGER, loserscore INTEGER, winnerglicko INTEGER, loserglicko INTEGER, ratingperiod INTEGER, rated INTEGER DEFAULT 0 )")
 sql.QueryTyped("CREATE TABLE IF NOT EXISTS player_glickos (steamid64 TEXT UNIQUE, rating INTEGER, rd INTEGER, matchessincelastrating INTEGER, lastmatchid INTEGER)")
 --
 --[[
@@ -54,16 +54,6 @@ local function UpdateDatabaseGlicko(winner, winnerscore, loser, loserscore, cate
     local highestmatchid = sql.QueryTyped("SELECT MAX(match_id) FROM match_data WHERE match_id")
     local matches_count = (highestmatchid[1]["MAX(match_id)"] or 0) + 1
     ratingperiod = math.ceil(matches_count / RatingPeriodInterval)
-    sql.QueryTyped("INSERT INTO match_data (winner_SteamID64, loser_SteamID64, category, matchdate, forfeited, winnerscore, loserscore, rated ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", --
-        IsValid(winner) and winner:SteamID64() or winner, -- winnersteamid64
-        IsValid(loser) and loser:SteamID64() or loser, -- losersteamid64
-        category, -- category
-        tostring(os.time()), -- matchdate
-        forfeited, -- forfeited
-        winnerscore, -- winnerscore
-        loserscore, -- loserscore
-        rated)
-
     if rated == true then
         local players = {winner, loser}
         for _, ply in ipairs(players) do
@@ -83,6 +73,20 @@ local function UpdateDatabaseGlicko(winner, winnerscore, loser, loserscore, cate
             end
         end
     end
+
+    --
+    local winnerglicko, loserglicko = select(2, GetGlicko((IsValid(winner) and winner:SteamID64()) or winner)), select(2, GetGlicko((IsValid(loser) and loser:SteamID64()) or loser))
+    sql.QueryTyped("INSERT INTO match_data (winner_SteamID64, loser_SteamID64, category, matchdate, forfeited, winnerscore, loserscore, winnerglicko, loserglicko, rated ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", --
+        IsValid(winner) and winner:SteamID64() or winner, -- winnersteamid64
+        IsValid(loser) and loser:SteamID64() or loser, -- losersteamid64
+        category, -- category
+        tostring(os.time()), -- matchdate
+        forfeited, -- forfeited
+        winnerscore, -- winnerscore
+        loserscore, -- loserscore
+        winnerglicko, -- 
+        loserglicko, --
+        rated)
 end
 
 local function GetMatchesLeft(steamid)

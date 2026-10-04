@@ -1,4 +1,4 @@
-local function GetMapWSID(mapname)
+function GetMapWSID(mapname)
     local CurrentMap = sql.QueryTyped("SELECT wsid FROM hotloaded_maps WHERE mapname = ?", mapname .. ".bsp")
     if CurrentMap ~= false and CurrentMap[1] then return CurrentMap[1]["wsid"] end
     for _, v in ipairs(engine.GetAddons()) do

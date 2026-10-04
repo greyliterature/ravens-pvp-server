@@ -76,6 +76,7 @@ local function UpdateDatabaseGlicko(winner, winnerscore, loser, loserscore, cate
 
     --
     local winnerglicko, loserglicko = select(2, GetGlicko((IsValid(winner) and winner:SteamID64()) or winner)), select(2, GetGlicko((IsValid(loser) and loser:SteamID64()) or loser))
+    local map = game.GetMap()
     sql.QueryTyped("INSERT INTO match_data (winner_SteamID64, loser_SteamID64, category, matchdate, forfeited, winnerscore, loserscore, winnerglicko, loserglicko, rated ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", --
         IsValid(winner) and winner:SteamID64() or winner, -- winnersteamid64
         IsValid(loser) and loser:SteamID64() or loser, -- losersteamid64
@@ -86,7 +87,9 @@ local function UpdateDatabaseGlicko(winner, winnerscore, loser, loserscore, cate
         loserscore, -- loserscore
         winnerglicko, -- 
         loserglicko, --
-        rated)
+        rated, --
+        map, --
+        GetMapWSID(map))
 end
 
 local function GetMatchesLeft(steamid)

@@ -8,7 +8,7 @@ function GetMapWSID(mapname)
             if bspname == mapname .. ".bsp" then return v.wsid end
         end
     end
-    return "VANILLA?"
+    return -1 -- the wsid wasn't found, -1 = vanillamap or bug
 end
 
 -- Make map icons table

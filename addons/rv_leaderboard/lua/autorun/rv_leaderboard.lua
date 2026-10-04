@@ -423,6 +423,7 @@
     end
 
     RadarChart:SetLabels(LabelFuncs)
+    local CurrentlyOpenedProfile = ""
     local MatchesPlayed = InfoHolder(Panel, Panel:GetWide() * 0.5, 128, "Matches Played", "Stratum_Bold_Smaller", color_csgogrey, Panel:GetWide() * 0.01, Panel:GetTall() * 0.01)
     MatchesPlayed:SetX(MapPerformance:GetX())
     MatchesPlayed:SetY(Header:GetY() + MarginFromEdge)
@@ -442,22 +443,24 @@
         draw.Circle(x, y, DotRadius, 255)
     end
 
-    function MatchesPlayed.PaintOver(self, w, h)
-        draw.DrawText(MatchesPlayed_number, "Stratum_Bold", Panel:GetWide() * 0.01, h * 0.1, color_csgogrey, TEXT_ALIGN_LEFT)
-        surface.SetDrawColor(color_green)
-        --draw.Circle(DotsMargin, DotsY, h * 0.02, 255)
-        DrawDot(DotsMargin, DotsY)
-        draw.SimpleText("Wins", "Stratum_Bold_Smaller", DotsHeight + TextMargin, DotsY + DotsMargin * 0, color_csgodarkgrey, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-        draw.SimpleText(Wins, "Stratum_Bold_Smaller", w - DotsMargin, DotsY + DotsMargin * 0, color_csgogrey, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
-        surface.SetDrawColor(color_fadedyellow)
-        DrawDot(DotsMargin, DotsY + DotsMargin * 1)
-        draw.SimpleText("Ties", "Stratum_Bold_Smaller", DotsHeight + TextMargin, DotsY + DotsMargin * 1, color_csgodarkgrey, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-        draw.SimpleText(Ties, "Stratum_Bold_Smaller", w - DotsMargin, DotsY + DotsMargin * 1, color_csgogrey, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
-        surface.SetDrawColor(color_fadedred)
-        DrawDot(DotsMargin, DotsY + DotsMargin * 2)
-        draw.SimpleText("Losses", "Stratum_Bold_Smaller", DotsHeight + TextMargin, DotsY + DotsMargin * 2, color_csgodarkgrey, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-        draw.SimpleText(Losses, "Stratum_Bold_Smaller", w - DotsMargin, DotsY + DotsMargin * 2, color_csgogrey, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
-    end
+    sql.AskServer("MATCHES_PLAYED", {CurrentlyOpenedProfile}, function(querycode, resulttbl)
+        function MatchesPlayed.PaintOver(self, w, h)
+            draw.DrawText(resulttbl[1].matchesplayed, "Stratum_Bold", Panel:GetWide() * 0.01, h * 0.1, color_csgogrey, TEXT_ALIGN_LEFT)
+            surface.SetDrawColor(color_green)
+            --draw.Circle(DotsMargin, DotsY, h * 0.02, 255)
+            DrawDot(DotsMargin, DotsY)
+            draw.SimpleText("Wins", "Stratum_Bold_Smaller", DotsHeight + TextMargin, DotsY + DotsMargin * 0, color_csgodarkgrey, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+            draw.SimpleText(resulttbl[1].matcheswon, "Stratum_Bold_Smaller", w - DotsMargin, DotsY + DotsMargin * 0, color_csgogrey, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
+            surface.SetDrawColor(color_fadedyellow)
+            DrawDot(DotsMargin, DotsY + DotsMargin * 1)
+            draw.SimpleText("Ties", "Stratum_Bold_Smaller", DotsHeight + TextMargin, DotsY + DotsMargin * 1, color_csgodarkgrey, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+            draw.SimpleText(resulttbl[1].matchestied, "Stratum_Bold_Smaller", w - DotsMargin, DotsY + DotsMargin * 1, color_csgogrey, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
+            surface.SetDrawColor(color_fadedred)
+            DrawDot(DotsMargin, DotsY + DotsMargin * 2)
+            draw.SimpleText("Losses", "Stratum_Bold_Smaller", DotsHeight + TextMargin, DotsY + DotsMargin * 2, color_csgodarkgrey, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+            draw.SimpleText(resulttbl[1].matcheslost, "Stratum_Bold_Smaller", w - DotsMargin, DotsY + DotsMargin * 2, color_csgogrey, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
+        end
+    end)
 
     ----
     local SeperatorY = Panel:GetTall() * 0.01
@@ -559,89 +562,80 @@
     surface.SetFont("Stratum_Bold_Smaller")
     local _, TextH = surface.GetTextSize("Matches history")
     --MatchHistory:DockPadding(MarginFromEdge, Panel:GetWide() * 0.01 + TextH, MarginFromEdge, Panel:GetWide() * 0.01 + TextH)
-    local MatchesHistory = {
-        {
-            map = "105982362",
-            mapname = "gm_bigcity",
-            winnersteamid64 = "",
-            winnerscore = "16",
-            loserscore = "9",
-            losersteamid64 = "",
-            winnerglicko = 1300, -- this can be inferred from sql queries though, dont actually track this
-            loserglicko = 15000,
-        },
-        {
-            map = "105982362",
-            mapname = "gm_bigcity",
-            winnersteamid64 = "",
-            winnerscore = "20",
-            loserscore = "7",
-            losersteamid64 = "",
-            winnerglicko = 1300, -- this can be inferred from sql queries though, dont actually track this
-            loserglicko = 15000,
-        }
-    }
-
+    local MatchesHistory = {}
     local MatchMapMaterials = {}
-    for i = 1, #MatchesHistory do
-        steamworks.FileInfo(MatchesHistory[i].map, function(result)
-            steamworks.Download(result.previewid, true, function(name)
-                --
-                MatchMapMaterials[#MatchMapMaterials + 1] = AddonMaterial(name)
-            end)
-        end)
-    end
-
     local function HasLoadedAllMatchMaps()
         return #MatchMapMaterials == #MatchesHistory
     end
 
-    for i = 1, #MatchesHistory do
-        local tbl = MatchesHistory[i]
-        local MatchPanel = vgui.Create("DPanel", MatchHistory)
-        --MatchPanel:Dock(TOP)
-        local MatchPanelHeight = MatchHistory:GetTall() * 0.07
-        MatchPanel:SetBackgroundColor(color_transparentish_black)
-        MatchPanel:SetX(MarginFromEdge)
-        MatchPanel:SetY(MatchPanelHeight * (i - 1) + Panel:GetWide() * 0.01 + TextH + ((i == 1 and 0) or MarginFromEdge * 0.5))
-        MatchPanel:SetWide(MatchHistory:GetWide() - MarginFromEdge * 2)
-        MatchPanel:SetTall(MatchPanelHeight)
-        local MapRectSize = Panel:GetTall() * 0.03057
-        function MatchPanel.Paint(self, w, h)
-            if not HasLoadedAllMatchMaps() then return end
-            surface.SetDrawColor(color_transparentish_black)
-            surface.DrawRect(0, 0, w, h)
-            surface.SetDrawColor((tbl.winnersteamid64 == LocalPlayer() and color_green) or (tbl.winnerscore == tbl.loserscore and color_fadedyellow) or color_fadedred)
-            DrawDot(DotsMargin, h * 0.5)
-            surface.SetDrawColor(color_white)
-            surface.SetMaterial(MatchMapMaterials[i])
-            surface.DrawTexturedRect(DotsMargin * 2, (h - MapRectSize) * 0.5, MapRectSize, MapRectSize)
-            draw.SimpleText(tbl.mapname, "Stratum_Bold_Smaller", DotsMargin * 2 + w * 0.09, h * 0.5, color_csgodarkgrey, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-            draw.SimpleText(tbl.winnerscore .. " - " .. tbl.loserscore, "Stratum_Bold_Smaller", w * 0.5, h * 0.5, color_csgodarkgrey, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+    sql.AskServer("MATCH_DATA", {CurrentlyOpenedProfile, CurrentlyOpenedProfile}, function(querycode, resulttbl)
+        MatchesHistory = resulttbl
+        for i = 1, #MatchesHistory do
+            local map = MatchesHistory[i].map
+            if map == "gm_construct" then
+                MatchMapMaterials[#MatchMapMaterials + 1] = Material("maps/thumb/gm_construct.png")
+                continue
+            elseif map == "gm_flatgrass" then
+                MatchMapMaterials[#MatchMapMaterials + 1] = Material("maps/thumb/gm_flatgrass.png")
+                continue
+            end
+
+            steamworks.FileInfo(map, function(result)
+                steamworks.Download(result.previewid, true, function(name)
+                    --
+                    MatchMapMaterials[#MatchMapMaterials + 1] = AddonMaterial(name)
+                end)
+            end)
         end
 
-        local WinnerAvatar = vgui.Create("AvatarImage", MatchPanel)
-        WinnerAvatar:SetSize(MapRectSize, MapRectSize)
-        WinnerAvatar:SetSteamID(tbl.winnersteamid64)
-        WinnerAvatar:SetPos(MatchPanel:GetWide() * 0.8, (MatchPanel:GetTall() - MapRectSize) * 0.5)
-        WinnerAvatar:SetSize(MapRectSize, MapRectSize)
-        WinnerAvatar:DrawOutlinedRect(3)
-        function WinnerAvatar.PaintOver(self, w, h)
-            surface.SetDrawColor(color_green)
-            self:DrawOutlinedRect()
-        end
+        --
+        for i = 1, #MatchesHistory do
+            local tbl = MatchesHistory[i]
+            local MatchPanel = vgui.Create("DPanel", MatchHistory)
+            --MatchPanel:Dock(TOP)
+            local MatchPanelHeight = MatchHistory:GetTall() * 0.07
+            MatchPanel:SetBackgroundColor(color_transparentish_black)
+            MatchPanel:SetX(MarginFromEdge)
+            MatchPanel:SetY(MatchPanelHeight * (i - 1) + Panel:GetWide() * 0.01 + TextH + ((i == 1 and 0) or MarginFromEdge * 0.5))
+            MatchPanel:SetWide(MatchHistory:GetWide() - MarginFromEdge * 2)
+            MatchPanel:SetTall(MatchPanelHeight)
+            local MapRectSize = Panel:GetTall() * 0.03057
+            function MatchPanel.Paint(self, w, h)
+                if not HasLoadedAllMatchMaps() then return end
+                surface.SetDrawColor(color_transparentish_black)
+                surface.DrawRect(0, 0, w, h)
+                surface.SetDrawColor((tbl.winner_SteamID64 == LocalPlayer() and color_green) or (tbl.winnerscore == tbl.loserscore and color_fadedyellow) or color_fadedred)
+                DrawDot(DotsMargin, h * 0.5)
+                surface.SetDrawColor(color_white)
+                surface.SetMaterial(MatchMapMaterials[i])
+                surface.DrawTexturedRect(DotsMargin * 2, (h - MapRectSize) * 0.5, MapRectSize, MapRectSize)
+                draw.SimpleText(tbl.map, "Stratum_Bold_Smaller", DotsMargin * 2 + w * 0.09, h * 0.5, color_csgodarkgrey, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+                draw.SimpleText(tbl.winnerscore .. " - " .. tbl.loserscore, "Stratum_Bold_Smaller", w * 0.5, h * 0.5, color_csgodarkgrey, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+            end
 
-        local LoserAvatar = vgui.Create("AvatarImage", MatchPanel)
-        LoserAvatar:SetSize(MapRectSize, MapRectSize)
-        LoserAvatar:SetSteamID(tbl.losersteamid64)
-        LoserAvatar:SetPos(WinnerAvatar:GetX() + MapRectSize + MatchPanel:GetWide() * 0.01, (MatchPanel:GetTall() - MapRectSize) * 0.5)
-        LoserAvatar:SetSize(MapRectSize, MapRectSize)
-        LoserAvatar:DrawOutlinedRect(3)
-        function LoserAvatar.PaintOver(self, w, h)
-            surface.SetDrawColor(color_fadedred)
-            self:DrawOutlinedRect()
+            local WinnerAvatar = vgui.Create("AvatarImage", MatchPanel)
+            WinnerAvatar:SetSize(MapRectSize, MapRectSize)
+            WinnerAvatar:SetSteamID(tbl.winner_SteamID64)
+            WinnerAvatar:SetPos(MatchPanel:GetWide() * 0.8, (MatchPanel:GetTall() - MapRectSize) * 0.5)
+            WinnerAvatar:SetSize(MapRectSize, MapRectSize)
+            WinnerAvatar:DrawOutlinedRect(3)
+            function WinnerAvatar.PaintOver(self, w, h)
+                surface.SetDrawColor(color_green)
+                self:DrawOutlinedRect()
+            end
+
+            local LoserAvatar = vgui.Create("AvatarImage", MatchPanel)
+            LoserAvatar:SetSize(MapRectSize, MapRectSize)
+            LoserAvatar:SetSteamID(tbl.loser_SteamID64)
+            LoserAvatar:SetPos(WinnerAvatar:GetX() + MapRectSize + MatchPanel:GetWide() * 0.01, (MatchPanel:GetTall() - MapRectSize) * 0.5)
+            LoserAvatar:SetSize(MapRectSize, MapRectSize)
+            LoserAvatar:DrawOutlinedRect(3)
+            function LoserAvatar.PaintOver(self, w, h)
+                surface.SetDrawColor(color_fadedred)
+                self:DrawOutlinedRect()
+            end
         end
-    end
+    end)
 end
 
 local Queries = {
@@ -660,6 +654,11 @@ local Queries = {
                 14,
             },
             ["loser_SteamID64"] = "UInt64",
+            ["map"] = "String",
+            ["mapwsid"] = {
+                "UInt", -- not sure how large wsids are
+                14
+            },
             ["match_id"] = {
                 "UInt", --
                 10
@@ -670,17 +669,43 @@ local Queries = {
                 "UInt", --
                 5
             },
+            ["rated"] = "Bool",
             ["winnerglicko"] = {
                 "Int", --
                 14
             },
         }
     },
+    ["MATCHES_PLAYED"] = {
+        query = "WITH me AS (SELECT ? AS id) SELECT COUNT(*) AS matchesplayed, COALESCE(SUM(winner_SteamID64 = me.id), 0) AS matcheswon, COALESCE(SUM(loser_SteamID64 = me.id), 0) AS matcheslost, COALESCE(SUM(winnerscore = loserscore), 0) AS matchestied FROM match_data, me WHERE winner_SteamID64 = me.id OR loser_SteamID64 = me.id",
+        expectedargs = {"string"},
+        expectedresponse = {
+            ["matcheslost"] = {
+                "UInt", --
+                10
+            },
+            ["matchesplayed"] = {
+                "UInt", --
+                10
+            },
+            ["matcheswon"] = {
+                "UInt", --
+                10
+            },
+            ["matchestied"] = {
+                "UInt", --
+                10
+            }
+        }
+    },
 }
 
 if CLIENT then
-    function sql.AskServer(querycode, argstbl)
+    sql.AskServerCallbackQueue = sql.AskServerCallbackQueue or {}
+    local CallbackQueue = sql.AskServerCallbackQueue
+    function sql.AskServer(querycode, argstbl, callback)
         if not Queries[querycode] then return end
+        CallbackQueue[querycode] = callback
         net.Start("sql.AskServer")
         net.WriteString(querycode)
         for i = 1, #argstbl do
@@ -709,7 +734,7 @@ if CLIENT then
             end
         end
 
-        PrintTable(resulttbl)
+        CallbackQueue[querycode](querycode, resulttbl)
     end)
 elseif SERVER then
     util.AddNetworkString("sql.AskServer")

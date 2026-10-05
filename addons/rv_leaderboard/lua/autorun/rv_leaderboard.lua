@@ -63,12 +63,20 @@ local Queries = {
         },
     },
     ["PLAYER_INFO"] = {
-        query = "SELECT damage, timesjoined FROM player_info WHERE steamid32 = ?",
+        query = "SELECT damage, kills, deaths, timesjoined FROM player_info WHERE steamid32 = ?",
         expectedargs = {"string"},
         expectedresponse = {
             ["damage"] = {
                 "UInt", --
                 10,
+            },
+            ["kills"] = {
+                "UInt", --
+                10
+            },
+            ["deaths"] = {
+                "UInt", --
+                10
             },
             ["timesjoined"] = {
                 "UInt", --
@@ -622,7 +630,6 @@ if CLIENT then
         end
 
         sql.AskServer("MATCHES_PLAYED", {CurrentlyOpenedProfile}, function(querycode, resulttbl)
-            print("HII")
             function MatchesPlayed.PaintOver(self, w, h)
                 draw.DrawText(resulttbl[1].matchesplayed, "Stratum_Bold", Panel:GetWide() * 0.01, h * 0.1, color_csgogrey, TEXT_ALIGN_LEFT)
                 surface.SetDrawColor(color_green)
@@ -643,7 +650,7 @@ if CLIENT then
 
         ----
         local SeperatorY = Panel:GetTall() * 0.01
-        local ADM = InfoHolder(Panel, Panel:GetWide() * 0.5, 128, "ADM", "Stratum_Bold_Smaller", color_csgogrey, Panel:GetWide() * 0.01, Panel:GetTall() * 0.01)
+        local ADM = InfoHolder(Panel, Panel:GetWide() * 0.5, 128, "ADG", "Stratum_Bold_Smaller", color_csgogrey, Panel:GetWide() * 0.01, Panel:GetTall() * 0.01)
         ADM:SetX(MatchesPlayed:GetX() + MatchesPlayed:GetWide())
         ADM:SetY(Header:GetY() + MarginFromEdge)
         ADM:SetWide(ScrW() * 0.10)
@@ -663,28 +670,14 @@ if CLIENT then
             draw.SimpleText(TimesJoined, "Stratum_Bold_Smaller", w - DotsMargin, DotsY + DotsMargin * 2, color_csgogrey, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
         end
 
-        sql.AskServer("PLAYER_INFO", {util.SteamIDFrom64(CurrentlyOpenedProfile)}, function(querycode, resulttbl)
-            --
-            PrintTable(resulttbl)
-            if #resulttbl == 0 then return end
-            Damage = resulttbl[1]["damage"]
-            TimesJoined = math.max(1, resulttbl[1]["timesjoined"])
-            if isnumber(TimesJoined) and isnumber(Damage) then --
-                ADM_number = math.Truncate(Damage / TimesJoined, 2)
-            end
-
-            Damage = math.Truncate(Damage / 1000, 1) .. "k"
-            PrintTable(resulttbl)
-        end)
-
         local Kills_Death = InfoHolder(Panel, Panel:GetWide() * 0.5, 128, "Kills/Death", "Stratum_Bold_Smaller", color_csgogrey, Panel:GetWide() * 0.01, Panel:GetTall() * 0.01)
         Kills_Death:SetX(ADM:GetX() + ADM:GetWide())
         Kills_Death:SetY(Header:GetY() + MarginFromEdge)
         Kills_Death:SetWide(ScrW() * 0.10)
         Kills_Death:SetTall(MapPerformance:GetY() - MatchesPlayed:GetY() - MarginFromEdge)
-        local Kills = 114
-        local Deaths = 100
-        local KD = math.Truncate(Kills / Deaths, 2)
+        local Kills = "N/A"
+        local Deaths = "N/A"
+        local KD = "N/A"
         function Kills_Death.PaintOver(self, w, h)
             surface.SetDrawColor(color_csgogrey)
             surface.DrawRect(0, SeperatorY, 1, h - SeperatorY * 2)
@@ -696,6 +689,22 @@ if CLIENT then
             draw.SimpleText("Deaths", "Stratum_Bold_Smaller", TextMargin, DotsY + DotsMargin * 2, color_csgodarkgrey, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
             draw.SimpleText(Deaths, "Stratum_Bold_Smaller", w - DotsMargin, DotsY + DotsMargin * 2, color_csgogrey, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
         end
+
+        sql.AskServer("PLAYER_INFO", {util.SteamIDFrom64(CurrentlyOpenedProfile)}, function(querycode, resulttbl)
+            --
+            PrintTable(resulttbl)
+            if #resulttbl == 0 then return end
+            Damage = resulttbl[1]["damage"]
+            TimesJoined = math.max(1, resulttbl[1]["timesjoined"])
+            if isnumber(TimesJoined) and isnumber(Damage) then --
+                ADM_number = math.Truncate(Damage / TimesJoined, 2)
+            end
+
+            Damage = math.Truncate(Damage / 1000, 1) .. "k"
+            Kills = resulttbl[1]["kills"]
+            Deaths = resulttbl[1]["deaths"]
+            KD = math.Truncate(Kills / (Deaths == 0 and 1) or Deaths, 2)
+        end)
 
         local BestWeapon = InfoHolder(Panel, Panel:GetWide() * 0.5, 128, "Best Weapon", "Stratum_Bold_Smaller", color_csgogrey, Panel:GetWide() * 0.01, Panel:GetTall() * 0.01)
         BestWeapon:SetX(Kills_Death:GetX() + Kills_Death:GetWide())
@@ -796,7 +805,7 @@ if CLIENT then
                     if not HasLoadedAllMatchMaps() then return end
                     surface.SetDrawColor(color_transparentish_black)
                     surface.DrawRect(0, 0, w, h)
-                    surface.SetDrawColor((tbl.winner_SteamID64 == LocalPlayer() and color_green) or (tbl.winnerscore == tbl.loserscore and color_fadedyellow) or color_fadedred)
+                    surface.SetDrawColor((tbl.winner_SteamID64 == CurrentlyOpenedProfile and color_green) or (tbl.winnerscore == tbl.loserscore and color_fadedyellow) or color_fadedred)
                     DrawDot(DotsMargin, h * 0.5)
                     surface.SetDrawColor(color_white)
                     surface.SetMaterial(MatchMapMaterials[i])
@@ -886,6 +895,22 @@ if SERVER then
             print("Updating " .. steamid32)
             sql.QueryTyped("INSERT INTO player_info (steamid32, damage) VALUES(?, ?) ON CONFLICT(steamid32) DO UPDATE SET damage=damage + ?", steamid32, damagecount, damagecount)
             DamageBatches[steamid32] = nil
+            i = i + 1
+        end
+
+        for steamid32, killcount in pairs(DeathBatches) do
+            if i >= BatchRunCount then break end
+            print("Updating " .. steamid32)
+            sql.QueryTyped("INSERT INTO player_info (steamid32, kills) VALUES(?, ?) ON CONFLICT(steamid32) DO UPDATE SET kills=kills + ?", steamid32, killcount, killcount)
+            KillBatches[steamid32] = nil
+            i = i + 1
+        end
+
+        for steamid32, deathcount in pairs(DeathBatches) do
+            if i >= BatchRunCount then break end
+            print("Updating " .. steamid32)
+            sql.QueryTyped("INSERT INTO player_info (steamid32, kills) VALUES(?, ?) ON CONFLICT(steamid32) DO UPDATE SET kills=kills + ?", steamid32, deathcount, deathcount)
+            DeathBatches[steamid32] = nil
             i = i + 1
         end
 

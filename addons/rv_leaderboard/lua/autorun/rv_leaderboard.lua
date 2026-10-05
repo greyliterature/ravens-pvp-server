@@ -84,6 +84,21 @@ local Queries = {
             }
         }
     },
+    ["WEAPON_KILLS"] = {
+        query = "SELECT weapon_kills.weaponclass, weapon_kills.kills AS kills, COALESCE(weapon_deaths.deaths, 0) AS deaths FROM weapon_kills LEFT JOIN weapon_deaths ON weapon_kills.steamid32 = weapon_deaths.steamid32 AND weapon_kills.weaponclass = weapon_deaths.weaponclass WHERE weapon_kills.steamid32 = ? LIMIT 100",
+        expectedargs = {"string"},
+        expectedresponse = {
+            ["deaths"] = {
+                "UInt", --
+                14
+            },
+            ["kills"] = {
+                "UInt", --
+                14
+            },
+            ["weaponclass"] = "String",
+        }
+    },
 }
 
 if SERVER then
@@ -113,11 +128,6 @@ if SERVER then
 
         -- response
         local result = sql.QueryTyped(query, unpack(args))
-        if querycode == "PLAYER_INFO" then
-            print("HI")
-            PrintTable(result)
-        end
-
         net.Start("sql.Reply")
         local NumSQLResultKeys = #result
         net.WriteUInt(NumSQLResultKeys, 8)
@@ -131,6 +141,7 @@ if SERVER then
                     responsetype = responsetype[1]
                 end
 
+                --if querycode == "WEAPON_KILLS" then print(responsetype, responsename) end
                 net["Write" .. responsetype](resulttbl[responsename], UIntBitCount)
             end
         end
@@ -360,7 +371,7 @@ if CLIENT then
 
     --[[--------------------------------------
         Helpers
-----------------------------------------]]
+    ----------------------------------------]]
     local function GetTextSize(font, text)
         surface.SetFont(font)
         return surface.GetTextSize(text)
@@ -368,7 +379,7 @@ if CLIENT then
 
     --[[--------------------------------------
         UI
-----------------------------------------]]
+    ----------------------------------------]]
     local RNDX = include("autorun/rndx.lua")
     local function OpenLeaderboard()
         if IsValid(Panel) then Panel:Remove() end
@@ -498,20 +509,15 @@ if CLIENT then
         end
 
         local WeaponStats = InfoHolder(Panel, Panel:GetWide() * 0.5, 128, "Weapon Kills", "Stratum_Bold_Smaller", color_csgogrey, Panel:GetWide() * 0.01, Panel:GetTall() * 0.01)
-        local Percents = {1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8}
-        local Labels = {{"Crowbar", "9MM", "357", "SMG", "AR2", "Shotgun", "Crossbow", "Grenade"},}
-        local Colors = {
-            [1] = {Color(128, 128, 0), Color(128, 0, 128), Color(0, 0, 128), Color(0, 128, 0), Color(128, 128, 128), Color(0, 0, 0, 255), Color(0, 255, 255)},
-        }
-
+        local Percents = {}
+        local Labels = {}
+        local Colors = {Color(128, 128, 0), Color(128, 0, 128), Color(0, 0, 128), Color(0, 128, 0), Color(128, 128, 128), Color(0, 255, 255),}
         local BottomMarginFromEdge = MarginFromEdge --Panel:GetTall() * 0.03
         WeaponStats:SetSize(ScrW() * 0.23, ScrH() * 0.33)
         WeaponStats:SetPos((Panel:GetWide() - WeaponStats:GetWide()) - BottomMarginFromEdge, Panel:GetTall() - WeaponStats:GetTall() - BottomMarginFromEdge)
         local PieChart = vgui.Create("SPieChart", WeaponStats)
         --PieChart:SetPos(Panel:GetWide() * 0.25, Panel:GetTall() * 0.5)
-        PieChart:SetPercents(Percents)
-        PieChart:SetLabels(Labels[1])
-        PieChart:SetColors(Colors[1])
+        PieChart:SetColors(Colors)
         PieChart:SetInnerCirclePercentage(0.7)
         PieChart:SetOutlineThickness(2)
         --PieChart:SetBackgroundColor(color_white)
@@ -527,7 +533,7 @@ if CLIENT then
         LabelHolder:SetColumnCount(1)
         -- you have to set the font and anything that changes width BEFORE calling attach
         LabelHolder:SetWide(WeaponStats:GetWide() * 0.45)
-        LabelHolder:Attach(PieChart) --, {1, 2, 3, 4})
+        --LabelHolder:Attach(PieChart)
         LabelHolder:SetX(PieChart:GetWide() * 1.3)
         LabelHolder:SetY(PieChart:GetY() + (PieChart:GetTall() - LabelHolder:GetTall()) * 0.3)
         LabelHolder:SetOverallAlignment(SGRID_ALIGN_LEFT)
@@ -720,12 +726,46 @@ if CLIENT then
             weapon_smg1 = "/",
         }
 
-        local _WeaponStats = {
-            {"weapon_357", 1.15, 38},
-            --
-            {"weapon_ar2", 0.6, 53},
-            {"weapon_crossbow", 4.5, 264},
+        local WeaponToNiceName = {
+            weapon_crowbar = "Crowbar",
+            weapon_pistol = "9MM",
+            weapon_357 = "357",
+            weapon_smg1 = "SMG",
+            weapon_ar2 = "AR2",
+            weapon_shotgun = "Shotgun",
+            weapon_crossbow = "Crossbow",
+            weapon_frag = "Grenade"
         }
+
+        local _WeaponStats = {}
+        sql.AskServer("WEAPON_KILLS", {util.SteamIDFrom64(CurrentlyOpenedProfile)}, function(querycode, resulttbl)
+            local killssum = 0
+            for i = 1, #resulttbl do
+                local kills = resulttbl[i]["kills"]
+                local deaths = math.max(1, resulttbl[i]["deaths"])
+                _WeaponStats[i] = {
+                    resulttbl[i]["weaponclass"], --
+                    kills / deaths,
+                    kills,
+                }
+
+                killssum = killssum + kills
+            end
+
+            table.sort(_WeaponStats, function(a, b) return a[2] > b[2] end)
+            -- piechart
+            for i = 1, #_WeaponStats do
+                local kills = _WeaponStats[i][2]
+                local weaponclass = _WeaponStats[i][1]
+                Percents[#Percents + 1] = kills / killssum
+                Labels[#Labels + 1] = WeaponToNiceName[weaponclass]
+            end
+
+            PieChart:SetPercents(Percents)
+            PieChart:SetLabels(Labels)
+            LabelHolder:Attach(PieChart)
+            PrintTable(Percents)
+        end)
 
         local WeaponsToDisplay = 3
         function BestWeapon.PaintOver(self, w, h)
@@ -848,9 +888,11 @@ end
 if SERVER then
     sql.QueryTyped("CREATE TABLE IF NOT EXISTS player_info ( steamid32 TEXT UNIQUE, damage INTEGER DEFAULT 0, kills INTEGER DEFAULT 0, deaths INTEGER DEFAULT 0, timesjoined INTEGER DEFAULT 0 )")
     sql.QueryTyped("CREATE TABLE IF NOT EXISTS weapon_kills ( steamid32 TEXT, weaponclass TEXT, kills INTEGER DEFAULT 0, PRIMARY KEY (steamid32, weaponclass) )")
+    sql.QueryTyped("CREATE TABLE IF NOT EXISTS weapon_deaths ( steamid32 TEXT, weaponclass TEXT, deaths INTEGER DEFAULT 0, PRIMARY KEY (steamid32, weaponclass) )")
     -- damage and weapon traccing
     local DamageBatches = {}
-    local WeaponBatches = {}
+    local WeaponKillBatches = {}
+    local WeaponDeathBatches = {}
     local KillBatches = {}
     local DeathBatches = {}
     hook.Add("PostEntityTakeDamage", "TrackPlayerDamage", function(ent, dmginfo, wasdamagetaken)
@@ -862,14 +904,17 @@ if SERVER then
         DamageBatches[attacker_steamid32] = (DamageBatches[attacker_steamid32] or 0) + dmginfo:GetDamage()
         if ent:Alive() == false or ent:Health() <= 0 then --
             local weapused = dmginfo:GetWeapon()
+            local ent_steamid32 = ent:SteamID()
             if IsValid(weapused) then --
                 local weaponclass = weapused:GetClass()
-                WeaponBatches[attacker_steamid32] = WeaponBatches[attacker_steamid32] or {}
-                WeaponBatches[attacker_steamid32][weaponclass] = (WeaponBatches[attacker_steamid32][weaponclass] or 0) + 1
+                WeaponKillBatches[attacker_steamid32] = WeaponKillBatches[attacker_steamid32] or {}
+                WeaponKillBatches[attacker_steamid32][weaponclass] = (WeaponKillBatches[attacker_steamid32][weaponclass] or 0) + 1
+                WeaponDeathBatches[ent_steamid32] = WeaponDeathBatches[ent_steamid32] or {}
+                WeaponDeathBatches[ent_steamid32][weaponclass] = (WeaponDeathBatches[ent_steamid32][weaponclass] or 0) + 1
             end
 
-            KillBatches[attacker:SteamID()] = (KillBatches[attacker:SteamID()] or 0) + 1
-            DeathBatches[ent:SteamID()] = (DeathBatches[attacker:SteamID()] or 0) + 1
+            KillBatches[attacker_steamid32] = (KillBatches[attacker_steamid32] or 0) + 1
+            DeathBatches[ent_steamid32] = (DeathBatches[ent_steamid32] or 0) + 1
         end
     end)
 
@@ -898,7 +943,7 @@ if SERVER then
             i = i + 1
         end
 
-        for steamid32, killcount in pairs(DeathBatches) do
+        for steamid32, killcount in pairs(KillBatches) do
             if i >= BatchRunCount then break end
             print("Updating " .. steamid32)
             sql.QueryTyped("INSERT INTO player_info (steamid32, kills) VALUES(?, ?) ON CONFLICT(steamid32) DO UPDATE SET kills=kills + ?", steamid32, killcount, killcount)
@@ -914,14 +959,25 @@ if SERVER then
             i = i + 1
         end
 
-        for steamid32, tbl in pairs(WeaponBatches) do
+        for steamid32, tbl in pairs(WeaponKillBatches) do
             if i >= BatchRunCount then break end
             for weaponclass, killcount in pairs(tbl) do
                 sql.QueryTyped("INSERT INTO weapon_kills (steamid32, weaponclass, kills) VALUES (?, ?, ?) ON CONFLICT(steamid32, weaponclass) DO UPDATE SET kills = kills + excluded.kills", steamid32, weaponclass, killcount)
-                WeaponBatches[steamid32][weaponclass] = nil
+                WeaponKillBatches[steamid32][weaponclass] = nil
             end
 
-            WeaponBatches[steamid32] = nil
+            WeaponKillBatches[steamid32] = nil
+            i = i + 1
+        end
+
+        for steamid32, tbl in pairs(WeaponDeathBatches) do
+            if i >= BatchRunCount then break end
+            for weaponclass, deathcount in pairs(tbl) do
+                sql.QueryTyped("INSERT INTO weapon_deaths (steamid32, weaponclass, deaths) VALUES (?, ?, ?) ON CONFLICT(steamid32, weaponclass) DO UPDATE SET deaths = deaths + excluded.deaths", steamid32, weaponclass, deathcount)
+                WeaponDeathBatches[steamid32][weaponclass] = nil
+            end
+
+            WeaponDeathBatches[steamid32] = nil
             i = i + 1
         end
 

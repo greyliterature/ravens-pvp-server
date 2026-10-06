@@ -1,6 +1,6 @@
 
 --[[--------------------------------------
-        sql s2c
+    sql s2c
 ----------------------------------------]]
 local Queries = {
     ["MATCH_DATA"] = {
@@ -42,7 +42,7 @@ local Queries = {
     },
     ["MATCHES_PLAYED"] = {
         query = "WITH me AS (SELECT ? AS id) SELECT COUNT(*) AS matchesplayed, COALESCE(SUM(winner_SteamID64 = me.id), 0) AS matcheswon, COALESCE(SUM(loser_SteamID64 = me.id), 0) AS matcheslost, COALESCE(SUM(winnerscore = loserscore), 0) AS matchestied FROM match_data, me WHERE winner_SteamID64 = me.id OR loser_SteamID64 = me.id",
-        expectedargs = {"string"},
+        expectedargs = {"String"},
         expectedresponse = {
             ["matcheslost"] = {
                 "UInt", --
@@ -62,9 +62,25 @@ local Queries = {
             }
         },
     },
+    ["MAPS_PLAYED"] = {
+        query = "WITH me as (SELECT ? as steamid) SELECT map, mapwsid, COALESCE(SUM(winner_SteamID64 = me.steamid), 0) AS won, COALESCE(SUM(loser_SteamID64 = me.steamid), 0) AS lost FROM match_data, me WHERE winner_SteamID64 = me.steamid OR loser_SteamID64 = me.steamid GROUP BY map, mapwsid LIMIT 75",
+        expectedargs = {"String"},
+        expectedresponse = {
+            ["map"] = "String",
+            ["mapwsid"] = "String",
+            ["won"] = {
+                "UInt", --
+                10
+            },
+            ["lost"] = {
+                "UInt", --
+                10
+            }
+        }
+    },
     ["PLAYER_INFO"] = {
         query = "SELECT damage, kills, deaths, timesjoined FROM player_info WHERE steamid32 = ?",
-        expectedargs = {"string"},
+        expectedargs = {"String"},
         expectedresponse = {
             ["damage"] = {
                 "UInt", --
@@ -86,7 +102,7 @@ local Queries = {
     },
     ["WEAPON_KILLS"] = {
         query = "SELECT weapon_kills.weaponclass, weapon_kills.kills AS kills, COALESCE(weapon_deaths.deaths, 0) AS deaths FROM weapon_kills LEFT JOIN weapon_deaths ON weapon_kills.steamid32 = weapon_deaths.steamid32 AND weapon_kills.weaponclass = weapon_deaths.weaponclass WHERE weapon_kills.steamid32 = ? LIMIT 100",
-        expectedargs = {"string"},
+        expectedargs = {"String"},
         expectedresponse = {
             ["deaths"] = {
                 "UInt", --
@@ -141,7 +157,7 @@ if SERVER then
                     responsetype = responsetype[1]
                 end
 
-                --if querycode == "WEAPON_KILLS" then print(responsetype, responsename) end
+                --if querycode == "MAPS_PLAYED" then print(responsetype, responsename) end
                 net["Write" .. responsetype](resulttbl[responsename], UIntBitCount)
             end
         end
@@ -383,7 +399,7 @@ if CLIENT then
     local RNDX = include("autorun/rndx.lua")
     local function OpenLeaderboard()
         if IsValid(Panel) then Panel:Remove() end
-        local CurrentlyOpenedProfile = "76561198778928129"
+        local CurrentlyOpenedProfile = ""
         Panel = vgui.Create("DPanel")
         Panel:SetWide(ScrW() * 0.7)
         Panel:SetX((ScrW() - Panel:GetWide()) * 0.5)
@@ -565,27 +581,19 @@ if CLIENT then
         MapPerformance:SetSize(ScrW() * 0.23, WeaponStats:GetTall())
         MapPerformance:SetY(Panel:GetTall() - MapPerformance:GetTall() - BottomMarginFromEdge)
         MapPerformance:SetX((WeaponStats:GetX() - MapPerformance:GetWide()) - BottomMarginFromEdge)
-        local Percents_2 = {4.5, 2, 4, 4, 5, 7, 8, 8}
+        local Percents_2 = {}
         local RadarChart = vgui.Create("SRadarChart", MapPerformance)
         local RadarChartSize = ScrH() * 0.3
         RadarChart:SetSize(RadarChartSize, RadarChartSize)
+        RadarChart:SetTargetNumber(1)
         local MarginDown = ScrH() * 0.013
         RadarChart:SetX((MapPerformance:GetWide() - RadarChart:GetWide()) * 0.5)
         RadarChart:SetY((MapPerformance:GetTall() - RadarChart:GetTall()) * 0.5 + MarginDown)
         --RadarChart:SetRadarColor()
         --RadarChart:SetSegmentCount(9)
         RadarChart:SetPercents(Percents_2)
-        local IconWSIDs = {"105982362", "3667352947", "3769721895", "3751308439", "3751311698", "3707205770", "3705916707", "3769721895"}
+        local IconWSIDs = {}
         local IconMaterials = {}
-        for i = 1, #IconWSIDs do
-            steamworks.FileInfo(IconWSIDs[i], function(result)
-                steamworks.Download(result.previewid, true, function(name)
-                    --
-                    IconMaterials[#IconMaterials + 1] = AddonMaterial(name)
-                end)
-            end)
-        end
-
         local function HasLoadedEverything()
             return #IconMaterials == #IconWSIDs
         end
@@ -600,6 +608,7 @@ if CLIENT then
             local newX = segmentX + distx * RectDistPercentage
             local newY = segmentY + disty * RectDistPercentage
             local RectWidth = w * RectWidthPercentage
+            if not IconMaterials[SegmentIndex] then return end
             surface.SetMaterial(IconMaterials[SegmentIndex])
             surface.SetDrawColor(color_white)
             surface.DrawTexturedRect(newX - RectWidth * 0.5, newY - RectWidth * 0.5, RectWidth, RectWidth)
@@ -607,23 +616,58 @@ if CLIENT then
             surface.DrawOutlinedRect(newX - RectWidth * 0.5, newY - RectWidth * 0.5, RectWidth, RectWidth, 1)
         end
 
-        local LabelFuncs = {}
-        for i = 1, #IconWSIDs do
-            LabelFuncs[i] = function(w, h, segmentX, segmentY)
-                -- 
-                DrawMapRect(w, h, segmentX, segmentY, i)
-            end
-        end
+        local FailCode = "18446744073709551615"
+        local MaxSegments = 8
+        sql.AskServer("MAPS_PLAYED", {CurrentlyOpenedProfile}, function(querycode, resulttbl)
+            for i = 1, math.min(#resulttbl, MaxSegments) do
+                local map = resulttbl[i].map
+                local wsid = resulttbl[i].mapwsid
+                local wins = resulttbl[i].won
+                local losses = resulttbl[i].lost
+                Percents_2[i] = wins / math.max(1, wins + losses)
+                IconWSIDs[i] = wsid
+                if map == "gm_construct" then
+                    IconMaterials[i] = Material("maps/thumb/gm_construct.png")
+                    continue
+                elseif map == "gm_flatgrass" then
+                    IconMaterials[i] = Material("maps/thumb/gm_flatgrass.png")
+                    continue
+                end
 
-        RadarChart:SetLabels(LabelFuncs)
+                steamworks.FileInfo(wsid, function(result)
+                    if result.previewid == FailCode then
+                        IconMaterials[i] = Material("maps/thumb/noicon.png")
+                        return
+                    end
+
+                    RadarChart:SetPercents(Percents_2)
+                    steamworks.Download(result.previewid, true, function(name)
+                        --
+                        IconMaterials[i] = AddonMaterial(name)
+                    end)
+                end)
+            end
+
+            local LabelFuncs = {}
+            for i = 1, #IconWSIDs do
+                LabelFuncs[i] = function(w, h, segmentX, segmentY)
+                    -- 
+                    DrawMapRect(w, h, segmentX, segmentY, i)
+                end
+            end
+
+            RadarChart:SetLabels(LabelFuncs)
+            RadarChart:SetPercents(Percents_2)
+        end)
+
         local MatchesPlayed = InfoHolder(Panel, Panel:GetWide() * 0.5, 128, "Matches Played", "Stratum_Bold_Smaller", color_csgogrey, Panel:GetWide() * 0.01, Panel:GetTall() * 0.01)
         MatchesPlayed:SetX(MapPerformance:GetX())
         MatchesPlayed:SetY(Header:GetY() + MarginFromEdge)
         MatchesPlayed:SetWide(ScrW() * 0.10)
         MatchesPlayed:SetTall(MapPerformance:GetY() - MatchesPlayed:GetY() - MarginFromEdge)
-        local MatchesPlayed_number = 243
-        local Wins = 0
-        local Ties = 0
+        local Played = "N/A"
+        local Wins = "N/A"
+        local Ties = "N/A"
         local Losses = 7
         local DotsHeight = Panel:GetWide() * 0.01
         local DotsY = ScrH() * 0.19
@@ -635,23 +679,28 @@ if CLIENT then
             draw.Circle(x, y, DotRadius, 255)
         end
 
+        function MatchesPlayed.PaintOver(self, w, h)
+            draw.DrawText(Played, "Stratum_Bold", Panel:GetWide() * 0.01, h * 0.1, color_csgogrey, TEXT_ALIGN_LEFT)
+            surface.SetDrawColor(color_green)
+            --draw.Circle(DotsMargin, DotsY, h * 0.02, 255)
+            DrawDot(DotsMargin, DotsY)
+            draw.SimpleText("Wins", "Stratum_Bold_Smaller", DotsHeight + TextMargin, DotsY + DotsMargin * 0, color_csgodarkgrey, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+            draw.SimpleText(Wins, "Stratum_Bold_Smaller", w - DotsMargin, DotsY + DotsMargin * 0, color_csgogrey, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
+            surface.SetDrawColor(color_fadedyellow)
+            DrawDot(DotsMargin, DotsY + DotsMargin * 1)
+            draw.SimpleText("Ties", "Stratum_Bold_Smaller", DotsHeight + TextMargin, DotsY + DotsMargin * 1, color_csgodarkgrey, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+            draw.SimpleText(Ties, "Stratum_Bold_Smaller", w - DotsMargin, DotsY + DotsMargin * 1, color_csgogrey, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
+            surface.SetDrawColor(color_fadedred)
+            DrawDot(DotsMargin, DotsY + DotsMargin * 2)
+            draw.SimpleText("Losses", "Stratum_Bold_Smaller", DotsHeight + TextMargin, DotsY + DotsMargin * 2, color_csgodarkgrey, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+            draw.SimpleText(Losses, "Stratum_Bold_Smaller", w - DotsMargin, DotsY + DotsMargin * 2, color_csgogrey, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
+        end
+
         sql.AskServer("MATCHES_PLAYED", {CurrentlyOpenedProfile}, function(querycode, resulttbl)
-            function MatchesPlayed.PaintOver(self, w, h)
-                draw.DrawText(resulttbl[1].matchesplayed, "Stratum_Bold", Panel:GetWide() * 0.01, h * 0.1, color_csgogrey, TEXT_ALIGN_LEFT)
-                surface.SetDrawColor(color_green)
-                --draw.Circle(DotsMargin, DotsY, h * 0.02, 255)
-                DrawDot(DotsMargin, DotsY)
-                draw.SimpleText("Wins", "Stratum_Bold_Smaller", DotsHeight + TextMargin, DotsY + DotsMargin * 0, color_csgodarkgrey, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-                draw.SimpleText(resulttbl[1].matcheswon, "Stratum_Bold_Smaller", w - DotsMargin, DotsY + DotsMargin * 0, color_csgogrey, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
-                surface.SetDrawColor(color_fadedyellow)
-                DrawDot(DotsMargin, DotsY + DotsMargin * 1)
-                draw.SimpleText("Ties", "Stratum_Bold_Smaller", DotsHeight + TextMargin, DotsY + DotsMargin * 1, color_csgodarkgrey, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-                draw.SimpleText(resulttbl[1].matchestied, "Stratum_Bold_Smaller", w - DotsMargin, DotsY + DotsMargin * 1, color_csgogrey, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
-                surface.SetDrawColor(color_fadedred)
-                DrawDot(DotsMargin, DotsY + DotsMargin * 2)
-                draw.SimpleText("Losses", "Stratum_Bold_Smaller", DotsHeight + TextMargin, DotsY + DotsMargin * 2, color_csgodarkgrey, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-                draw.SimpleText(resulttbl[1].matcheslost, "Stratum_Bold_Smaller", w - DotsMargin, DotsY + DotsMargin * 2, color_csgogrey, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
-            end
+            Wins = resulttbl[1].matcheswon
+            Ties = resulttbl[1].matchestied
+            Losses = resulttbl[1].matcheslost
+            Played = resulttbl[1].matchesplayed
         end)
 
         ----
@@ -661,7 +710,7 @@ if CLIENT then
         ADM:SetY(Header:GetY() + MarginFromEdge)
         ADM:SetWide(ScrW() * 0.10)
         ADM:SetTall(MapPerformance:GetY() - MatchesPlayed:GetY() - MarginFromEdge)
-        local ADM_number = 0
+        local ADM_number = "N/A"
         local Damage = "N/A"
         local TimesJoined = "N/A"
         function ADM.PaintOver(self, w, h)
@@ -813,15 +862,21 @@ if CLIENT then
             MatchesHistory = resulttbl
             for i = 1, #MatchesHistory do
                 local map = MatchesHistory[i].map
-                if map == "gm_construct" then
-                    MatchMapMaterials[#MatchMapMaterials + 1] = Material("maps/thumb/gm_construct.png")
-                    continue
-                elseif map == "gm_flatgrass" then
-                    MatchMapMaterials[#MatchMapMaterials + 1] = Material("maps/thumb/gm_flatgrass.png")
-                    continue
-                end
+                local wsid = MatchesHistory[i].mapwsid
+                steamworks.FileInfo(wsid, function(result)
+                    if map == "gm_construct" then
+                        MatchMapMaterials[#MatchMapMaterials + 1] = Material("maps/thumb/gm_construct.png")
+                        return
+                    elseif map == "gm_flatgrass" then
+                        MatchMapMaterials[#MatchMapMaterials + 1] = Material("maps/thumb/gm_flatgrass.png")
+                        return
+                    end
 
-                steamworks.FileInfo(map, function(result)
+                    if result.previewid == FailCode then
+                        MatchMapMaterials[#MatchMapMaterials + 1] = Material("maps/thumb/noicon.png")
+                        return
+                    end
+
                     steamworks.Download(result.previewid, true, function(name)
                         --
                         MatchMapMaterials[#MatchMapMaterials + 1] = AddonMaterial(name)
@@ -830,6 +885,7 @@ if CLIENT then
             end
 
             --
+            MatchHistory:DockPadding(MarginFromEdge, Panel:GetWide() * 0.01 + TextH, MarginFromEdge, 0)
             for i = 1, #MatchesHistory do
                 local tbl = MatchesHistory[i]
                 local MatchPanel = vgui.Create("DPanel", MatchHistory)
@@ -837,7 +893,9 @@ if CLIENT then
                 local MatchPanelHeight = MatchHistory:GetTall() * 0.07
                 MatchPanel:SetBackgroundColor(color_transparentish_black)
                 MatchPanel:SetX(MarginFromEdge)
-                MatchPanel:SetY(MatchPanelHeight * (i - 1) + Panel:GetWide() * 0.01 + TextH + ((i == 1 and 0) or MarginFromEdge * 0.5))
+                --MatchPanel:SetY(MatchPanelHeight * (i - 1) + Panel:GetWide() * 0.01 + TextH ((i == #MatchesHistory and 0) or Panel:GetWide() * 0.01))
+                MatchPanel:Dock(TOP)
+                MatchPanel:DockMargin(0, Panel:GetWide() * 0.003, 0, 0)
                 MatchPanel:SetWide(MatchHistory:GetWide() - MarginFromEdge * 2)
                 MatchPanel:SetTall(MatchPanelHeight)
                 local MapRectSize = Panel:GetTall() * 0.03057

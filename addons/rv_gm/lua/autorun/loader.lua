@@ -64,12 +64,12 @@ if SERVER then
     util.AddNetworkString("SendNewGamemode")
     function SetGamemode(NewGamemode, RoundLimit, Ranked)
         NewGamemode = string.lower(NewGamemode)
-        GamemodeVars.CurrentGamemode[2] = NewGamemode
-        SetGlobal3("String", "CurrentGamemode", NewGamemode)
-        GamemodeVars.RoundLimit[2] = RoundLimit or 10
-        GamemodeVars.RankedMatch[2] = Ranked == true
         local InitPath = "customgamemodes/server/" .. NewGamemode .. "/" .. "!" .. NewGamemode .. "_init.lua"
-        if file.Exists(InitPath, "LUA") then --
+        if file.Exists(InitPath, "LUA") and hook.Run("CanPlayGamemode", NewGamemode) ~= false then --
+            GamemodeVars.CurrentGamemode[2] = NewGamemode
+            SetGlobal3("String", "CurrentGamemode", NewGamemode)
+            GamemodeVars.RoundLimit[2] = RoundLimit or 10
+            GamemodeVars.RankedMatch[2] = Ranked == true
             RemoveLastGamemodesHooks()
             include(InitPath)
         end

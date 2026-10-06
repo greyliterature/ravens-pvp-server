@@ -1,4 +1,3 @@
-
 --[[--------------------------------------
     sql s2c
 ----------------------------------------]]
@@ -397,10 +396,10 @@ if CLIENT then
         UI
     ----------------------------------------]]
     local RNDX = include("autorun/rndx.lua")
-    local function OpenLeaderboard()
-        if IsValid(Panel) then Panel:Remove() end
-        local CurrentlyOpenedProfile = ""
-        Panel = vgui.Create("DPanel")
+    local function OpenLeaderboard(CurrentlyOpenedProfile)
+        if IsValid(LeaderBoardPanel) then LeaderBoardPanel:Remove() end
+        LeaderBoardPanel = vgui.Create("DPanel")
+        local Panel = LeaderBoardPanel
         Panel:SetWide(ScrW() * 0.7)
         Panel:SetX((ScrW() - Panel:GetWide()) * 0.5)
         Panel:SetTall(ScrH() * 0.75)
@@ -937,7 +936,12 @@ if CLIENT then
         end)
     end
 
-    OpenLeaderboard()
+    hook.Add("OnPlayerChat", "OpenStats", function(ply, text, _, _)
+        if ply ~= LocalPlayer() then return end
+        if text == "!stats" then --
+            OpenLeaderboard(LocalPlayer():SteamID64())
+        end
+    end)
 end
 
 --[[--------------------------------------
@@ -986,10 +990,9 @@ if SERVER then
 
     --[[-write the memory into sql-]]
     -- sql.QueryTyped("UPDATE player_glickos SET matchesplayed = matchesplayed + 1 WHERE steamid64 = ? OR steamid64 = ?", winner_steamid64, loser_steamid64)
-    local BatchClearDelay = 5
+    local BatchClearDelay = 240
     local BatchRunCount = 500 -- limiting the for loop is probably a good idea to not lag the server ever BatchClearDelay seconds
     timer.Create("SendBatchesSQL", BatchClearDelay, 0, function()
-        PrintTable(DamageBatches)
         print("Writing batch to sql")
         local i = 0
         sql.QueryTyped("BEGIN;")

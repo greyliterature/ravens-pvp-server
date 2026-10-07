@@ -103,6 +103,7 @@ function rv_gm.SetScoreLimit(score)
 end
 
 function rv_gm.AddTeamScore(teamindex)
+    if MatchInProgress == false then return end
     team.AddScore(teamindex, score)
     if team.GetScore(teamindex) >= ScoreLimit then
         --

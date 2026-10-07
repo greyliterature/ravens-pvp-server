@@ -180,7 +180,8 @@ local function GetLowestTeam()
 end
 
 local rv_spawnweapon = CreateClientConVar("rv_spawnweapon", "weapon_357", true, true, "what weapon to pull out on spawn (an alternative to cl_defaultweapon)")
-JoinTeamPopup = false
+local debugging = true
+local JoinTeamPopup = (debugging == true and true) or false
 function rv_gm.OpenJoinTeamPopup()
     JoinTeamPopup = true
     local RankedMatch = GetGlobal3("RankedMatch") --GamemodeVars.RankedMatch
@@ -538,7 +539,6 @@ end
 
 AddGamemodeHook("PlayerButtonDown", "JoinTeamPopup", function(ply, button)
     if JoinTeamPopup == false then return end
-    print("HI")
     if button == KEY_F4 then
         rv_gm.OpenJoinTeamPopup()
         hook.Remove("HUDPaint", "TeamJoinMenuReminder")

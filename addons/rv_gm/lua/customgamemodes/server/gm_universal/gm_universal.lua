@@ -1,4 +1,4 @@
-local rv_gm = {}
+rv_gm = {}
 function rv_gm.SetAllToSpectate(SetTeam, SilentKill)
     for _, ply in player.Iterator() do
         if SetTeam ~= false then ply:SetTeam(TEAM_SPECTATOR) end

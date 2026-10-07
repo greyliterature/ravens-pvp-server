@@ -67,6 +67,7 @@ if SERVER then
         local InitPath = "customgamemodes/server/" .. NewGamemode .. "/" .. "!" .. NewGamemode .. "_init.lua"
         if file.Exists(InitPath, "LUA") and hook.Run("CanPlayGamemode", NewGamemode) ~= false then --
             GamemodeVars.CurrentGamemode[2] = NewGamemode
+            SetGlobal3("Bool", "RankedMatch", Ranked == true)
             SetGlobal3("String", "CurrentGamemode", NewGamemode)
             GamemodeVars.RoundLimit[2] = RoundLimit or 10
             GamemodeVars.RankedMatch[2] = Ranked == true

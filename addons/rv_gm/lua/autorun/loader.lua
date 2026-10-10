@@ -44,31 +44,25 @@ local function RemoveLastGamemodesHooks()
     end
 end
 
+GamemodeEntities = {}
+function RemoveLastGamemodesEntities()
+    for i = #GamemodeEntities, 1, -1 do
+        if IsValid(GamemodeEntities[i]) then --
+            GamemodeEntities[i]:Remove()
+        end
+
+        GamemodeEntities[i] = nil
+    end
+end
+
 --[[------------------------------
     init 
 --------------------------------]]
---[[
--- not necessary
-if SERVER then
-    local path = "customgamemodes/server"
-    for _, filename in ipairs(GetAllSubFiles(path, "LUA", ".lua")) do
-        print("include(" .. filename .. ")")
-        include(filename)
-    end
-    
-end
---]]
 local path = "customgamemodes/client"
 for _, filename in ipairs(GetAllSubFiles(path, "LUA", ".lua")) do
     if SERVER then
         print("AddCSLuaFile(" .. filename .. ")")
         AddCSLuaFile(filename)
-        --[[
-        -- not necessary, the SetGamemode net should include it on clients. it should not be autorun always
-        elseif CLIENT then    
-            print("include(" .. filename .. ")")
-            include(filename)
-        --]]
     end
 end
 
@@ -77,90 +71,19 @@ end
 --------------------------------]]
 local GamemodeVars = include("customgamemodes/gamemodevars.lua")
 AddCSLuaFile("customgamemodes/gamemodevars.lua")
---[[
-    local GamemodeVars = {
-        CurrentGamemode = {"String", "FFA"},
-        RoundLimit = {"Int", 10},
-    }
---]]
---[[
 if SERVER then
-    util.AddNetworkString("UpdateGamemodeVar")
-    function UpdateGamemodeVar(VarName, NewValue, BitCount)
-        BitCount = BitCount or 0
-        net.Start("UpdateGamemodeVar")
-        net.WriteString(VarName)
-        local VarType = GamemodeVars[VarName][1]
-        net.WriteString(VarType)
-        net.WriteUInt(BitCount, 6)
-        local WriteAny = net["Write" .. VarType]
-        print(NewValue, BitCount)
-        WriteAny(NewValue, BitCount)
-        SetGlobal3(VarType, VarName, NewValue)
-        --_G["SetGlobal" .. VarType](VarName, NewValue)
-        net.Broadcast()
-    end
-elseif CLIENT then
-    net.Receive("UpdateGamemodeVar", function(len, ply)
-        local VarName = net.ReadString()
-        local VarType = net.ReadString()
-        local BitCount = net.ReadUInt(6)
-        local VarValue = net["Read" .. VarType](BitCount)
-        GamemodeVars[VarName] = GamemodeVars[VarName] or {}
-        GamemodeVars[VarName][2] = VarValue
-    end)
-end
---]]
-if SERVER then
-    --[[
-    local GamemodeInit = {
-        ["CA"] = function()
-            SetUpTeamsSystem()
-            SetAllToSpec()
-            gm.SetMatchInProgress(false)
-            SetGroundRules()
-            AutoRefresh()
-            EnableCustomLoadout()
-            PreventWeaponGiving()
-            NetworkThings()
-            SetUpPlayerSpectate()
-            DisableSuicide()
-            RemoveConflictingHooks()
-            gm.SetMatchWarmup(true)
-            SetupTeams()
-            DisableFriendlyFire()
-            OpenJoinTeamPopup(nil)
-            OpenReadyUpHUD(nil)
-            --ShouldCollideConflictFix()
-        end,
-    }
-    --]]
     util.AddNetworkString("SendNewGamemode")
     function SetGamemode(NewGamemode, RoundLimit, Ranked)
         NewGamemode = string.lower(NewGamemode)
-        GamemodeVars.CurrentGamemode[2] = NewGamemode
-        SetGlobal3("String", "CurrentGamemode", NewGamemode)
-        GamemodeVars.RoundLimit[2] = RoundLimit or 10
-        GamemodeVars.RankedMatch[2] = Ranked == true
-        --[[
-        for VarName, tbl in pairs(GamemodeVars) do
-            --local VarType = tbl[1]
-            local VarValue = tbl[2]
-            local BitCount = tbl[3]
-            --UpdateGamemodeVar(VarName, VarValue, BitCount)
-            --[[
-            local func = _G["SetGlobal2" .. VarType] -- SetGlobal .. "Int"(VarName, VarValue)
-            if func then --
-                func(VarName, VarValue)
-            end
-            
-        end
-        --]]
-        --net.Start("SendNewGamemode")
-        --net.Broadcast()
         local InitPath = "customgamemodes/server/" .. NewGamemode .. "/" .. "!" .. NewGamemode .. "_init.lua"
-        if file.Exists(InitPath, "LUA") then --
+        if file.Exists(InitPath, "LUA") and hook.Run("CanPlayGamemode", NewGamemode) ~= false then --
+            GamemodeVars.CurrentGamemode[2] = NewGamemode
+            SetGlobal3("Bool", "RankedMatch", Ranked == true)
+            SetGlobal3("String", "CurrentGamemode", NewGamemode)
+            GamemodeVars.RoundLimit[2] = RoundLimit or 10
+            GamemodeVars.RankedMatch[2] = Ranked == true
             RemoveLastGamemodesHooks()
+            RemoveLastGamemodesEntities()
             include(InitPath)
         end
     end
@@ -168,43 +91,18 @@ if SERVER then
 elseif CLIENT then
     local function GamemodeInit()
         RemoveLastGamemodesHooks()
-        --[[
-        for VarName, tbl in pairs(GamemodeVars) do
-            local VarType = tbl[1]
-            local func = _G["GetGlobal2" .. VarType] -- GetGlobal .. "Int"(VarName, nil)
-            if func then --
-                GamemodeVars[VarName][2] = func(VarName, nil)
-            end
-        end
-        --]]
         local CurrentGamemode = GetGlobal3("CurrentGamemode", "FFA") --string.lower(GamemodeVars.CurrentGamemode[2])
         local InitPath = "customgamemodes/client/" .. CurrentGamemode .. "/" .. "!" .. CurrentGamemode .. "_init.lua"
         print(InitPath)
         if file.Exists(InitPath, "LUA") then --
             include(InitPath)
         end
-        --[[
-        local _, directories = file.Find("customgamemodes/client/" .. CurrentGamemode, "LUA")
-        if directories then
-            for _, filename in ipairs(GetAllSubFiles("customgamemodes/client/" .. CurrentGamemode, "LUA", ".lua")) do
-                print("running (" .. filename .. ")")
-                include(filename)
-            end
-        end
-        --]]
     end
 
     hook.Add("Global3VarChanged", "GamemodeInit", function(VarType, VarIndex, VarNewValue, init)
         if VarIndex ~= "CurrentGamemode" then return end
         GamemodeInit()
     end)
-    --[[
-    hook.Add("InitPostEntity", "GamemodeInit", GamemodeInit)
-    net.Receive("SendNewGamemode", function(len, ply)
-        --
-        GamemodeInit()
-    end)
-    --]]
 end
 
 --[[------------------------------
@@ -214,6 +112,16 @@ local function IsValidGamemode(GamemodeName)
     if not GamemodeName then return false end
     local ValidGamemode = file.IsDir("customgamemodes/server/" .. GamemodeName, "LUA")
     return ValidGamemode
+end
+
+local function CanPlayGamemode(GamemodeName)
+    local HookPath = "customgamemodes/server/" .. GamemodeName .. "/" .. "!" .. GamemodeName .. "_hookfile.lua" -- can we play this game?
+    if not file.Exists(HookPath, "LUA") then --
+        return true, nil
+    end
+
+    local ShouldPlayGamemode, err = include(HookPath)
+    return ShouldPlayGamemode, err
 end
 
 local VotedForModes = {}
@@ -242,6 +150,14 @@ hook.Add("PlayerSay", "VotemodeCommands", function(sender, text, teamChat)
         end
 
         local VotedForMode = args[1]
+        local ShouldPlayGamemode, err = CanPlayGamemode(VotedForMode)
+        if ShouldPlayGamemode == false then
+            if err then --
+                sender:ChatPrint("Can't vote for this gamemode because " .. err)
+            end
+            return
+        end
+
         if sender.VotedForMode and VotedForModes[VotedForMode] then --
             if sender.VotedForMode == VotedForModes[VotedForMode] then return end
             VotedForModes[VotedForMode] = VotedForModes[sender.VotedForMode] - 1

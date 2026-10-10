@@ -58,6 +58,7 @@ AddGamemodeHook("PlayerDeath", "SetSpecOnDeath", function(victim, _, _)
     return
 end)
 
+rv_gm.AllowPlayerFriendlyFire(false)
 --[[----------------------------------------------------------------------
     Readyup
 ------------------------------------------------------------------------]]

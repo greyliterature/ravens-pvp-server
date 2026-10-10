@@ -44,6 +44,17 @@ local function RemoveLastGamemodesHooks()
     end
 end
 
+GamemodeEntities = {}
+function RemoveLastGamemodesEntities()
+    for i = #GamemodeEntities, 1, -1 do
+        if IsValid(GamemodeEntities[i]) then --
+            GamemodeEntities[i]:Remove()
+        end
+
+        GamemodeEntities[i] = nil
+    end
+end
+
 --[[------------------------------
     init 
 --------------------------------]]
@@ -72,6 +83,7 @@ if SERVER then
             GamemodeVars.RoundLimit[2] = RoundLimit or 10
             GamemodeVars.RankedMatch[2] = Ranked == true
             RemoveLastGamemodesHooks()
+            RemoveLastGamemodesEntities()
             include(InitPath)
         end
     end
@@ -102,6 +114,16 @@ local function IsValidGamemode(GamemodeName)
     return ValidGamemode
 end
 
+local function CanPlayGamemode(GamemodeName)
+    local HookPath = "customgamemodes/server/" .. GamemodeName .. "/" .. "!" .. GamemodeName .. "_hookfile.lua" -- can we play this game?
+    if not file.Exists(HookPath, "LUA") then --
+        return true, nil
+    end
+
+    local ShouldPlayGamemode, err = include(HookPath)
+    return ShouldPlayGamemode, err
+end
+
 local VotedForModes = {}
 local VoteRatio = 0.75
 local function CeilInt(x) -- math.ceil does not round up for integers
@@ -128,6 +150,14 @@ hook.Add("PlayerSay", "VotemodeCommands", function(sender, text, teamChat)
         end
 
         local VotedForMode = args[1]
+        local ShouldPlayGamemode, err = CanPlayGamemode(VotedForMode)
+        if ShouldPlayGamemode == false then
+            if err then --
+                sender:ChatPrint("Can't vote for this gamemode because " .. err)
+            end
+            return
+        end
+
         if sender.VotedForMode and VotedForModes[VotedForMode] then --
             if sender.VotedForMode == VotedForModes[VotedForMode] then return end
             VotedForModes[VotedForMode] = VotedForModes[sender.VotedForMode] - 1

@@ -1,7 +1,19 @@
-local maxdist = 500
+CreateConVar("rv_spawnsystem_maxdist", "999999", FCVAR_REPLICATED, "Maximum distance a spawn can be from every player to be considered to be used", 1)
+local maxdist = GetConVar("rv_spawnsystem_maxdist"):GetFloat()
 maxdist = maxdist ^ 2 -- dont touch
-local mindist = 300
+CreateConVar("rv_spawnsystem_mindist", "0", FCVAR_REPLICATED, "Maximum distance a spawn can be from every player to be considered to be used", 0)
+local mindist = GetConVar("rv_spawnsystem_mindist"):GetFloat()
 mindist = mindist ^ 2 -- dont touch
+cvars.AddChangeCallback("rv_spawnsystem_maxdist", function(convar, old, new)
+    --
+    maxdist = tonumber(new) ^ 2
+end, "rv_spawnsystem_maxdist")
+
+cvars.AddChangeCallback("rv_spawnsystem_mindist", function(convar, old, new)
+    --
+    mindist = tonumber(new) ^ 2
+end, "rv_spawnsystem_mindist")
+
 --[[--]]
 local function IsSpawnUsable(spawningply, ent)
     if table.Count(player.GetAll()) == 1 and SERVER then return true end
@@ -149,6 +161,9 @@ elseif CLIENT then
     local showspawns = true
     concommand.Add("rv_showspawns", function(ply, cmd, args)
         if showspawns == true then
+            -- update dists, no callbacks on clientside for replicated iirc
+            maxdist = GetConVar("rv_spawnsystem_maxdist"):GetFloat() ^ 2
+            mindist = GetConVar("rv_spawnsystem_mindist"):GetFloat() ^ 2
             net.Start("rv_showspawns")
             net.SendToServer()
             hook.Add("Think", "rv_showspawns", function()

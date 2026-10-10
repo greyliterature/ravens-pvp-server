@@ -1,4 +1,4 @@
-local rv_gm = include("../gm_universal/gm_universal.lua")
+local rv_gm = include("customgamemodes/client/gm_universal/gm_universal.lua")
 --[[------------------------------
     Init
 --------------------------------]]

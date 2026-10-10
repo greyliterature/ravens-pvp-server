@@ -12,10 +12,9 @@ local function IsSpawnUsable(spawningply, ent)
             return false -- too far 
         elseif dist < mindist then
             return false -- too close
-        else
-            return true -- just right!
         end
     end
+    return true -- if its not too far and too close then it's just right
 end
 
 local function DecideSpawn(ply, _)

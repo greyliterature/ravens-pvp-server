@@ -75,6 +75,22 @@ function rv_gm.AllowPlayerSuicide(bool)
     end
 end
 
+local CanPlayersFriendlyfire = nil
+function rv_gm.AllowPlayerFriendlyFire(bool)
+    if bool == true then
+        CanPlayersFriendlyfire = nil
+    elseif bool == false then
+        CanPlayersFriendlyfire = false
+    end
+end
+
+AddGamemodeHook("ScalePlayerDamage", "DisableFriendlyFire", function(ply, hitgroup, dmginfo)
+    if not CanPlayersFriendlyfire then return end
+    local attacker = dmginfo:GetAttacker()
+    if not attacker:IsPlayer() then return end
+    if ply:Team() == attacker:Team() then return CanPlayersFriendlyfire end
+end)
+
 AddGamemodeHook("CanPlayerSuicide", "DisableSuicide", function(ply)
     --
     return CanPlayersSuicide

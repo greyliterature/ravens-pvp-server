@@ -10,6 +10,143 @@ function rv_gm.GetScoreLimit()
     return GetGlobal3("MatchScoreLimit", 10)
 end
 
+function rv_gm.IsMatchInProgress()
+    return GetGlobal3("MatchInProgress", false)
+end
+
+--[[------------------------------
+    Triggers
+--------------------------------]]
+local TriggerParents = {}
+function rv_gm.GetAllTriggerParents()
+    return TriggerParents
+end
+
+net.Receive("TriggerParentMade", function(_, _)
+    local triggerparent = net.ReadEntity()
+    TriggerParents[#TriggerParents + 1] = triggerparent
+    print("got ", triggerparent)
+end)
+
+AddGamemodeHook("PostDrawOpaqueRenderables", "ShowTriggers", function()
+    for i, infoparent in ipairs(rv_gm.GetAllTriggerParents()) do
+        if not IsValid(infoparent) then
+            TriggerParents[i] = nil
+            continue
+        end
+
+        local mins, maxes = infoparent:GetCollisionBounds()
+        local pos, angs = infoparent:GetPos(), infoparent:GetAngles()
+        local infoparentcolor = infoparent:GetColor()
+        infoparentcolor.a = 255
+        render.DrawWireframeBox(pos, angs, mins, maxes, infoparentcolor, true)
+    end
+end)
+
+--[[------------------------------
+    Remove conflicting hooks (FFA)
+--------------------------------]]
+function rv_gm.SetPlayerOutlineFlip(bool)
+    PlayerTeamOutlineFlip = bool
+end
+
+function rv_gm.RemoveConflictingHooks()
+    hook.Remove("PrePlayerDraw", "DuelDollModel")
+    hook.Remove("PostPlayerDraw", "DuelDollModel")
+    hook.Remove("ShouldCollide", "MakePlayersNotCollide")
+    hook.Remove("ShouldCollide", "MakeDuelPlayersNotCollide")
+    for _, ply in player.Iterator() do
+        if ply.Doll then --
+            ply.Doll:Remove()
+        end
+    end
+end
+
+--[[------------------------------
+    CTF (shared because maybe its needed in another mode)
+--------------------------------]]
+local CTFEntities = {}
+local CTFFlags = {}
+local CTFFlagBases = {}
+local DollFlagModel = "models/maxofs2d/companion_doll.mdl"
+local FlagBaseModel = "models/props_c17/gravestone_cross001b.mdl"
+net.Receive("CTFEntityCreated", function(_, _)
+    local CTFEntity = net.ReadEntity()
+    if not IsValid(CTFEntity) then return end
+    local TeamIndex = net.ReadUInt(7)
+    print("Got info for " .. CTFEntity:EntIndex(), CTFEntity:GetModel())
+    if CTFEntity:GetModel() == DollFlagModel then
+        CTFEntity.AtBase = true
+        CTFFlags[#CTFFlags + 1] = CTFEntity
+    elseif CTFEntity:GetModel() == FlagBaseModel then
+        CTFFlagBases[#CTFFlagBases + 1] = CTFEntity
+    else
+        ErrorNoHaltWithStack("Unaccounted CTF ent model")
+    end
+
+    CTFEntity.TeamIndex = TeamIndex
+    CTFEntities[#CTFEntities + 1] = CTFEntity
+end)
+
+net.Receive("InitCTFEntities", function(_, _)
+    CTFEntities = {}
+    CTFFlags = {}
+    CTFFlagBases = {}
+    local NumKeys = net.ReadUInt(6)
+    for i = 1, NumKeys do
+        local CTFEntity = net.ReadEntity()
+        local TeamIndex = net.ReadUInt(7)
+        if CTFEntity:GetModel() == DollFlagModel then
+            CTFFlags[#CTFFlags + 1] = CTFEntity
+        elseif CTFEntity:GetModel() == FlagBaseModel then
+            CTFFlagBases[#CTFFlagBases + 1] = CTFEntity
+        else
+            ErrorNoHaltWithStack("Unaccounted CTF ent model")
+        end
+
+        CTFEntity.TeamIndex = TeamIndex
+        CTFEntities[#CTFEntities + 1] = CTFEntity
+    end
+end)
+
+function rv_gm.GetAllCTFFlags()
+    return CTFFlags
+end
+
+function rv_gm.GetAllCTFFlagBases()
+    return CTFFlagBases
+end
+
+function rv_gm.GetAllCTFEntities()
+    return CTFEntities
+end
+
+net.Receive("PlayerPickedUpCTFEntity", function(_, _)
+    local PickedUp = net.ReadBool()
+    local ent = net.ReadEntity()
+    local ply = net.ReadPlayer()
+    ent.PickedUpPly = (PickedUp == true and ply) or nil
+    if ent.PickedUpPly and ent.PickedUpPly:Team() == ent.TeamIndex then
+        ent.AtBase = true
+    elseif ent.PickedUpPly and ent.PickedUpPly:Team() ~= ent.TeamIndex then
+        ent.AtBase = nil
+    end
+
+    hook.Run("rv_gm.PlayerPickedUpCTFEntity", ply, ent, PickedUp)
+end)
+
+net.Receive("RevealFlag", function(_, _)
+    local revealedply = net.ReadPlayer()
+    local ent = net.ReadEntity()
+    local Revealed = net.ReadBool()
+    hook.Run("rv_gm.FlagRevealed", revealedply, ent, Revealed)
+end)
+
+net.Receive("DollRTBed", function(_, _)
+    local doll = net.ReadEntity()
+    hook.Run("rv_gm.FlagRTBed", doll)
+end)
+
 --[[------------------------------
     Join team menu
 --------------------------------]]
@@ -608,7 +745,6 @@ end)
 net.Receive("LockAttacks", function(len, _)
     local StartDate = net.ReadFloat()
     AddGamemodeHook("StartCommand", "LockAttacks", function(ply, cmd)
-        if ShouldRunHook() == false then return end
         if CurTime() > StartDate then
             if cmd:KeyDown(IN_ATTACK) then --
                 cmd:AddKey(IN_ATTACK)

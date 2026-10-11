@@ -685,6 +685,7 @@ end
 -- Start/endround
 local RoundCount = 0
 function rv_gm.StartRound()
+    rv_gm.RespawnAllDeadPlayers()
     RoundCount = RoundCount + 1
     hook.Run("rv_gm.RoundStarted", RoundCount)
 end
@@ -776,6 +777,19 @@ function rv_gm.ShuffleTeams(Teams)
         end
     end
 end
+
+function rv_gm.RespawnAllDeadPlayers(Teams)
+    if not Teams then Teams = rv_gm.GetTeamIndexes() end
+    -- respawn everyone in {Teams1, Teams2, ... , TeamsN}
+    for _, TeamIndex in ipairs(Teams) do
+        for _, ply in ipairs(team.GetPlayers(TeamIndex)) do
+            if ply:Alive() == true then continue end
+            FSpectate.forceUnspectate(ply)
+            ply:Spawn()
+        end
+    end
+end
+
 
 function rv_gm.RespawnAllPlayers(Teams)
     if not Teams then Teams = rv_gm.GetTeamIndexes() end

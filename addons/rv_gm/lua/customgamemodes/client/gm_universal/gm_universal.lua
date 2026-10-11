@@ -495,7 +495,7 @@ function rv_gm.OpenJoinTeamPopup()
     --RoundInfoText:SetFont("RobotoBig")
     GamemodeInfoText:SetPos(MatchPanel:GetWide() * 0.14 - MatchPanel:GetWide() * 0.03, MatchPanel:GetTall() * 0.37)
     local gamemodeinfotext = {
-        {GetGlobal3("CurrentGamemode") .. " - " .. game.GetMap(), "RobotoBig"},
+        {GetGlobal3("CurrentGamemode", "N/A") .. " - " .. game.GetMap(), "RobotoBig"},
         --
         {"", "SpacerFont"},
         {"Round limit : " .. "First to " .. GetGlobalInt("RoundLimit", "10"), "RobotoBig"},

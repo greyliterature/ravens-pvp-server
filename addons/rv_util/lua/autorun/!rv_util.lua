@@ -296,7 +296,14 @@ end
 
 _G["SetGlobal3Vars"] = {} -- shared for SetGlobal3* and GetGlobal3*
 function GetGlobal3(VarIndex, Fallback) -- the type probably doesn't matter to exist clientside
-    return _G["SetGlobal3Vars"][VarIndex] or Fallback
+    local tbl = _G["SetGlobal3Vars"][VarIndex] -- just value on CLIENT, {VarValue, VarType} on SERVER
+    if CLIENT then
+        if tbl == nil then return Fallback end
+        return tbl
+    elseif SERVER then
+        if tbl[1] == nil then return Fallback end
+        return _G["SetGlobal3Vars"][VarIndex][1]
+    end
 end
 
 if SERVER then

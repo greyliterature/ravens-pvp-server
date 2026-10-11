@@ -42,7 +42,7 @@ function rv_gm.SetPlayerToNotRespawn(ply, bool)
     ply.CanRespawn = (bool == true and bool) or nil
 end
 
-hook.Add("PlayerDeathThink", "AllowPlayerRespawns", function(ply)
+AddGamemodeHook("PlayerDeathThink", "AllowPlayerRespawns", function(ply)
     if CanPlayersRespawn == false then
         if not ply.CanRespawn then
             return false
@@ -96,10 +96,12 @@ AddGamemodeHook("CanPlayerSuicide", "DisableSuicide", function(ply)
     return CanPlayersSuicide
 end)
 
-hook.Add("InitPostEntityStarted", "SetSpectateOnJoin", function(ply)
+AddGamemodeHook("InitPostEntityStarted", "SetSpectateOnJoin", function(ply)
     local ShouldSpectateOnJoin = hook.Run("ShouldSpectateOnJoin", ply)
     if ShouldSpectateOnJoin ~= true then return end
-    rv_gm.ForcePlayerToSpectate(ply, nil)
+    timer.Simple(1, function() --
+        rv_gm.ForcePlayerToSpectate(ply, nil)
+    end)
 end)
 
 --[[------------------------------
@@ -211,6 +213,7 @@ function rv_gm.CreateTrigger(vec, parent, minbounds, maxbounds, parentcolor, sta
     local InfoParent = rv_gm.CreateGamemodeEntity("prop_physics")
     InfoParent:SetModel("models/props_interiors/pot02a.mdl")
     InfoParent:SetPos(trigger:GetPos())
+    InfoParent:AddEFlags(EFL_IN_SKYBOX)
     InfoParent:Spawn()
     InfoParent:SetCollisionBounds(minbounds, maxbounds)
     InfoParent:SetCollisionGroup(COLLISION_GROUP_IN_VEHICLE)
@@ -307,6 +310,7 @@ util.AddNetworkString("CTFEntityCreated")
 function rv_gm.CreateDollFlagBase(vec, teamindex, spawnwithflag)
     local FlagBase = rv_gm.CreateGamemodeEntity("prop_physics")
     FlagBase:SetModel(FlagBaseModel)
+    FlagBase:AddEFlags(EFL_IN_SKYBOX)
     FlagBase:SetModelScale(0.5, 0)
     FlagBase:SetPos(vec)
     FlagBase.TeamIndex = teamindex
@@ -637,7 +641,7 @@ function rv_gm.SetJoinTeam(ply)
     end
 end
 
-hook.Add("PlayerInitialSpawn", "SetTeamOnJoin", function(ply, _)
+AddGamemodeHook("PlayerInitialSpawn", "SetTeamOnJoin", function(ply, _)
     --
     rv_gm.SetJoinTeam(ply)
 end)

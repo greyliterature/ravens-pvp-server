@@ -390,6 +390,7 @@ AddGamemodeHook("InitPostEntityStarted", "SendCTFEntities", function(ply)
         net.WriteEntity(ent)
         net.WriteUInt(ent.TeamIndex, 7)
     end
+    net.Send(ply)
 end)
 
 util.AddNetworkString("RevealFlag")

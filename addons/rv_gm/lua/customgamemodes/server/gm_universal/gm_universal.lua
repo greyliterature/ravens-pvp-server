@@ -5,12 +5,23 @@ function rv_gm.SetAllToSpectate(SetTeam, SilentKill)
     for _, ply in player.Iterator() do
         if SetTeam ~= false then ply:SetTeam(TEAM_SPECTATOR) end
         ply:KillSilent()
-        FSpectate.startSpectating(ply, nil, false)
+        rv_gm.ForcePlayerToSpectate(ply, nil)
     end
 end
 
+local FullyLoaded = {}
+AddGamemodeHook("InitPostEntityStarted", "SetSpectateOnJoin", function(ply)
+    FullyLoaded[ply] = true
+    local ShouldSpectateOnJoin = hook.Run("ShouldSpectateOnJoin", ply)
+    if ShouldSpectateOnJoin ~= true then return end
+    rv_gm.ForcePlayerToSpectate(ply, nil)
+    return
+end)
+
 function rv_gm.ForcePlayerToSpectate(ply, target)
+    if not FullyLoaded[ply] then return end
     FSpectate.startSpectating(ply, target, false)
+    ply:KillSilent()
 end
 
 function rv_gm.ForcePlayerToUnSpectate(ply)
@@ -96,15 +107,13 @@ AddGamemodeHook("CanPlayerSuicide", "DisableSuicide", function(ply)
     return CanPlayersSuicide
 end)
 
+--[[
 AddGamemodeHook("InitPostEntityStarted", "SetSpectateOnJoin", function(ply)
     local ShouldSpectateOnJoin = hook.Run("ShouldSpectateOnJoin", ply)
     if ShouldSpectateOnJoin ~= true then return end
-    timer.Simple(1, function()
-        -- 
-        rv_gm.ForcePlayerToSpectate(ply, nil)
-    end)
+    rv_gm.ForcePlayerToSpectate(ply, nil)
 end)
-
+--]]
 --[[------------------------------
     Spawn system
 --------------------------------]]
@@ -970,8 +979,7 @@ AddGamemodeHook("PlayerChangedTeam", "SpectateStateOnTeamChange", function(ply, 
         FSpectate.forceUnspectate(ply)
         ply:Spawn()
     elseif newTeam == TEAM_SPECTATOR then
-        ply:KillSilent()
-        FSpectate.startSpectating(ply, nil, false)
+        rv_gm.ForcePlayerToSpectate(ply, nil)
     end
 end)
 

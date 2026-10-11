@@ -90,6 +90,7 @@ AddGamemodeHook("rv_gm.RoundStarted", "RoundStarted", function(RoundCount)
     rv_gm.RespawnAllPlayers()
     rv_gm.SendNotif(nil, {"5", "4", "3", "2", "1", "FIGHT!"}, {CurTime() + 1, CurTime() + 2, CurTime() + 3, CurTime() + 4, CurTime() + 5, CurTime() + 6}, "Round begins in")
     rv_gm.SetTimeLimit(600 + RoundStartDelay)
+    rv_gm.SetMatchInProgress(true)
     return
 end)
 
@@ -105,7 +106,6 @@ AddGamemodeHook("rv_gm.MatchStarted", "MatchStarted", function()
         rv_gm.ShuffleTeams()
         rv_gm.SendNotif(nil, {"Starts in: 3", "Starts in: 2", "Starts in: 1"}, {CurTime() + 1, CurTime() + 2, CurTime() + 3}, "Capture the Flag")
         rv_gm.RespawnAllPlayers()
-        --rv_gm.SetMatchInProgress(true) -- rv_gm.StartMatch() handles this for you 
         -- this seems redundant and unnecessary 
         timer.Simple(MatchStartDelay, function()
             --

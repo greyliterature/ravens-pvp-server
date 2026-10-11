@@ -289,7 +289,7 @@ if CLIENT then
     end)
 
     net.Receive("SetUpTeam", function()
-        team.SetUp(net.ReadUInt(16), net.ReadString(), net.ReadColor(true), net.ReadBool)
+        team.SetUp(net.ReadUInt(16), net.ReadString(), net.ReadColor(true), net.ReadBool())
         return
     end)
 end

@@ -387,7 +387,7 @@ elseif CLIENT then
             local VarIndex = net.ReadString()
             local VarType = net.ReadString()
             local BitCount = net.ReadUInt(6)
-            local VarValue = net["Read" .. VarType](VarValue, BitCount)
+            local VarValue = net["Read" .. VarType](BitCount)
             SetGlobal3Vars[VarIndex] = VarValue
             hook.Run("Global3VarChanged", VarType, VarIndex, VarValue, true)
         end

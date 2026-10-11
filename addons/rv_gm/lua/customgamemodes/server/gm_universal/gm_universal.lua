@@ -202,7 +202,12 @@ function rv_gm.CreateTrigger(vec, parent, minbounds, maxbounds, parentcolor, sta
 
     trigger:SetTrigger(true)
     trigger:SetParent(parent)
-    trigger:SetLocalPos(vector_origin)
+    if parent then
+        trigger:SetLocalPos(vector_origin)
+    else
+        trigger:SetPos(vec)
+    end
+
     local InfoParent = rv_gm.CreateGamemodeEntity("prop_physics")
     InfoParent:SetModel("models/props_interiors/pot02a.mdl")
     InfoParent:SetPos(trigger:GetPos())
@@ -211,12 +216,12 @@ function rv_gm.CreateTrigger(vec, parent, minbounds, maxbounds, parentcolor, sta
     InfoParent:SetCollisionGroup(COLLISION_GROUP_IN_VEHICLE)
     InfoParent:GetPhysicsObject():EnableMotion(false)
     parentcolorcopy = parentcolor:Copy()
-    parentcolorcopy.a = 0
+    parentcolorcopy.a = 255
     InfoParent:SetColor(parentcolorcopy)
     InfoParent:SetRenderMode(RENDERMODE_TRANSCOLOR)
     InfoParent.IsInfoParentPot = true
     InfoParents[trigger] = InfoParent
-    timer.Simple(0.1, function()
+    timer.Simple(0.3, function()
         --
         rv_gm.SendTriggerInfo(nil, InfoParent)
     end)
@@ -291,7 +296,7 @@ function rv_gm.RequestGamemodeData()
 end
 
 --[[------------------------------
-    CTF (shared because maybe its needed in another mode)
+    CTF
 --------------------------------]]
 local FlagBaseModel = "models/props_c17/gravestone_cross001b.mdl"
 local FlagBaseFlagOffset = Vector(0, 0, 40)
@@ -335,7 +340,7 @@ function rv_gm.CreateDollFlagBase(vec, teamindex, spawnwithflag)
         net.Broadcast()
     end)
 
-    local trigger = rv_gm.CreateTrigger(Vector(0, 0, 0), FlagBase, FlagBaseDetectionMins, FlagBaseDetectionMaxes, team.GetColor(teamindex), starttouchfunc, nil, endtouchfunc)
+    local trigger = rv_gm.CreateTrigger(Vector(0, 0, 0), FlagBase, FlagBaseDetectionMins, FlagBaseDetectionMaxes, team.GetColor(teamindex), starttouchfunc, nil, nil)
     trigger.TeamIndex = teamindex
     trigger.IsBase = true
     CTFEntities[FlagBase] = true
@@ -501,12 +506,111 @@ AddGamemodeHook("GravGunPunt", "DollFlagPunt", function(ply, ent)
 end)
 
 --[[------------------------------
+    KOTH 
+--------------------------------]]
+local Hills = {}
+local TimeToScoreHill = 5 -- if there is a player on the x second, their team will score
+SetGlobal3("Float", "TimeToScoreHill", TimeToScoreHill)
+function rv_gm.SetTimeToScoreHill(seconds)
+    TimeToScoreHill = seconds
+    SetGlobal3("Float", "TimeToScoreHill", TimeToScoreHill)
+end
+
+function rv_gm.GetTimeToScoreHill()
+    return TimeToScoreHill
+end
+
+function rv_gm.GetHighestTeamOnHill(hill)
+    if not hill.Players then return end
+    local teams = {}
+    for ply, _ in pairs(hill.Players) do
+        teams[ply:Team()] = (teams[ply:Team()] or 0) + 1
+    end
+
+    local bestteamindex, bestscore, secondbestteamindex, secondbestscore = nil, 0, nil, 0
+    for teamindex, score in pairs(teams) do
+        if score > bestscore then --
+            secondbestteamindex = bestteamindex
+            secondbestscore = bestscore
+            bestteamindex = teamindex
+        end
+    end
+
+    print(bestteamindex, bestscore, secondbestteamindex, secondbestscore)
+    return bestteamindex, bestscore, secondbestteamindex, secondbestscore
+end
+
+function rv_gm.SetHillReward(hill, score) -- how much score to reward on having a certain hill
+    hill.ScoreReward = score
+end
+
+local DefaultHillScoreReward = 1
+local CONTROLLING_TEAM_NOPLAYERS = 95316
+local CONTROLLING_TEAM_CONTESTED = 953493
+function rv_gm.CreateHill(vec, minbounds, maxbounds, hillreward)
+    local function starttouchfunc(self, ent)
+        if not ent:IsPlayer() then return end
+        self.PlayersOnHill = (self.PlayersOnHill or 0) + 1
+        self.Players = self.Players or {}
+        self.Players[ent] = true
+        local ControllingTeam, bestscore, secondbestteamindex, secondbestscore = rv_gm.GetHighestTeamOnHill(self)
+        if not ControllingTeam then --
+            ControllingTeam = CONTROLLING_TEAM_NOPLAYERS
+        elseif bestscore == secondbestscore and secondbestteamindex then
+            ControllingTeam = CONTROLLING_TEAM_CONTESTED
+        end
+
+        print("Controlling team: " .. ControllingTeam)
+        SetGlobal3("Int", "ControllingTeam", ControllingTeam)
+    end
+
+    local function endtouchfunc(self, ent)
+        if not ent:IsPlayer() then return end
+        self.PlayersOnHill = (self.PlayersOnHill or 1) - 1
+        self.Players = self.Players or {}
+        self.Players[ent] = nil
+        local ControllingTeam = select(1, rv_gm.GetHighestTeamOnHill(self))
+        if not ControllingTeam then --
+            ControllingTeam = CONTROLLING_TEAM_NOPLAYERS
+        end
+
+        print("Controlling team: " .. ControllingTeam)
+        SetGlobal3("Int", "ControllingTeam", ControllingTeam)
+    end
+
+    local hill = rv_gm.CreateTrigger(vec, nil, minbounds, maxbounds, color_white, starttouchfunc, touchfunc, endtouchfunc)
+    local AmmoCrate = rv_gm.CreateGamemodeEntity("prop_physics")
+    AmmoCrate:SetModel("models/props/de_prodigy/ammo_can_01.mdl")
+    AmmoCrate:SetPos(vec)
+    AmmoCrate:Spawn()
+    AmmoCrate:GetPhysicsObject():EnableMotion(false)
+    rv_gm.SetHillReward(hill, hillreward or DefaultHillScoreReward)
+    Hills[#Hills + 1] = hill
+    SetGlobal3("Float", "HillStartTime", CurTime())
+    timer.Create("HillsScore", TimeToScoreHill, 0, function()
+        SetGlobal3("Float", "HillStartTime", CurTime())
+        for _, hillent in ipairs(Hills) do
+            local highestteamindex, bestscore, secondbestteamindex, secondbestscore = rv_gm.GetHighestTeamOnHill(hillent)
+            if not highestteamindex then continue end
+            if bestscore == secondbestscore and secondbestteamindex then continue end
+            print("gave " .. team.GetName(highestteamindex) .. " score reward: " .. hill.ScoreReward .. " ( or maybe didnt )")
+            rv_gm.AddTeamScore(highestteamindex, hill.ScoreReward)
+        end
+    end)
+    return hill
+end
+
+--[[------------------------------
     Match logic
 --------------------------------]]
 local MatchInProgress = false
 function rv_gm.SetMatchInProgress(bool)
     MatchInProgress = bool
     SetGlobal3("Bool", "MatchInProgress", bool)
+end
+
+function rv_gm.IsMatchInProgress()
+    return MatchInProgress
 end
 
 local RoundInProgress = false
@@ -526,7 +630,6 @@ end
 
 function rv_gm.SetJoinTeam(ply)
     if ply:IsBot() then
-        print(ply)
         ply:SetTeam(TEAM_RED)
     else
         ply:SetTeam(TEAM_SPECTATOR)
@@ -668,7 +771,7 @@ end
 
 rv_gm.SetMatchInProgress(false) -- autorefresh
 function rv_gm.StartMatch()
-    rv_gm.SetMatchInProgress(true)
+    --rv_gm.SetMatchInProgress(true) -- this was a bad idea
     timer.Remove("MatchTimeLimit") -- or else conflicts, annoying but yeah
     hook.Run("rv_gm.MatchStarted")
 end
@@ -764,9 +867,8 @@ AddGamemodeHook("PlayerButtonDown", "ReadyUpButtons", function(ply, button)
     end
 
     if #team.GetPlayers(TEAM_RED) == 0 or #team.GetPlayers(TEAM_BLUE) == 0 then
-        print("UNCOMMENT THIS LATER")
-        --rv_gm.SendNotif(ply, {"Both teams must be present to ready-up."}, {CurTime() + 2}, nil, true)
-        --return
+        rv_gm.SendNotif(ply, {"Both teams must be present to ready-up."}, {CurTime() + 2}, nil, true)
+        return
     end
 
     local CanPlayerReadyUp, err = hook.Run("rv_gm.CanPlayerReadyUp", ply)

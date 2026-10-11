@@ -463,6 +463,7 @@ hook.Add("rv_gm.PlayerPickedUpCTFEntity", "ChangeTextOnPickup", function(picking
         -- is it their flag 
         if pickingupply == LocalPlayer() and pickedup == true then
             myflagbase.Text = "DELIVER"
+            theirflag.Text = "CAPTURE"
         elseif pickingupply == LocalPlayer() and pickedup == false then
             if myflag.AtBase == true then --
                 myflag.Text = "DEFEND"

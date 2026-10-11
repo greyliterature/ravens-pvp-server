@@ -41,11 +41,14 @@ rv_gm.DisablePlayerRewards()
     Death
 ------------------------------------------------------------------------]]
 local RespawnDelay = 5
-AddGamemodeHook("PlayerDeath", "SetSpecOnDeath", function(victim, _, _)
-    rv_gm.ForcePlayerToSpectate(victim)
+AddGamemodeHook("PlayerDeath", "SetSpecOnDeath", function(ply, _, _)
+    local Teammates = team.GetPlayers(ply:Team())
+    table.RemoveByValue(Teammates, ply)
+    local NextTeammate = Teammates[1]
+    rv_gm.ForcePlayerToSpectate(ply, NextTeammate)
     timer.Simple(RespawnDelay, function()
-        rv_gm.ForcePlayerToUnSpectate(victim)
-        victim:Spawn()
+        rv_gm.ForcePlayerToUnSpectate(ply)
+        ply:Spawn()
         return
     end)
     return

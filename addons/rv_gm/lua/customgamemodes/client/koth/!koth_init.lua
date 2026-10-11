@@ -1,5 +1,4 @@
 local rv_gm = include("customgamemodes/client/gm_universal/gm_universal.lua")
-print("HEYO")
 --[[------------------------------
     Init
 --------------------------------]]

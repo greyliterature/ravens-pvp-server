@@ -99,7 +99,8 @@ end)
 AddGamemodeHook("InitPostEntityStarted", "SetSpectateOnJoin", function(ply)
     local ShouldSpectateOnJoin = hook.Run("ShouldSpectateOnJoin", ply)
     if ShouldSpectateOnJoin ~= true then return end
-    timer.Simple(1, function() --
+    timer.Simple(1, function()
+        -- 
         rv_gm.ForcePlayerToSpectate(ply, nil)
     end)
 end)
@@ -310,8 +311,8 @@ util.AddNetworkString("CTFEntityCreated")
 function rv_gm.CreateDollFlagBase(vec, teamindex, spawnwithflag)
     local FlagBase = rv_gm.CreateGamemodeEntity("prop_physics")
     FlagBase:SetModel(FlagBaseModel)
-    FlagBase:AddEFlags(EFL_IN_SKYBOX)
     FlagBase:SetModelScale(0.5, 0)
+    FlagBase:AddEFlags(EFL_IN_SKYBOX)
     FlagBase:SetPos(vec)
     FlagBase.TeamIndex = teamindex
     FlagBase:SetColor(team.GetColor(teamindex))
@@ -394,6 +395,7 @@ AddGamemodeHook("InitPostEntityStarted", "SendCTFEntities", function(ply)
         net.WriteEntity(ent)
         net.WriteUInt(ent.TeamIndex, 7)
     end
+
     net.Send(ply)
 end)
 
@@ -416,6 +418,7 @@ function rv_gm.RevealFlag(revealedply, ent, bool)
     net.WriteBool(bool)
     net.Broadcast()
     hook.Run("rv_gm.FlagRevealed", revealedply, ent, Revealed)
+    ent.Revealed = bool
     if bool == false or bool == nil then timer.Remove("FlagRevelation" .. ent:EntIndex()) end
 end
 
@@ -432,8 +435,9 @@ AddGamemodeHook("GravGunOnPickedUp", "NetworkGravGunForFlags", function(ply, ent
     net.Broadcast()
     if timer.Exists("FlagRevelation" .. ent:EntIndex()) then return end
     timer.Create("FlagRevelation" .. ent:EntIndex(), RevelationDelay, 1, function()
-        --
-        rv_gm.RevealFlag(ent.LastPickedUpPly, ent, not ent.AtBase)
+        if not ent.Revealed then --
+            rv_gm.RevealFlag(ent.LastPickedUpPly, ent, not ent.AtBase)
+        end
     end)
 end)
 
@@ -441,8 +445,9 @@ AddGamemodeHook("GravGunOnDropped", "NetworkGravGunForFlags", function(ply, ent)
     if not CTFEntities[ent] then return end
     ent.LastPickedUpPly = nil
     if ent.AtBase == false then
-        print("YUP")
         timer.Create("RTBDollFlag" .. ent:EntIndex(), FlagReturnDelay, 1, function()
+            if ent.LastPickedUpPly then return end
+            if not IsValid(ent) then return end
             rv_gm.ReturnDollFlagToBase(ent) --
         end)
     end

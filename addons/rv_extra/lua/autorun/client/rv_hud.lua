@@ -70,30 +70,32 @@ local function AddMOHHud()
     }
 
     hook.Add("HUDPaint", "rv_hud", function()
-        if LocalPlayer():Alive() == false then return end
+        if LocalPlayer():Alive() == false or LocalPlayer():Health() <= 0 then return end
         local HeightOffset = ScrH() * 0.015
         surface.SetDrawColor(color_white)
-        surface.DrawRect(ScrW() * 0.5 - 1, 0, 1, ScrH())
-        surface.DrawRect(ScrW() * 0.5 - 1, 0, 1, ScrH())
+        --surface.DrawRect(ScrW() * 0.5 - 1, 0, 1, ScrH())
+        --surface.DrawRect(ScrW() * 0.5 - 1, 0, 1, ScrH())
         local ply = LocalPlayer()
         local weap = ply:GetActiveWeapon()
         --local PrimaryAmmoType = weap:GetPrimaryAmmoType()
         --local PrimaryAmmoCount = ply:GetAmmoCount(PrimaryAmmoType)
-        local clip1 = weap:Clip1()
-        local maxclip1 = weap:GetMaxClip1()
-        --local clip2 = weap:Clip2()
-        local SecondaryAmmoType = weap:GetSecondaryAmmoType()
-        local SecondaryAmmoCount = ply:GetAmmoCount(SecondaryAmmoType)
-        DropShadowArial(ply:Health() .. " HP", "Arial_Black", ScrW() * 0.5, ScrH() * 0.94 - HeightOffset, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
-        if clip1 ~= -1 then --
-            DropShadowArial(clip1 .. "/" .. maxclip1, "Arial_Black", ScrW() * 0.5, ScrH() - HeightOffset, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
+        if IsValid(weap) then
+            local clip1 = weap:Clip1()
+            local maxclip1 = weap:GetMaxClip1()
+            --local clip2 = weap:Clip2()
+            local SecondaryAmmoType = weap:GetSecondaryAmmoType()
+            local SecondaryAmmoCount = ply:GetAmmoCount(SecondaryAmmoType)
+            if clip1 ~= -1 then --
+                DropShadowArial(clip1 .. "/" .. maxclip1, "Arial_Black", ScrW() * 0.5, ScrH() - HeightOffset, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
+            end
+
+            DropShadowArial(SecondaryAmmoCount .. " ALT", "Arial_Black", ScrW() * 0.43, ScrH() - HeightOffset, color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM)
         end
 
-        DropShadowArial(SecondaryAmmoCount .. " ALT", "Arial_Black", ScrW() * 0.43, ScrH() - HeightOffset, color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM)
+        DropShadowArial(ply:Health() .. " HP", "Arial_Black", ScrW() * 0.5, ScrH() * 0.94 - HeightOffset, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_BOTTOM)
         DropShadowArial(ply:Armor() .. " AP", "Arial_Black", ScrW() * 0.57, ScrH() - HeightOffset, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM)
-        local text = Weapons[weap:GetClass()]
+        local text = IsValid(weap) and Weapons[weap:GetClass()] or nil
         if not text then return end
-        -- from https://wiki.facepunch.com/gmod/VMatrix:IsZero#example
         local vm = ply:GetViewModel()
         if not IsValid(vm) then return false end
         local seq = vm:GetSequence()
@@ -109,7 +111,7 @@ local function AddMOHHud()
 
         surface.SetFont("HL2MPBig")
         local w, h = surface.GetTextSize(text)
-        --
+        -- from https://wiki.facepunch.com/gmod/VMatrix:IsZero#example
         render.PushFilterMag(TEXFILTER.ANISOTROPIC)
         render.PushFilterMin(TEXFILTER.ANISOTROPIC)
         local m = Matrix()
@@ -172,5 +174,6 @@ cvars.AddChangeCallback("rv_hud", function(convar, old, new)
     HUDTypes[HUDType]["AddFunction"]()
 end, "rv_hud")
 
+RemoveHUD()
 HUDType = rv_hud:GetString()
 HUDTypes[HUDType]["AddFunction"]()

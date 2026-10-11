@@ -9,9 +9,15 @@ function rv_gm.SetAllToSpectate(SetTeam, SilentKill)
     end
 end
 
-local FullyLoaded = {}
+local debugging = false
+if debugging == true then
+    for _, ply in player.Iterator() do
+        ply.FullyLoaded = true
+    end
+end
+
 AddGamemodeHook("InitPostEntityStarted", "SetSpectateOnJoin", function(ply)
-    FullyLoaded[ply] = true
+    ply.FullyLoaded = true
     local ShouldSpectateOnJoin = hook.Run("ShouldSpectateOnJoin", ply)
     if ShouldSpectateOnJoin ~= true then return end
     rv_gm.ForcePlayerToSpectate(ply, nil)
@@ -19,7 +25,7 @@ AddGamemodeHook("InitPostEntityStarted", "SetSpectateOnJoin", function(ply)
 end)
 
 function rv_gm.ForcePlayerToSpectate(ply, target)
-    if not FullyLoaded[ply] then return end
+    if not ply.FullyLoaded then return end
     FSpectate.startSpectating(ply, target, false)
     ply:KillSilent()
 end
@@ -96,10 +102,10 @@ function rv_gm.AllowPlayerFriendlyFire(bool)
 end
 
 AddGamemodeHook("ScalePlayerDamage", "DisableFriendlyFire", function(ply, hitgroup, dmginfo)
-    if not CanPlayersFriendlyfire then return end
+    if CanPlayersFriendlyfire == nil or CanPlayersFriendlyfire == true then return end
     local attacker = dmginfo:GetAttacker()
     if not attacker:IsPlayer() then return end
-    if ply:Team() == attacker:Team() then return CanPlayersFriendlyfire end
+    if ply:Team() == attacker:Team() then return true end
 end)
 
 AddGamemodeHook("CanPlayerSuicide", "DisableSuicide", function(ply)
@@ -789,7 +795,6 @@ function rv_gm.RespawnAllDeadPlayers(Teams)
         end
     end
 end
-
 
 function rv_gm.RespawnAllPlayers(Teams)
     if not Teams then Teams = rv_gm.GetTeamIndexes() end

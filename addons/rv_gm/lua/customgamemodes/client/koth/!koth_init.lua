@@ -126,6 +126,10 @@ AddGamemodeHook("HUDPaint", "KOTHProgressBar", function()
         ControllingTeam = nil
     end
 
+    -- time left text
+    local TimeLeft = GetGlobal3("MatchTimeLimit", 0) - CurTime()
+    local time = (rv_gm.IsMatchInProgress() == true and string.FormattedTime(TimeLeft, "%02i:%02i")) or "WARM-UP"
+    draw.SimpleText(time, "Roboto_Control", 0 + MarginX, ScrH() - MarginY - RectHeight, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM)
     -- top left rect
     surface.SetDrawColor((ControllingTeam == TEAM_BLUE and color_wdblue) or color_wdgreytop)
     surface.DrawRect(0 + MarginX, ScrH() - MarginY - RectHeight, RectWidth * 0.5, TopRectHeight)

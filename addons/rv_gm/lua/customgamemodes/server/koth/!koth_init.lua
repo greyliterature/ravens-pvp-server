@@ -141,10 +141,13 @@ AddGamemodeHook("rv_gm.GamemodeDataLoaded", "SetSpawns", function(gamemodetbl)
     end
 
     for teamindex, tbl in pairs(gamemodetbl[map]["Spawns"]) do
-        local pos = tbl[1]
-        local angs = tbl[2]
-        local usePitch = nil
-        rv_gm.spawns[#rv_gm.spawns + 1] = CreateSpawnPoint(nil, pos, angs, usePitch, teamindex)
+        for _, data in ipairs(tbl) do
+            local pos = data[1]
+            local angs = data[2]
+            local usePitch = nil
+            print(pos, angs)
+            rv_gm.spawns[#rv_gm.spawns + 1] = CreateSpawnPoint(nil, pos, angs, usePitch, teamindex)
+        end
     end
 end)
 

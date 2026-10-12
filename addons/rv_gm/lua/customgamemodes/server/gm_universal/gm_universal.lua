@@ -1,37 +1,11 @@
 rv_gm = {}
 RemoveLastGamemodesEntities()
 local TEAM_RED, TEAM_BLUE = 1, 2
-function rv_gm.SetAllToSpectate(SetTeam, SilentKill)
-    for _, ply in player.Iterator() do
-        if SetTeam ~= false then ply:SetTeam(TEAM_SPECTATOR) end
-        ply:KillSilent()
-        rv_gm.ForcePlayerToSpectate(ply, nil)
-    end
-end
-
 local debugging = false
 if debugging == true then
     for _, ply in player.Iterator() do
         ply.FullyLoaded = true
     end
-end
-
-AddGamemodeHook("InitPostEntityStarted", "SetSpectateOnJoin", function(ply)
-    ply.FullyLoaded = true
-    local ShouldSpectateOnJoin = hook.Run("ShouldSpectateOnJoin", ply)
-    if ShouldSpectateOnJoin ~= true then return end
-    rv_gm.ForcePlayerToSpectate(ply, nil)
-    return
-end)
-
-function rv_gm.ForcePlayerToSpectate(ply, target)
-    if not ply.FullyLoaded then return end
-    FSpectate.startSpectating(ply, target, false)
-    ply:KillSilent()
-end
-
-function rv_gm.ForcePlayerToUnSpectate(ply)
-    FSpectate.forceUnspectate(ply)
 end
 
 local CanPlayersRespawn = nil
@@ -127,6 +101,43 @@ AddGamemodeHook("InitPostEntityStarted", "SetSpectateOnJoin", function(ply)
     rv_gm.ForcePlayerToSpectate(ply, nil)
 end)
 --]]
+--[[------------------------------
+    Spectate system
+--------------------------------]]
+function rv_gm.SetAllToSpectate(SetTeam, SilentKill)
+    for _, ply in player.Iterator() do
+        if SetTeam ~= false then ply:SetTeam(TEAM_SPECTATOR) end
+        ply:KillSilent()
+        rv_gm.ForcePlayerToSpectate(ply, nil)
+    end
+end
+
+AddGamemodeHook("FSpectate_canSpectate", "NoSpectateWhileAlive", function(ply)
+    local canSpec = false
+    if ply:Alive() == false or ply:Team() == TEAM_SPECTATOR then --
+        canSpec = nil
+    end
+    return canSpec
+end)
+
+function rv_gm.ForcePlayerToSpectate(ply, target)
+    if not ply.FullyLoaded then return end
+    FSpectate.startSpectating(ply, target, false)
+    ply:KillSilent()
+end
+
+function rv_gm.ForcePlayerToUnSpectate(ply)
+    FSpectate.forceUnspectate(ply)
+end
+
+AddGamemodeHook("InitPostEntityStarted", "SetSpectateOnJoin", function(ply)
+    ply.FullyLoaded = true
+    local ShouldSpectateOnJoin = hook.Run("ShouldSpectateOnJoin", ply)
+    if ShouldSpectateOnJoin ~= true then return end
+    rv_gm.ForcePlayerToSpectate(ply, nil)
+    return
+end)
+
 --[[------------------------------
     Spawn system
 --------------------------------]]

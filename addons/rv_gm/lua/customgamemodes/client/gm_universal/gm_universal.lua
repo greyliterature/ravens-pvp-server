@@ -64,6 +64,28 @@ AddGamemodeHook("FSpectate_canSpectatePlayer", "OnlySpectateTeam", function(ply)
 end)
 
 --[[------------------------------
+    Warmup
+--------------------------------]]
+local function CeilZero(x) -- math.ceil does not round up for 0
+    if x == 0 then return 1 end
+    return math.ceil(x)
+end
+
+AddGamemodeHook("HUDPaint", "ReadyUpReminder", function()
+    if GetGlobal3("MatchInProgress", false) == true or LocalPlayer():Team() == TEAM_SPECTATOR then return end
+    if GetGlobal3("ShouldShowF3") == false then return end
+    if GetGlobal3("MatchStarting") == true then return end
+    if ReadiedUp == false then
+        draw.DrawText("Press f3 to Ready-up.", "RobotoSecondaryHeader", ScrW() * 0.5, ScrH() * 0.2, color_white, TEXT_ALIGN_CENTER)
+    else
+        local ReadyUpRatio = GetGlobal3("ReadyUpRatio")
+        local ReadyUpCount = GetGlobal3("ReadyUpCount", 0)
+        local ValidPlayers = #team.GetPlayers(TEAM_RED) + #team.GetPlayers(TEAM_BLUE)
+        draw.DrawText(ReadyUpCount .. " / " .. CeilZero(ReadyUpRatio * ValidPlayers) .. " players ready. " .. "Press f3 to unready yourself.", "RobotoSecondaryHeader", ScrW() * 0.5, ScrH() * 0.2, colortable.color_green, TEXT_ALIGN_CENTER)
+    end
+end)
+
+--[[------------------------------
     Triggers
 --------------------------------]]
 local TriggerParents = {}

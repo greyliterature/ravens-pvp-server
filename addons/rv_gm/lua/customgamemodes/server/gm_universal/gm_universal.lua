@@ -713,6 +713,7 @@ local RoundCount = 0
 function rv_gm.StartRound()
     rv_gm.RespawnAllDeadPlayers()
     RoundCount = RoundCount + 1
+    SetGlobal3("Bool", "MatchStarting", false)
     hook.Run("rv_gm.RoundStarted", RoundCount)
 end
 
@@ -831,6 +832,7 @@ rv_gm.SetMatchInProgress(false) -- autorefresh
 function rv_gm.StartMatch()
     --rv_gm.SetMatchInProgress(true) -- this was a bad idea
     timer.Remove("MatchTimeLimit") -- or else conflicts, annoying but yeah
+    SetGlobal3("Bool", "MatchStarting", true)
     hook.Run("rv_gm.MatchStarted")
 end
 
@@ -849,12 +851,17 @@ function rv_gm.EndMatch()
     rv_gm.SetAllPlayersUnready()
     table.remove(loserstbl, WinnerIndex)
     timer.Remove("MatchTimeLimit")
+    SetGlobal3("Bool", "MatchStarting", false)
     hook.Run("rv_gm.MatchEnded", WinnerIndex, loserstbl)
 end
 
 --[[------------------------------
     Warmup logic
 --------------------------------]]
+function rv_gm.SetShouldShowF3(bool)
+    SetGlobal3("Bool", "ShouldShowF3", bool)
+end
+
 local ReadyUpRatio = 100
 function rv_gm.SetReadyUpRatio(ratio)
     ReadyUpRatio = ratio

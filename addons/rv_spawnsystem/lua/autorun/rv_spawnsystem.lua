@@ -48,7 +48,12 @@ local function DecideSpawn(ply, _)
     if #team_spawns > 0 then
         local random_entry = math.random(1, #team_spawns)
         local random_spawn = team_spawns[random_entry]
-        hook.Run("IsSpawnpointSuitable", ply, random_spawn, true)
+        for _, spawn in RandomPairs(team_spawns) do
+            local IsSpawnPointSuitable = hook.Run("IsSpawnpointSuitable", ply, spawn, false)
+            if IsSpawnPointSuitable ~= false then --
+                return spawn
+            end
+        end
         return random_spawn
     else
         local valid_spawns = {}

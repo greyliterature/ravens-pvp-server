@@ -43,6 +43,13 @@ function rv_gm.AllowPlayerRespawns(bool)
     end
 end
 
+function rv_gm.DelayedRespawn(ply) -- should fix issues with PLAYERMETA:Spawn() being called too early for PlayerSelectSpawn to account for team when a player's team is changed and immediately spawned after change
+    timer.Simple(0, function()
+        ply:Spawn()
+        --hook.Run("PlayerSelectSpawn", ply)
+    end)
+end
+
 local TeamJoins = false
 function rv_gm.EnableTeamJoins(bool)
     TeamJoins = bool
@@ -993,10 +1000,10 @@ AddGamemodeHook("PlayerChangedTeam", "SpectateStateOnTeamChange", function(ply, 
     if TeamJoins == false then return end
     if oldTeam == TEAM_SPECTATOR and (RoundInProgress == false or MatchInProgress == false) then
         FSpectate.forceUnspectate(ply)
-        ply:Spawn()
+        rv_gm.DelayedRespawn(ply)
     elseif (oldTeam == TEAM_BLUE or oldTeam == TEAM_RED) and MatchInProgress == false and newTeam ~= TEAM_SPECTATOR then
         FSpectate.forceUnspectate(ply)
-        ply:Spawn()
+        rv_gm.DelayedRespawn(ply)
     elseif newTeam == TEAM_SPECTATOR then
         rv_gm.ForcePlayerToSpectate(ply, nil)
     end

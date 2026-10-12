@@ -285,6 +285,7 @@ end
 --[[------------------------------
     Gamemode Data (flag poses, hill poses, etc.)
 --------------------------------]]
+--[[
 local GamemodeData = nil
 local GamemodeDataPath = "rv_gamemodedata.json"
 if file.Exists(GamemodeDataPath, "DATA") then --
@@ -297,7 +298,7 @@ function rv_gm.AddGamemodeData(category, tbl, map) -- please do not use .bsp for
     GamemodeData[map][category] = tbl
     file.Write(GamemodeDataPath, util.TableToJSON(GamemodeData, true))
 end
-
+--]]
 --[[
 rv_gm.AddGamemodeData("Flags", {
     [1] = Vector(-2485.022705, -2778.487061, 428.661743),
@@ -318,6 +319,7 @@ rv_gm.AddGamemodeData("Spawns", {
 }, "gm_construct")
 --]]
 function rv_gm.RequestGamemodeData()
+    local GamemodeData = include("../../gamemodedata.lua")
     hook.Run("rv_gm.GamemodeDataLoaded", GamemodeData)
 end
 

@@ -75,6 +75,7 @@ local function DecideSpawn(ply, _)
 end
 
 if SERVER then
+    local ActivePlayers = {}
     function CreateSpawnPoint(callingply, pos, angs, usePitch, teamindex)
         if IsValid(callingply) and not callingply:IsSuperAdmin() then return end
         teamindex = tonumber(teamindex)
@@ -88,6 +89,24 @@ if SERVER then
         Info_player_start.TeamIndex = tonumber(teamindex)
         Info_player_start:Spawn()
         Info_player_start:Activate()
+        for ply, _ in pairs(ActivePlayers) do
+            net.Start("rv_sendspawns")
+            local spawns = ents.FindByClass("info_player_start")
+            local NumKeys = #spawns
+            net.WriteUInt(NumKeys, 7)
+            for i = 1, NumKeys do
+                net.WriteVector(spawns[i]:GetPos())
+                net.WriteAngle(spawns[i]:GetAngles())
+                local teemindex = spawns[i].TeamIndex
+                local hasteamindex = teemindex ~= nil
+                net.WriteBool(hasteamindex)
+                if hasteamindex == true then --
+                    net.WriteUInt(teemindex, 11)
+                end
+            end
+
+            net.Send(ply)
+        end
         return Info_player_start
     end
 
@@ -106,6 +125,7 @@ if SERVER then
         Players[ply] = Players[ply] or 0
         if Players[ply] + RateLimit > CurTime() then return end
         if not ply:IsSuperAdmin() then return end
+        ActivePlayers[ply] = true
         net.Start("rv_sendspawns")
         local spawns = ents.FindByClass("info_player_start")
         local NumKeys = #spawns
@@ -158,9 +178,9 @@ elseif CLIENT then
         end
     end)
 
-    local showspawns = true
-    concommand.Add("rv_showspawns", function(ply, cmd, args)
-        if showspawns == true then
+    CreateClientConVar("rv_showspawns", "0", false, true, "Debug for showing spawns", 0, 1)
+    cvars.AddChangeCallback("rv_showspawns", function(_, _, newValue)
+        if newValue == "1" then
             -- update dists, no callbacks on clientside for replicated iirc
             maxdist = GetConVar("rv_spawnsystem_maxdist"):GetFloat() ^ 2
             mindist = GetConVar("rv_spawnsystem_mindist"):GetFloat() ^ 2
@@ -189,7 +209,5 @@ elseif CLIENT then
 
             hook.Remove("Think", "rv_showspawns")
         end
-
-        showspawns = not showspawns
-    end)
+    end, "rv_showspawns")
 end

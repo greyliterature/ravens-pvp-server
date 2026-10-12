@@ -15,6 +15,55 @@ function rv_gm.IsMatchInProgress()
 end
 
 --[[------------------------------
+    Spectate system
+--------------------------------]]
+AddGamemodeHook("FSpectate_canShowBeams", "NoBeams", function()
+    if LocalPlayer():Team() == TEAM_SPECTATOR then --
+        return nil
+    end
+    return false
+end)
+
+AddGamemodeHook("FSpectate_canShowESP", "NoESP", function()
+    if LocalPlayer():Team() == TEAM_SPECTATOR then --
+        return nil
+    end
+    return false
+end)
+
+gameevent.Listen("entity_killed")
+AddGamemodeHook("entity_killed", "SpectateNextPlayer", function(data)
+    local victim = Entity(data.entindex_killed)
+    if not victim:IsPlayer() then return end
+    if victim == FSpectate.getSpecEnt() then
+        timer.Simple(2, function()
+            spectateNextPlayer(1) --
+        end)
+    end
+end)
+
+--[[
+AddGamemodeHook("FSpectate_canThirdPerson", "NoThirdperson", function()
+    --
+    return ((LocalPlayer():Team() == TEAM_SPECTATOR and nil) or false)
+end)
+--]]
+AddGamemodeHook("FSpectate_canFreeRoam", "NoFreeRoam", function()
+    if LocalPlayer():Team() == TEAM_SPECTATOR then --
+        return nil
+    end
+    return false
+end)
+
+AddGamemodeHook("FSpectate_canSpectatePlayer", "OnlySpectateTeam", function(ply)
+    if LocalPlayer():Team() == TEAM_SPECTATOR then return end
+    if not IsValid(ply) then return end
+    if not ply:IsPlayer() then return end
+    if ply:Alive() == false then return false end
+    return ply:Team() == LocalPlayer():Team()
+end)
+
+--[[------------------------------
     Triggers
 --------------------------------]]
 local TriggerParents = {}
@@ -495,7 +544,7 @@ function rv_gm.OpenJoinTeamPopup()
     --RoundInfoText:SetFont("RobotoBig")
     GamemodeInfoText:SetPos(MatchPanel:GetWide() * 0.14 - MatchPanel:GetWide() * 0.03, MatchPanel:GetTall() * 0.37)
     local gamemodeinfotext = {
-        {GetGlobal3("CurrentGamemode", "N/A") .. " - " .. game.GetMap(), "RobotoBig"},
+        {GetGlobal3("CurrentGamemode") .. " - " .. game.GetMap(), "RobotoBig"},
         --
         {"", "SpacerFont"},
         {"Round limit : " .. "First to " .. GetGlobalInt("RoundLimit", "10"), "RobotoBig"},

@@ -81,7 +81,7 @@ end)
 -- round start 
 -- there is no RoundEnded for KOTH because it is really just one round, this is just for notification formality
 local CreateHardPoint = nil
-local LastHardPoint = nil
+local LastHardpoint = nil
 local HardPointsPoses = {}
 local RoundStartDelay = 5
 AddGamemodeHook("rv_gm.RoundStarted", "RoundStarted", function(RoundCount)

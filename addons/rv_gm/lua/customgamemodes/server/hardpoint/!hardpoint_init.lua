@@ -91,8 +91,12 @@ AddGamemodeHook("rv_gm.RoundStarted", "RoundStarted", function(RoundCount)
     rv_gm.SetTimeLimit(600 + RoundStartDelay)
     rv_gm.SetRoundInProgress(true)
     rv_gm.SetMatchInProgress(true)
-    local random_hardpointpos = HardPointsPoses[math.random(1, #HardPointsPoses)]
-    CreateHardPoint(random_hardpointpos)
+    timer.Simple(RoundStartDelay, function()
+        --
+        local random_hardpointpos = HardPointsPoses[math.random(1, #HardPointsPoses)]
+        CreateHardPoint(random_hardpointpos)
+        timer.Start("SwapHardPoint")
+    end)
     return
 end)
 
@@ -100,11 +104,12 @@ end)
 local MatchStartDelay = 3
 AddGamemodeHook("rv_gm.MatchStarted", "MatchStarted", function()
     rv_gm.LockAttacks(MatchStartDelay + 1)
-    if IsValid(LastHardPoint) then
+    if IsValid(LastHardpoint) then
         LastHardpoint.InfoParent:Remove()
-        LastHardPoint:Remove()
+        LastHardpoint:Remove()
     end
 
+    timer.Stop("SwapHardPoint")
     timer.Simple(1, function()
         rv_gm.ShuffleTeams()
         rv_gm.SendNotif(nil, {"Starts in: 3", "Starts in: 2", "Starts in: 1"}, {CurTime() + 1, CurTime() + 2, CurTime() + 3}, "Hard Point")
@@ -185,7 +190,7 @@ CreateHardPoint = function(pos)
     local HardPoint = rv_gm.CreateTrigger(pos, nil, HillMins, HillMaxes, color_white, StartTouchFunc, nil, EndTouchFunc)
     LastHardpoint = HardPoint
     SetGlobal3("Float", "HardPointUnlockDate", CurTime() + HardPointUnlockDelay)
-    timer.Simple(HardPointUnlockDelay, function()
+    AddGamemodeTimer("HardpointUnlock", HardPointUnlockDelay, 1, function()
         AddGamemodeTimer("HardPointsScore", HardPointScoreTime, 0, function()
             if not HardPoint then
                 timer.Remove("HardPointsScore")

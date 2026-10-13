@@ -86,7 +86,8 @@ AddGamemodeHook("rv_gm.RoundStarted", "RoundStarted", function(RoundCount)
     rv_gm.RespawnAllPlayers()
     rv_gm.SendNotif(nil, {"5", "4", "3", "2", "1", "FIGHT!"}, {CurTime() + 1, CurTime() + 2, CurTime() + 3, CurTime() + 4, CurTime() + 5, CurTime() + 6}, "Round begins in")
     rv_gm.SetTimeLimit(600 + RoundStartDelay)
-    rv_gm.SetMatchInProgress(true) -- rv_gm.StartMatch() handles this for you 
+    rv_gm.SetRoundInProgress(true)
+    rv_gm.SetMatchInProgress(true) 
     return
 end)
 

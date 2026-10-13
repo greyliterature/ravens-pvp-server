@@ -14,6 +14,23 @@ local function GetAllSubFiles(directory, path, filetype, subfiles) -- https://wi
     return subfiles
 end
 
+rv_GamemodeTimers = {}
+function AddGamemodeTimer(timername, timerdelay, timerreps, timerfunc)
+    timer.Create(timername, timerdelay, timerreps, timerfunc)
+    rv_GamemodeTimers[#rv_GamemodeTimers + 1] = timername
+    print("Added timer", timername)
+end
+
+function RemoveLastGamemodesTimers()
+    if #rv_GamemodeTimers == 0 then return end
+    for i = #rv_GamemodeTimers, 1, -1 do
+        local name = rv_GamemodeTimers[i]
+        timer.Remove(name)
+        print("removed timer ", timername)
+        rv_GamemodeTimers[i] = nil
+    end
+end
+
 rv_GamemodeHooks = {}
 function AddGamemodeHook(hookname, identifier, func)
     if not hookname then
@@ -82,6 +99,7 @@ if SERVER then
             SetGlobal3("String", "CurrentGamemode", NewGamemode)
             GamemodeVars.RoundLimit[2] = RoundLimit or 10
             GamemodeVars.RankedMatch[2] = Ranked == true
+            RemoveLastGamemodesTimers()
             RemoveLastGamemodesHooks()
             RemoveLastGamemodesEntities()
             include(InitPath)
@@ -91,6 +109,7 @@ if SERVER then
 elseif CLIENT then
     local function GamemodeInit()
         RemoveLastGamemodesHooks()
+        RemoveLastGamemodesTimers()
         local CurrentGamemode = GetGlobal3("CurrentGamemode", "FFA") --string.lower(GamemodeVars.CurrentGamemode[2])
         local InitPath = "customgamemodes/client/" .. CurrentGamemode .. "/" .. "!" .. CurrentGamemode .. "_init.lua"
         print(InitPath)

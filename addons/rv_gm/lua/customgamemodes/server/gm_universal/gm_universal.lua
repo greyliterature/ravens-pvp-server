@@ -247,23 +247,28 @@ function rv_gm.CreateTrigger(vec, parent, minbounds, maxbounds, parentcolor, sta
     local InfoParent = rv_gm.CreateGamemodeEntity("prop_physics")
     InfoParent:SetModel("models/props_interiors/pot02a.mdl")
     InfoParent:SetPos(trigger:GetPos())
+    --InfoParent:SetParent(trigger)
+    --InfoParent:SetLocalPos(vector_origin)
+    --InfoParent:SetLocalAngles(angle_zero)
     InfoParent:AddEFlags(EFL_IN_SKYBOX)
     InfoParent:Spawn()
     InfoParent:SetCollisionBounds(minbounds, maxbounds)
     InfoParent:SetCollisionGroup(COLLISION_GROUP_IN_VEHICLE)
     InfoParent:GetPhysicsObject():EnableMotion(false)
     parentcolorcopy = parentcolor:Copy()
-    parentcolorcopy.a = 255
+    parentcolorcopy.a = 0
     InfoParent:SetColor(parentcolorcopy)
     InfoParent:SetRenderMode(RENDERMODE_TRANSCOLOR)
     InfoParent.IsInfoParentPot = true
     InfoParents[trigger] = InfoParent
+    trigger.InfoParent = InfoParent
     timer.Simple(0.3, function()
         --
         rv_gm.SendTriggerInfo(nil, InfoParent)
     end)
     return trigger
 end
+
 
 AddGamemodeHook("Think", "SetInfoParentPoses", function()
     for trigger, infoparent in pairs(InfoParents) do
@@ -592,6 +597,7 @@ end
 local DefaultHillScoreReward = 1
 local CONTROLLING_TEAM_NOPLAYERS = 95316
 local CONTROLLING_TEAM_CONTESTED = 953493
+local color_transparent = Color(255, 255, 255, 0)
 function rv_gm.CreateHill(vec, minbounds, maxbounds, hillreward)
     local function starttouchfunc(self, ent)
         if not ent:IsPlayer() then return end
@@ -623,10 +629,11 @@ function rv_gm.CreateHill(vec, minbounds, maxbounds, hillreward)
         SetGlobal3("Int", "ControllingTeam", ControllingTeam)
     end
 
-    local hill = rv_gm.CreateTrigger(vec, nil, minbounds, maxbounds, color_white, starttouchfunc, touchfunc, endtouchfunc)
+    local hill = rv_gm.CreateTrigger(vec, nil, minbounds, maxbounds, color_transparent, starttouchfunc, touchfunc, endtouchfunc)
     local AmmoCrate = rv_gm.CreateGamemodeEntity("prop_physics")
     AmmoCrate:SetModel("models/props/de_prodigy/ammo_can_01.mdl")
     AmmoCrate:SetPos(vec)
+    AmmoCrate:SetParent(hill)
     AmmoCrate:Spawn()
     AmmoCrate:GetPhysicsObject():EnableMotion(false)
     rv_gm.SetHillReward(hill, hillreward or DefaultHillScoreReward)
@@ -701,6 +708,7 @@ end
 
 function rv_gm.AddTeamScore(teamindex, score)
     if MatchInProgress == false then return end
+    if RoundInProgress == false then return end
     team.AddScore(teamindex, score)
     if team.GetScore(teamindex) >= ScoreLimit then
         --

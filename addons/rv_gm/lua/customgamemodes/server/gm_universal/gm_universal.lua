@@ -269,7 +269,6 @@ function rv_gm.CreateTrigger(vec, parent, minbounds, maxbounds, parentcolor, sta
     return trigger
 end
 
-
 AddGamemodeHook("Think", "SetInfoParentPoses", function()
     for trigger, infoparent in pairs(InfoParents) do
         if not IsValid(infoparent) or not IsValid(trigger) then
@@ -861,6 +860,7 @@ function rv_gm.EndMatch()
     timer.Remove("MatchTimeLimit")
     SetGlobal3("Bool", "MatchStarting", false)
     hook.Run("rv_gm.MatchEnded", WinnerIndex, loserstbl)
+    rv_gm.SetRoundInProgress(false)
 end
 
 --[[------------------------------

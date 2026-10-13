@@ -19,7 +19,7 @@ local κ = 0.00000001 -- "a small positive value to avoid σ2 i becoming negativ
 --[[---------------------------------------------
     Algorithm 1
 -----------------------------------------------]]
-function WL.Algorithm1(GameResult)
+function WL.Bradley_Terry_Full(GameResult)
     -- Step 1. "Given a game result and the current μᵢⱼ, σ²ᵢⱼ, ∀ᵢ, ∀ⱼ. Given β² and κ > 0. Decide a way to set γ_q in (50)
     -- (50) is shown in step 3.1
     -- Step 2. "For i = 1, ..., k, set"

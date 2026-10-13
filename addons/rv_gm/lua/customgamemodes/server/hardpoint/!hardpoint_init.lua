@@ -80,6 +80,9 @@ end)
 
 -- round start 
 -- there is no RoundEnded for KOTH because it is really just one round, this is just for notification formality
+local CreateHardPoint = nil
+local LastHardPoint = nil
+local HardPointsPoses = {}
 local RoundStartDelay = 5
 AddGamemodeHook("rv_gm.RoundStarted", "RoundStarted", function(RoundCount)
     rv_gm.LockAttacks(RoundStartDelay)
@@ -87,7 +90,9 @@ AddGamemodeHook("rv_gm.RoundStarted", "RoundStarted", function(RoundCount)
     rv_gm.SendNotif(nil, {"5", "4", "3", "2", "1", "FIGHT!"}, {CurTime() + 1, CurTime() + 2, CurTime() + 3, CurTime() + 4, CurTime() + 5, CurTime() + 6}, "Round begins in")
     rv_gm.SetTimeLimit(600 + RoundStartDelay)
     rv_gm.SetRoundInProgress(true)
-    rv_gm.SetMatchInProgress(true) 
+    rv_gm.SetMatchInProgress(true)
+    local random_hardpointpos = HardPointsPoses[math.random(1, #HardPointsPoses)]
+    CreateHardPoint(random_hardpointpos)
     return
 end)
 
@@ -95,8 +100,9 @@ end)
 local MatchStartDelay = 3
 AddGamemodeHook("rv_gm.MatchStarted", "MatchStarted", function()
     rv_gm.LockAttacks(MatchStartDelay + 1)
-    for doll, _ in pairs(rv_gm.GetAllDollFlags()) do
-        rv_gm.ReturnDollFlagToBase(doll)
+    if IsValid(LastHardPoint) then
+        LastHardpoint.InfoParent:Remove()
+        LastHardPoint:Remove()
     end
 
     timer.Simple(1, function()
@@ -105,9 +111,7 @@ AddGamemodeHook("rv_gm.MatchStarted", "MatchStarted", function()
         rv_gm.RespawnAllPlayers()
         -- this seems redundant and unnecessary 
         timer.Simple(MatchStartDelay, function()
-            timer.Stop("HillsScore")
-            timer.Start("HillsScore")
-            SetGlobal3("Float", "HillStart", CurTime()) -- reset hill creation times
+            --
             rv_gm.StartRound()
         end)
     end)
@@ -135,13 +139,19 @@ for i = #rv_gm.spawns, 1, -1 do
 end
 
 local HillMins, HillMaxes = Vector(-300, -300, 0), Vector(300, 300, 200)
-local HardPointsPoses = {}
 local HardPointSwapDelay = 45
-local LastHardpoint = nil
+local LastHardPointPos = nil
 local HardPointUnlockDelay = 10
 local HardPointScoreTime = 3 -- how often in seconds should we reward the players on the hardpoint
 local HardPointScoreReward = 1 -- amount we give PER PLAYER on the hardpoint to the best team
-local function CreateHardPoint(pos)
+CreateHardPoint = function(pos)
+    LastHardPointPos = nil
+    if IsValid(LastHardpoint) then
+        LastHardPointPos = LastHardpoint:GetPos()
+        LastHardpoint.InfoParent:Remove()
+        LastHardpoint:Remove()
+    end
+
     local function StartTouchFunc(self, ent)
         if not ent:IsPlayer() then return end
         self.PlayersOnHill = (self.PlayersOnHill or 0) + 1
@@ -206,27 +216,17 @@ AddGamemodeHook("rv_gm.GamemodeDataLoaded", "SetSpawns", function(gamemodetbl)
             local pos = data[1]
             local angs = data[2]
             local usePitch = nil
-            print(pos, angs)
             rv_gm.spawns[#rv_gm.spawns + 1] = CreateSpawnPoint(nil, pos, angs, usePitch, nil)
         end
     end
 
     AddGamemodeTimer("SwapHardPoint", HardPointSwapDelay, 0, function()
-        local LastHardPointPos = nil
-        print("HI!!!", IsValid(LastHardpoint))
-        if IsValid(LastHardpoint) then
-            LastHardPointPos = LastHardpoint:GetPos()
-            LastHardpoint.InfoParent:Remove()
-            LastHardpoint:Remove()
-        end
-
         for _, HardPointPos in RandomPairs(HardPointsPoses) do
             if HardPointPos ~= LastHardPointPos then --
                 random_hardpointpos = HardPointPos
             end
         end
 
-        print(random_hardpointpos)
         CreateHardPoint(random_hardpointpos)
     end)
 end)

@@ -188,7 +188,6 @@ function WL.Bradley_Terry_Full(GameResult)
             end
         end
     end
-
     return PlayerTable
 end
 
@@ -257,24 +256,55 @@ local GameResult = {
     }
 }
 
-WL.Algorithm1(GameResult)
+--PrintTable(WL.Bradley_Terry_Full(GameResult))
 -- output (variance is used for the lua version instead of stdev like the #f code uses):
 --[[
-
+[1]:
+		["Player1"]:
+				[1]	=	26.285861249684
+				[2]	=	68.303463030188
+		["Player11"]:
+				[1]	=	26.285861249684
+				[2]	=	68.303463030188
+		["Player2"]:
+				[1]	=	26.285861249684
+				[2]	=	68.303463030188
+		["Player3"]:
+				[1]	=	26.285861249684
+				[2]	=	68.303463030188
+		["Player4"]:
+				[1]	=	26.285861249684
+				[2]	=	68.303463030188
+[2]:
+		["Player10"]:
+				[1]	=	23.714138750316
+				[2]	=	68.303463030188
+		["Player6"]:
+				[1]	=	23.714138750316
+				[2]	=	68.303463030188
+		["Player7"]:
+				[1]	=	23.714138750316
+				[2]	=	68.303463030188
+		["Player8"]:
+				[1]	=	23.714138750316
+				[2]	=	68.303463030188
+		["Player9"]:
+				[1]	=	23.714138750316
+				[2]	=	68.303463030188
 --]]
 -- 
 --
 -- sample.data (same as the lua table, but with one player on each team to test):
 --[[
-1
-10
-2
-20
-5
-1
-0
-5
-5
+1 -- num_game
+10 -- num_total_players
+2 -- num_teams_of_a_game
+20 -- team_score
+5 -- num_team_players
+1 -- player_id
+0 -- team_score 
+5 -- num_team_players
+5 -- player_id
 --]]
 -- ouput from #f code:
 -- $ ./rank 0 ../data/sample.data

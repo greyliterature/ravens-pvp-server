@@ -70,15 +70,26 @@ function WL.Bradley_Terry_Full(GameResult)
         end
 
         table.sort(Scores, function(a, b)
-            return a[2] < b[2] -- smaller is better
+            return a[2] > b[2] --
         end)
     end
 
     local function r(i)
-        for m = 1, #Scores do
-            local TeamIndex = Scores[m][1]
+        for rank = 1, #Scores do
+            local TeamIndex = Scores[rank][1]
             if TeamIndex == i then --
-                return Scores[m][2]
+                local MyScore = Scores[rank][2]
+                local LastRank = rank
+                for m = rank, 1, -1 do -- go back down to check tying ranks
+                    local TheirScore = Scores[m][2]
+                    if TheirScore ~= MyScore and m > 1 then --
+                        return LastRank
+                    elseif m == 1 then
+                        return rank
+                    end
+
+                    LastRank = m
+                end
             end
         end
     end
@@ -162,8 +173,23 @@ function WL.Bradley_Terry_Full(GameResult)
         end
     end
 
-    PrintTable(μ)
-    PrintTable(σ²)
+    local PlayerTable = {}
+    do
+        -- playertable for returning
+        for i = 1, k do
+            local TeamTable = GameResult.Teams[i]
+            PlayerTable[i] = {}
+            local j = 1
+            for ply, _ in pairs(TeamTable.Players) do -- this makes the player table out of order but it shouldn't really matter
+                PlayerTable[i][ply] = {}
+                PlayerTable[i][ply][1] = μ[i][j]
+                PlayerTable[i][ply][2] = σ²[i][j]
+                j = j + 1
+            end
+        end
+    end
+
+    return PlayerTable
 end
 
 local GameResult = {
@@ -186,53 +212,70 @@ local GameResult = {
                     σ² = nil,
                     β = nil,
                 },
+                ["Player11"] = {
+                    μ = nil,
+                    σ² = nil,
+                    β = nil,
+                },
                 ["Player4"] = {
                     μ = nil,
                     σ² = nil,
                     β = nil,
                 },
-                ["Player5"] = {
-                    μ = nil,
-                    σ² = nil,
-                    β = nil,
-                },
             },
-            Mew = nil,
-            Variance = nil,
         },
         [2] = {
             Score = 11,
             Players = {
-                ["Player1"] = {
+                ["Player6"] = {
                     μ = nil,
                     σ² = nil,
                     β = nil,
                 },
-                ["Player2"] = {
+                ["Player7"] = {
                     μ = nil,
                     σ² = nil,
                     β = nil,
                 },
-                ["Player3"] = {
+                ["Player8"] = {
                     μ = nil,
                     σ² = nil,
                     β = nil,
                 },
-                ["Player4"] = {
+                ["Player9"] = {
                     μ = nil,
                     σ² = nil,
                     β = nil,
                 },
-                ["Player5"] = {
+                ["Player10"] = {
                     μ = nil,
                     σ² = nil,
                     β = nil,
                 },
             },
-            Mew = nil,
-            Variance = nil,
         }
     }
 }
 
 WL.Algorithm1(GameResult)
+-- output (variance is used for the lua version instead of stdev like the #f code uses):
+--[[
+
+--]]
+-- 
+--
+-- sample.data (same as the lua table, but with one player on each team to test):
+--[[
+1
+10
+2
+20
+5
+1
+0
+5
+5
+--]]
+-- ouput from #f code:
+-- $ ./rank 0 ../data/sample.data
+-- [mu] 26.28586 8.26459 23.71414 8.26459

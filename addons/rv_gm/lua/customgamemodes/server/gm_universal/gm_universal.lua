@@ -1056,7 +1056,8 @@ end
 function rv_gm.EndMatch()
     local WinnerIndex, BestTeamScore = -9999, 0
     local loserstbl = {}
-    for _, teamindex in ipairs(rv_gm.GetTeamIndexes()) do
+    local Teams = rv_gm.GetTeamIndexes()
+    for _, teamindex in ipairs(Teams) do
         local teamscore = team.GetScore(teamindex)
         loserstbl[teamindex] = teamscore
         if teamscore > BestTeamScore then
@@ -1065,6 +1066,21 @@ function rv_gm.EndMatch()
         end
     end
 
+    local GameResult = {
+        Teams = {} -- formatting for PLR update
+    }
+
+    for _, teamindex in ipairs(Teams) do
+        GameResult["Teams"][teamindex] = {}
+        GameResult["Teams"]["Score"] = {}
+        GameResult["Teams"]["Players"] = {}
+        for _, ply in ipairs(team.GetPlayers(teamindex)) do
+            GameResult["Teams"]["Players"][ply:SteamID()] = {}
+        end
+    end
+
+    WL.PlackettLuce(GameResult)
+    --
     rv_gm.SetAllPlayersUnready()
     table.remove(loserstbl, WinnerIndex)
     timer.Remove("MatchTimeLimit")

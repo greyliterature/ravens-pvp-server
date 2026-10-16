@@ -99,7 +99,7 @@ AddGamemodeHook("rv_gm.MatchStarted", "MatchStarted", function()
     end
 
     timer.Simple(1, function()
-        rv_gm.ShuffleTeams()
+        rv_gm.BalanceTeams()
         rv_gm.SendNotif(nil, {"Starts in: 3", "Starts in: 2", "Starts in: 1"}, {CurTime() + 1, CurTime() + 2, CurTime() + 3}, "King of the Hill")
         rv_gm.RespawnAllPlayers()
         -- this seems redundant and unnecessary 

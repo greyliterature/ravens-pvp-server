@@ -111,7 +111,7 @@ AddGamemodeHook("rv_gm.MatchStarted", "MatchStarted", function()
 
     timer.Stop("SwapHardPoint")
     timer.Simple(1, function()
-        rv_gm.ShuffleTeams()
+        rv_gm.BalanceTeams()
         rv_gm.SendNotif(nil, {"Starts in: 3", "Starts in: 2", "Starts in: 1"}, {CurTime() + 1, CurTime() + 2, CurTime() + 3}, "Hard Point")
         rv_gm.RespawnAllPlayers()
         -- this seems redundant and unnecessary 

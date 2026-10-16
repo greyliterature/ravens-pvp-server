@@ -513,7 +513,6 @@ function rv_gm.SetDollPhysicsStatic(doll)
 end
 
 function rv_gm.SetDollPhysicsNormal(doll)
-    print("run eyaedfsadsfyefea")
     local physobj = doll:GetPhysicsObject()
     physobj:SetAngleDragCoefficient(0.2)
     physobj:SetDragCoefficient(0.07)
@@ -584,8 +583,6 @@ function rv_gm.GetHighestTeamOnHill(hill)
             bestteamindex = teamindex
         end
     end
-
-    print(bestteamindex, bestscore, secondbestteamindex, secondbestscore)
     return bestteamindex, bestscore, secondbestteamindex, secondbestscore
 end
 
@@ -809,6 +806,219 @@ function rv_gm.ShuffleTeams(Teams)
         for _, ply in ipairs(tbl) do
             ply:SetTeam(TeamIndex)
         end
+    end
+end
+
+-- BLDM stuff here is ai
+local function sum(tbl)
+    local total = 0
+    for i = 1, #tbl do
+        total = total + tbl[i]
+    end
+    return total
+end
+
+local function table_merge(t1, t2)
+    local res = {}
+    for i = 1, #t1 do
+        res[#res + 1] = t1[i]
+    end
+
+    for i = 1, #t2 do
+        res[#res + 1] = t2[i]
+    end
+    return res
+end
+
+-- Reading this code you will understand why i just asked ai for it
+-- I tested it a little for edge cases. It seemed good enough for my case, probably better than greedy partitioning at least
+local function BLDM(tbl)
+    local arr = {}
+    local total_players = 0
+    -- Parse input: handle both solo players and substacks (parties)
+    for key, val in pairs(tbl) do
+        if type(val) == "table" then
+            local substack_val = 0
+            local substack_players = {}
+            local count = 0
+            for ply, rating in pairs(val) do
+                substack_val = substack_val + rating
+                substack_players[#substack_players + 1] = ply
+                count = count + 1
+            end
+
+            total_players = total_players + count
+            arr[#arr + 1] = {
+                val = substack_val,
+                team1 = substack_players,
+                team2 = {},
+                size = count
+            }
+        else
+            total_players = total_players + 1
+            arr[#arr + 1] = {
+                val = val,
+                team1 = {key},
+                team2 = {},
+                size = 1
+            }
+        end
+    end
+
+    local n = #arr
+    local best_diff = math.huge
+    local best_team1 = {}
+    local best_team2 = {}
+    table.sort(arr, function(a, b) return a.val > b.val end)
+    local m = {}
+    for i = 1, n do
+        m[i] = arr[i].size
+    end
+
+    local function recurse(x, m_arr)
+        local k = #x
+        local xarr = {}
+        for i = 1, k do
+            xarr[#xarr + 1] = x[i].val
+        end
+
+        if k == 1 then
+            -- Enforce equal player counts (0 difference for even total players, 1 for odd)
+            if math.abs(m_arr[1]) == (total_players % 2) and x[1].val < best_diff then
+                best_diff = x[1].val
+                best_team1 = table_merge({}, x[1].team1)
+                best_team2 = table_merge({}, x[1].team2)
+            end
+            return
+        else
+            if 2 * math.max(unpack(xarr)) - sum(xarr) >= best_diff then return end
+            local absedm = {}
+            for i = 1, #m_arr do
+                absedm[i] = math.abs(m_arr[i])
+            end
+
+            if 2 * math.max(unpack(absedm)) - sum(absedm) > math.abs(sum(m_arr)) or sum(absedm) < math.abs(sum(m_arr)) then return end
+            if k <= math.floor(n / 2) then
+                local paired = {}
+                for i = 1, k do
+                    paired[i] = {
+                        item = x[i],
+                        m_val = m_arr[i]
+                    }
+                end
+
+                table.sort(paired, function(a, b) return a.item.val > b.item.val end)
+                for i = 1, k do
+                    x[i] = paired[i].item
+                    m_arr[i] = paired[i].m_val
+                end
+            end
+
+            -- Left Branch (Opposite teams)
+            local arrleftbranch, mleftbranch = {}, {}
+            arrleftbranch[1] = {
+                val = math.abs(x[1].val - x[2].val),
+                team1 = table_merge(x[1].team1, x[2].team2),
+                team2 = table_merge(x[1].team2, x[2].team1),
+                size = math.abs(x[1].size - x[2].size)
+            }
+
+            mleftbranch[1] = m_arr[1] - m_arr[2]
+            for i = 3, #x do
+                arrleftbranch[#arrleftbranch + 1] = x[i]
+                mleftbranch[#mleftbranch + 1] = m_arr[i]
+            end
+
+            -- Right Branch (Same team)
+            local arrrightbranch, mrightbranch = {}, {}
+            arrrightbranch[1] = {
+                val = math.abs(x[1].val + x[2].val),
+                team1 = table_merge(x[1].team1, x[2].team1),
+                team2 = table_merge(x[1].team2, x[2].team2),
+                size = x[1].size + x[2].size
+            }
+
+            mrightbranch[1] = m_arr[1] + m_arr[2]
+            for i = 3, #x do
+                arrrightbranch[#arrrightbranch + 1] = x[i]
+                mrightbranch[#mrightbranch + 1] = m_arr[i]
+            end
+
+            recurse(arrleftbranch, mleftbranch)
+            recurse(arrrightbranch, mrightbranch)
+        end
+    end
+
+    recurse(arr, m)
+    return best_team1, best_team2, best_diff
+end
+
+--[[
+local numbers = {
+    ["substack1"] = {
+        ["bob"] = 0,
+        ["richard"] = 0,
+        ["john"] = 3
+    },
+    ["ryan"] = 4,
+    ["joe"] = 3,
+    ["robert"] = 2,
+    ["gilgamesh"] = 4,
+}
+
+local best_team1, best_team2, best_diff = BLDM(numbers)
+PrintTable(best_team1)
+PrintTable(best_team2)
+--]]
+local WL = include("autorun/server/rv_wl.lua")
+function rv_gm.BalanceTeams(Teams)
+    if not Teams then Teams = rv_gm.GetTeamIndexes() end
+    local Players = {}
+    for i = 1, #Teams do
+        for _, ply in ipairs(team.GetPlayers(Teams[i])) do
+            if ply:GetUserGroup() == "DOLLMODE" then
+                ply:SetTeam(TEAM_SPECTATOR)
+                continue
+            end
+
+            local mew, _ = WL.GetPlayerPLR(ply)
+            local nick = ply:Nick()
+            --[[
+            -- testing
+            if nick == "Bot07" then --
+                mew = 4
+            elseif nick == "Bot03" then
+                mew = 4
+            elseif nick == "Bot05" then
+                mew = 2
+            elseif nick == "Bot02" then
+                mew = 4
+            elseif nick == "Bot06" then
+                mew = 6
+                nick = "[511]robo"
+            else
+                nick = "[512]bo"
+                mew = 0
+            end
+            --]]
+            local ClanTag = select(1, string.match(nick, "%[(.-)%]"))
+            if ClanTag then
+                Players[ClanTag] = Players[ClanTag] or {}
+                Players[ClanTag][ply] = mew
+                continue
+            end
+
+            Players[ply] = mew
+        end
+    end
+
+    local best_team1, best_team2, _ = BLDM(Players)
+    for _, ply in ipairs(best_team1) do
+        ply:SetTeam(1)
+    end
+
+    for _, ply in ipairs(best_team2) do
+        ply:SetTeam(2)
     end
 end
 

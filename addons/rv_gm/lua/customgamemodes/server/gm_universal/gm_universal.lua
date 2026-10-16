@@ -1013,13 +1013,18 @@ function rv_gm.BalanceTeams(Teams)
     end
 
     local best_team1, best_team2, _ = BLDM(Players)
+    local team1_sum, team2_sum = 0, 0
     for _, ply in ipairs(best_team1) do
+        team1_sum = team1_sum + select(1, WL.GetPlayerPLR(ply))
         ply:SetTeam(1)
     end
 
     for _, ply in ipairs(best_team2) do
+        team2_sum = team1_sum + select(1, WL.GetPlayerPLR(ply))
         ply:SetTeam(2)
     end
+
+    ColoredChatPrint({team.GetColor(1), math.Truncate(team1_sum, 0), color_white, " - ", team.GetColor(2), math.Truncate(team2_sum, 0), color_white, ": ", color_black, math.abs(math.Truncate(team1_sum - team2_sum, 0))})
 end
 
 function rv_gm.RespawnAllDeadPlayers(Teams)

@@ -425,10 +425,10 @@ function WL.PlackettLuce(GameResult)
     end
     return PlayerTable
 end
-
 --[[---------------------------------------------
     Testing
 -----------------------------------------------]]
+--[[
 local GameResult = {
     Teams = {
         [1] = {
@@ -495,6 +495,7 @@ local GameResult = {
 }
 
 PrintTable(WL.PlackettLuce(GameResult))
+--]]
 --PrintTable(WL.Bradley_Terry_Full(GameResult))
 -- output (variance is used for the lua version instead of stdev like the #f code uses):
 --[[
@@ -615,3 +616,4 @@ PrintTable(WL.PlackettLuce(GameResult))
 1
 5
 --]]
+return WL

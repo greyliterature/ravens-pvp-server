@@ -192,8 +192,58 @@ function WL.Bradley_Terry_Full(GameResult)
 end
 
 --[[---------------------------------------------
-    Algorithm 2
+    Algorithm 4
 -----------------------------------------------]]
+local PlayerCache = {}
+-- {["mew"] = mew, ["variance"] = variance}
+sql.QueryTyped("CREATE TABLE IF NOT EXISTS player_plratings ( steamid32 TEXT UNIQUE, mew DOUBLE, variance DOUBLE )")
+function WL.GetPlayerPLR(ply) -- take from cache or sql query if not cached, or give default variance mew 
+    local steamid32 = ply
+    if not isstring(ply) and ply:IsPlayer() then --
+        steamid32 = ply:SteamID()
+    end
+
+    if util.SteamIDTo64(steamid32) == 0 then
+        error("Invalid SteamID32")
+        return
+    end
+
+    local PlayerTable = PlayerCache[steamid32]
+    local mew, variance = (PlayerTable and PlayerTable["mew"]) or nil, (PlayerTable and PlayerTable["variance"]) or nil
+    if not mew or not variance then
+        local query = sql.QueryTyped("SELECT mew, variance FROM player_plratings WHERE steamid32 = ?", steamid32)
+        if query[1] then --
+            mew, variance = query[1]["mew"], query[1]["variance"]
+        end
+    end
+
+    mew, variance = mew or DEFAULT_μ, variance or DEFAULT_σ²
+    PlayerCache[steamid32] = {
+        ["mew"] = mew,
+        ["variance"] = variance
+    }
+    return mew, variance
+end
+
+function WL.UpdatePlayerPLR(ply, newmew, newvariance)
+    local steamid32 = ply
+    if not isstring(ply) and ply:IsPlayer() then --
+        steamid32 = ply:SteamID()
+    end
+
+    if util.SteamIDTo64(steamid32) == 0 then
+        error("Invalid SteamID32")
+        return
+    end
+
+    PlayerCache[steamid32] = {
+        ["mew"] = newmew,
+        ["variance"] = newvariance
+    }
+
+    sql.QueryTyped("INSERT INTO player_plratings ( steamid32, mew, variance ) VALUES( ?, ?, ? ) ON CONFLICT(steamid32) DO UPDATE SET mew=excluded.mew, variance=excluded.variance", steamid32, newmew, newvariance) -- https://www.sqlite.org/lang_upsert.html
+end
+
 function WL.PlackettLuce(GameResult)
     -- Step 1. "Given a game result and the current μᵢⱼ, σ²ᵢⱼ, ∀ᵢ, ∀ⱼ. Given β² and κ > 0. Decide a way to set γ_q in (50)
     -- (50) is shown in step 3.1
@@ -220,13 +270,9 @@ function WL.PlackettLuce(GameResult)
             local PlayerTable = TeamTable.Players[ply] or {}
             do
                 -- set defaults
-                if not PlayerTable.μ then --
-                    PlayerTable.μ = DEFAULT_μ
-                end
-
-                if not PlayerTable.σ² then --
-                    PlayerTable.σ² = DEFAULT_σ²
-                end
+                local mew, variance = WL.GetPlayerPLR(ply)
+                PlayerTable.μ = mew
+                PlayerTable.σ² = variance
             end
 
             μ[i][j] = PlayerTable.μ
@@ -372,6 +418,7 @@ function WL.PlackettLuce(GameResult)
                 PlayerTable[i][ply] = {}
                 PlayerTable[i][ply][1] = μ[i][j]
                 PlayerTable[i][ply][2] = σ²[i][j]
+                WL.UpdatePlayerPLR(ply, μ[i][j], σ²[i][j])
                 j = j + 1
             end
         end
@@ -387,27 +434,27 @@ local GameResult = {
         [1] = {
             Score = 20,
             Players = {
-                ["Player1"] = {
+                ["STEAM_0:1"] = {
                     μ = nil,
                     σ² = nil,
                     β = nil,
                 },
-                ["Player2"] = {
+                ["STEAM_0:1:16"] = {
                     μ = nil,
                     σ² = nil,
                     β = nil,
                 },
-                ["Player3"] = {
+                ["STEAM_0:0:50"] = {
                     μ = nil,
                     σ² = nil,
                     β = nil,
                 },
-                ["Player11"] = {
+                ["STEAM_0:1:0114"] = {
                     μ = nil,
                     σ² = nil,
                     β = nil,
                 },
-                ["Player4"] = {
+                ["STEAM_0:1:7936"] = {
                     μ = nil,
                     σ² = nil,
                     β = nil,
@@ -415,29 +462,29 @@ local GameResult = {
             },
         },
         [2] = {
-            Score = 11,
+            Score = 0,
             Players = {
-                ["Player6"] = {
+                ["STEAM_0:0:949"] = {
                     μ = nil,
                     σ² = nil,
                     β = nil,
                 },
-                ["Player7"] = {
+                ["BOT"] = {
                     μ = nil,
                     σ² = nil,
                     β = nil,
                 },
-                ["Player8"] = {
+                ["STEAM_0:1:86"] = {
                     μ = nil,
                     σ² = nil,
                     β = nil,
                 },
-                ["Player9"] = {
+                ["STEAM_0:0:9"] = {
                     μ = nil,
                     σ² = nil,
                     β = nil,
                 },
-                ["Player10"] = {
+                ["STEAM_0:0:06866"] = {
                     μ = nil,
                     σ² = nil,
                     β = nil,
@@ -446,6 +493,8 @@ local GameResult = {
         },
     }
 }
+
+PrintTable(WL.PlackettLuce(GameResult))
 --PrintTable(WL.Bradley_Terry_Full(GameResult))
 -- output (variance is used for the lua version instead of stdev like the #f code uses):
 --[[

@@ -71,6 +71,7 @@ local function CeilZero(x) -- math.ceil does not round up for 0
     return math.ceil(x)
 end
 
+local ReadiedUp = false
 AddGamemodeHook("HUDPaint", "ReadyUpReminder", function()
     if GetGlobal3("MatchInProgress", false) == true or LocalPlayer():Team() == TEAM_SPECTATOR then return end
     if GetGlobal3("ShouldShowF3") == false then return end
@@ -750,6 +751,8 @@ AddGamemodeHook("PlayerButtonDown", "JoinTeamPopup", function(ply, button)
     if button == KEY_F4 then
         rv_gm.OpenJoinTeamPopup()
         hook.Remove("HUDPaint", "TeamJoinMenuReminder")
+    elseif button == KEY_F3 then
+        ReadiedUp = not ReadiedUp
     end
 end)
 

@@ -415,7 +415,7 @@ end
 
 local NW3Vars = {}
 local ENTITYMETA = FindMetaTable("Entity")
-function ENTITYMETA:GetNW3Var(VarIndex, VarValue, fallback)
+function ENTITYMETA:GetNW3Var(VarIndex, fallback)
     local EntIndex = self:EntIndex()
     if NW3Vars[EntIndex] and NW3Vars[EntIndex][VarIndex] then
         return NW3Vars[EntIndex][VarIndex]

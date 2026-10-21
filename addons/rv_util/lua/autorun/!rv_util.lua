@@ -306,8 +306,9 @@ function GetGlobal3(VarIndex, Fallback) -- the type probably doesn't matter to e
     end
 end
 
+local GetBitCount = nil
 if SERVER then
-    local function GetBitCount(x, IntType)
+    GetBitCount = function(x, IntType)
         if IntType ~= "UInt" and IntType ~= "Int" then return end
         if type(x) ~= "number" then return end
         if x >= 0 and IntType == "UInt" then
@@ -408,6 +409,83 @@ elseif CLIENT then
         end
 
         PrintTable(SetGlobal3Vars)
+    end)
+    --]]
+end
+
+local NW3Vars = {}
+local ENTITYMETA = FindMetaTable("Entity")
+function ENTITYMETA:GetNW3Var(VarIndex, VarValue)
+    return NW3Vars[self:EntIndex()][VarIndex]
+end
+
+if SERVER then
+    util.AddNetworkString("NW3VarChanged")
+    function ENTITYMETA:SetNW3Var(VarType, VarIndex, VarNewValue)
+        --self["NW3_" .. VarIndex] = {VarNewValue, VarType}
+        local EntIndex = self:EntIndex()
+        NW3Vars[EntIndex] = NW3Vars[EntIndex] or {}
+        NW3Vars[EntIndex][VarIndex] = {VarNewValue, VarType}
+        net.Start("NW3VarChanged")
+        net.WriteUInt(EntIndex, MAX_EDICT_BITS)
+        net.WriteString(VarType)
+        net.WriteString(VarIndex)
+        local BitCount = ((VarType == "Int" or VarType == "UInt") and GetBitCount(VarNewValue, VarType)) or 0
+        net.WriteUInt(BitCount, 6) -- 6, because 5 bits can only go to 31, the UInt and Int can go only up to 32 bits.
+        net["Write" .. VarType](VarNewValue, BitCount)
+        net.Broadcast()
+    end
+
+    util.AddNetworkString("InitNW3Vars")
+    hook.Add("InitPostEntityStarted", "InitNW3Vars", function(ply)
+        local NumEnts = table.Count(NW3Vars)
+        net.WriteUInt(NumEnts, MAX_EDICT_BITS)
+        for entindex, tbl in pairs(NW3Vars) do
+            local NumVarIndexes = table.Count(tbl)
+            net.WriteUInt(NumVarIndexes, 8) -- if you use this code to write more than 255 VarIndexes you're probably doing something wrong
+            net.WriteUInt(entindex, MAX_EDICT_BITS)
+            for VarIndex, innertbl in pairs(tbl) do
+                local VarValue, VarType = innertbl[1], innertbl[2]
+                net.WriteString(VarType)
+                net.WriteString(VarIndex)
+                local BitCount = ((VarType == "Int" or VarType == "UInt") and GetBitCount(VarNewValue, VarType)) or 0
+                net.WriteUInt(BitCount, 6) -- 6, because 5 bits can only go to 31, the UInt and Int can go only up to 32 bits.
+                net["Write" .. VarType](VarValue, BitCount)
+                net.Send(ply)
+            end
+        end
+    end)
+elseif CLIENT then
+    net.Receive("NW3VarChanged", function(_, _)
+        local EntIndex = net.ReadUInt(MAX_EDICT_BITS)
+        local VarType = net.ReadString()
+        local VarIndex = net.ReadString()
+        local BitCount = net.ReadUInt(6)
+        local VarValue = net["Read" .. VarType](BitCount)
+        NW3Vars[EntIndex] = NW3Vars[EntIndex] or {}
+        NW3Vars[EntIndex][VarIndex] = VarValue
+        hook.Run("NW3VarSet", EntIndex, VarIndex, VarValue)
+    end)
+
+    net.Receive("InitNW3Vars", function(_, _)
+        local NumEnts = net.ReadUInt(MAX_EDICT_BITS)
+        for i = 1, NumEnts do
+            local NumVarIndexes = net.ReadUInt(8)
+            local EntIndex = net.ReadUInt(MAX_EDICT_BITS)
+            for j = 1, NumVarIndexes do
+                local VarIndex = net.ReadString()
+                local BitCount = net.ReadUInt(6)
+                local VarValue = net["Read" .. VarType](VarValue, BitCount)
+                NW3Vars[EntIndex] = NW3Vars[EntIndex] or {}
+                NW3Vars[EntIndex][VarIndex] = VarValue
+                hook.Run("NW3VarSet", EntIndex, VarIndex, VarValue, true)
+            end
+        end
+    end)
+    --[[
+    hook.Add("NW3VarSet", "NW3VarChanged_example", function(EntIndex, VarIndex, VarValue, init)
+        print(EntIndex, VarIndex, VarValue, init)
+        return
     end)
     --]]
 end

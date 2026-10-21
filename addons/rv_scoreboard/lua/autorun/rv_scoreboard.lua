@@ -558,8 +558,8 @@ if CLIENT then
                 NameHolder:SetSize(NameHolderWidth - PlayerAvatar:GetWide(), PlayerCard:GetTall())
                 --NameHolder:SetBackgroundColor(color_white)
                 surface.SetFont("ScoreboardDefaultScaled")
-                local ReadyUpStatus = (CurrentGamemode == "CA" and ((ply:GetNWBool("Ready") == true and " (R)") or " (NR)")) or ""
-                local PlayerName = " " .. (IsValid(ply) and ((FindColorInText(ply:Nick(), true) and table.concat(FindColorInText(ply:Nick(), true)) or ply:Nick()) .. ReadyUpStatus) or "Connecting")
+                local CustomName = (IsValid(ply) and ply:GetNW3Var("CustomName", ply:Nick())) or ""
+                local PlayerName = " " .. ((FindColorInText(CustomName, true) and table.concat(FindColorInText(CustomName, true)) or CustomName) or "Connecting")
                 local NickW, NickH = surface.GetTextSize(PlayerName)
                 local SpacerW, _ = surface.GetTextSize(" ")
                 function NameHolder.Paint(self, w, h)

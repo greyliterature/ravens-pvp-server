@@ -1053,6 +1053,7 @@ end
 rv_gm.SetMatchInProgress(false) -- autorefresh
 function rv_gm.StartMatch()
     --rv_gm.SetMatchInProgress(true) -- this was a bad idea
+    rv_gm.SetAllPlayersUnready()
     timer.Remove("MatchTimeLimit") -- or else conflicts, annoying but yeah
     SetGlobal3("Bool", "MatchStarting", true)
     hook.Run("rv_gm.MatchStarted")
@@ -1125,11 +1126,16 @@ function rv_gm.GetValidPlayers()
 end
 
 local ReadyUpCount = 0
-function rv_gm.SetPlayerReadiedUp(ply, bool)
+function rv_gm.SetPlayerReadiedUp(ply, bool, sendnotif)
     ply.ReadyUpState = (bool == nil and not ply.ReadyUpState) or bool
     ReadyUpCount = (ply.ReadyUpState == true and 1) or -1
     print("Set readyup state for " .. ply:Nick() .. " " .. tostring(ply.ReadyUpState))
     SetGlobal3("Int", "ReadyUpCount", ReadyUpCount)
+    ply:SetNW3Var("String", "CustomName", ply:Nick() .. ((bool == true and " (R)") or " (NR)"))
+    if sendnotif ~= false then --
+        rv_gm.SendNotif(nil, {ply:Nick() .. " is" .. (((ply.ReadyUpState == true) and "") or " not") .. " Ready"}, {CurTime() + 2}, nil, true)
+    end
+
     if ReadyUpCount > #rv_gm.GetValidPlayers() then --
         rv_gm.StartMatch()
     end
@@ -1138,7 +1144,7 @@ end
 function rv_gm.SetAllPlayersUnready()
     for _, ply in player.Iterator() do
         ply.ReadyUpState = nil
-        rv_gm.SetPlayerReadiedUp(ply, false)
+        rv_gm.SetPlayerReadiedUp(ply, false, false)
     end
 
     ReadyUpCount = 0
@@ -1156,7 +1162,6 @@ end
 local LastReadyUpTimes = {} -- ply = CurTime()
 local ReadyUpRateLimit = 0.1 -- seconds
 AddGamemodeHook("PlayerButtonDown", "ReadyUpButtons", function(ply, button)
-    --
     if button ~= KEY_F3 then return end
     if PlayersCanReadyUp == false then return end
     LastReadyUpTimes[ply] = LastReadyUpTimes[ply] or 0
@@ -1182,8 +1187,7 @@ AddGamemodeHook("PlayerButtonDown", "ReadyUpButtons", function(ply, button)
         return
     end
 
-    rv_gm.SetPlayerReadiedUp(ply)
-    rv_gm.SendNotif(nil, {ply:Nick() .. " is" .. ((ply.ReadyUpState == true and "") or " not") .. " Ready"}, {CurTime() + 2}, nil, true)
+    rv_gm.SetPlayerReadiedUp(ply, true)
 end)
 
 --[[------------------------------

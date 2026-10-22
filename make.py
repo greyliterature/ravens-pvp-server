@@ -14,6 +14,7 @@ repositories = {
         "https://github.com/TeamUlysses/ulib": "./addons/ulib"
     },
     "private": {
+        "https://github.com/greyliterature/splot": "./addons/splot"
     }
 }
 gitbloat = [
@@ -51,6 +52,22 @@ for url, relativepath in repositories["public"].items():
     except Exception:
         print(traceback.format_exc())
 
+for url, relativepath in repositories["private"].items():
+    print(f"cloning {url} into {relativepath}")
+    try:
+        if os.path.isdir(relativepath):
+            shutil.rmtree(relativepath)
+        with porcelain.clone(url, relativepath, username="hi", password=PRIVATE_REPO_ACCESS_TOKEN):
+           pass
+        for pathtodelete in gitbloat:
+            newpath = relativepath + "/" + pathtodelete
+            print("Attempting to delete " + newpath + "\n")
+            if os.path.isdir(newpath):
+                shutil.rmtree(newpath)
+            elif os.path.isfile(newpath):
+                os.remove(newpath)
+    except Exception:
+        print(traceback.format_exc())
 
 ###### steamcmd
 from pysteamcmd.steamcmd import Steamcmd # this also requires the vdf package, for whatever reason
@@ -75,5 +92,6 @@ for workshop_id in addons:
     workpath = "./steamcmd/steamapps/workshop/content/4000/" + workshop_id
     files = os.listdir(workpath)
     gmapath = workpath + "/" + files[0] # "3822502910"/gm_scrapland.gma, steamcmd should only download at most 1 gma per addon so this is probably safe?
+    os.remove(gmapath)
     shutil.move(gmapath, "./addons/")
 

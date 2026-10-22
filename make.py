@@ -9,11 +9,14 @@ GITHUB_TOKEN=os.getenv("GITHUB_TOKEN")
 PRIVATE_REPO_ACCESS_TOKEN=os.getenv("PRIVATE_REPO_ACCESS_TOKEN")
 
 repositories = {
-    "public": {
-        "https://github.com/TeamUlysses/ulx": "./addons/ulx",
-        "https://github.com/TeamUlysses/ulib": "./addons/ulib"
-    },
-    "private": {
+    "public": [
+        # url relativepath branch
+        ["https://github.com/TeamUlysses/ulx", "./addons/ulx", None],
+        ["https://github.com/TeamUlysses/ulib", "./addons/ulib", None],
+        ["https://github.com/greyliterature/map_vote", "./addons/mapvote", "hotloading_concept"]
+        ["https://github.com/greyliterature/FSpectate", "./addons/fspectate"]
+    ],
+    "private": { # all of these should be main branch, so converting this into a list right now isnt necessary
         "https://github.com/greyliterature/splot": "./addons/splot"
     }
 }
@@ -35,12 +38,13 @@ gitbloat = [
 #porcelain.clone("https://example.com/a-private-repo.git", "a-private-repo-clone", username="test", password=PUBLIC_GITHUB_TOKEN)
 ###### repo stuff
 import shutil
-for url, relativepath in repositories["public"].items():
+for tbl in repositories["public"]:
+    url, relativepath, branch = tbl[0], tbl[1], tbl[2]
     print(f"cloning {url} into {relativepath}")
     try:
         if os.path.isdir(relativepath):
             shutil.rmtree(relativepath)
-        with porcelain.clone(url, relativepath):
+        with porcelain.clone(url, relativepath, branch=branch):
            pass
         for pathtodelete in gitbloat:
             newpath = relativepath + "/" + pathtodelete

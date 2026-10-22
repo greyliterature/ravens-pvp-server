@@ -73,7 +73,24 @@ for url, relativepath in repositories["private"].items():
 from pysteamcmd.steamcmd import Steamcmd # this also requires the vdf package, for whatever reason
 APP_ID = 4000
 addons = {
-    "3822502910",
+    "3755694976",
+    "3755379782",
+    "3751896133",
+    "3667352947",
+    "577145478",
+    "3544600901",
+    "2020654310", 
+    "2020654310",
+    "3432497883",
+    "3449941064",
+    "3044754921",
+    "2842498361",
+    "2232524667",
+    "837792151",
+    "3705916707",
+    "3751311698",
+    "3751308439",
+    "3769721895",
 }
 
 #https://github.com/f0rkz/pysteamcmd/blob/ab33e35fd05c3160e0d3fee3b28878d516438d7e/src/pysteamcmd/steamcmd.py#L147

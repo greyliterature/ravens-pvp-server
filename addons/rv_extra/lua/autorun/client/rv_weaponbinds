@@ -1,0 +1,15 @@
+local rv_extras_weaponbinds = CreateClientConVar("rv_extras_weaponbinds", "0", true, false, "Enable running +rv_weaponbind_%WEAPON% on switching to a weapon and +rv_weaponbind_%OLDWEAPON% when switching off to make per weapon binds", 0, 1)
+local ShouldRunWeaponBinds = rv_extras_weaponbinds:GetBool()
+cvars.AddChangeCallback("rv_extras_weaponbinds", function(cvar, old, new)
+    if new == "1" then
+        ShouldRunWeaponBinds = true
+        return
+    end
+end, "rv_extras_weaponbinds")
+
+hook.Add("PlayerSwitchWeapon", "rv_perweaponbinds", function(ply, oldWeap, newWeap)
+    if ShouldRunWeaponBinds ~= true then return end
+    if not IsValid(newWeap) then return end
+    RunConsoleCommand("+rv_weaponbind_" .. newWeap:GetClass())
+    RunConsoleCommand("-rv_weaponbind_" .. oldWeap:GetClass())
+end)

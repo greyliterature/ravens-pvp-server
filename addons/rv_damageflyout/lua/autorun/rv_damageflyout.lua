@@ -10,9 +10,6 @@ if CLIENT then
 
     -- Custimoization table
     local Settings = {
-        ["weapon_smg1"] = {
-            color = Color(255, 0, 0),
-        },
         ["weapon_357"] = {
             color = Color(176, 0, 47)
         },
@@ -35,7 +32,7 @@ if CLIENT then
             color = Color(0, 0, 255)
         },
         ["weapon_shotgun"] = {
-            color = Color(140, 0, 0)
+            color = Color(218, 0, 0)
         },
     }
 
@@ -50,22 +47,56 @@ if CLIENT then
     local Damages = {}
     local DefaultDamageColor = Color(255, 0, 0, 255) -- make this overridable later
     local ConVars = {
-        ["rv_damageflyouts_font"] = CreateClientConVar("rv_damageflyouts_font", "255 0 0 255", true, false, "Color of damage flyout"),
+        ["rv_damageflyouts_font"] = CreateClientConVar("rv_damageflyouts_font", "ChatFont", true, false, "Damage flyout font"),
         ["rv_damageflyouts_color"] = CreateClientConVar("rv_damageflyouts_color", "255 0 0 255", true, false, "Color of default damage flyout"),
         ["rv_damageflyouts_enabled"] = CreateClientConVar("rv_damageflyouts_enabled", "1", true, true, "", 0, 1),
-        ["rv_damageflyouts_size"] = CreateClientConVar("rv_damageflyouts_size", "26", true, false, ""),
+        ["rv_damageflyouts_size"] = CreateClientConVar("rv_damageflyouts_size", "26", true, false, "Damage flyout size"),
+        ["rv_damageflyouts_combine_shotgun"] = CreateClientConVar("rv_damageflyouts_combine_shotgun", "1", true, false, "Combine shotgun damage numbers"),
+        ["rv_damageflyouts_fadespeed"] = CreateClientConVar("rv_damageflyouts_size", "2", true, false, "Damage flyout fade speed"),
+        ["rv_damageflyouts_fadespeed"] = CreateClientConVar("rv_damageflyouts_fadespeed", "2", true, false, "Damage flyout fade speed, sort of broken, remind me to fix this later"),
     }
+
+    local function UpdateFlyoutFont(fontname, fontsize)
+        surface.CreateFont("rv_damageflyoutfont", {
+            font = fontname,
+            extended = false,
+            size = tonumber(fontsize),
+            weight = 500,
+            blursize = 0,
+            scanlines = 0,
+            antialias = true,
+            underline = false,
+            italic = false,
+            strikeout = false,
+            symbol = false,
+            rotary = false,
+            shadow = false,
+            additive = false,
+            outline = false,
+        })
+    end
+
+    concommand.Add("rv_damageflyouts_refreshfont", function(_, _, _, _)
+        local fontname = ConVars["rv_damageflyouts_font"][2]
+        local fontsize = ConVars["rv_damageflyouts_size"][2]
+        UpdateFlyoutFont(fontname, fontsize)
+        return
+    end, nil, "Recreate font")
 
     for ConVarName, ConVarObj in pairs(ConVars) do
         local str = ConVarObj:GetString()
         if ConVarName == "rv_damageflyouts_color" then --
             str = string.ToColor(str)
+        elseif ConVarName == "rv_damageflyouts_fadespeed" then
+            str = tonumber(str)
         end
 
         ConVars[ConVarName] = {ConVarObj, str}
-        cvars.AddChangeCallback(ConVarName, function(convar, old, new)
+        cvars.AddChangeCallback(ConVarName, function(convar, _, new)
             if convar == "rv_damageflyouts_color" then --
                 new = string.ToColor(new)
+            elseif convar == "rv_damageflyouts_fadespeed" then
+                new = tonumber(str)
             end
 
             ConVars[ConVarName][2] = new
@@ -73,9 +104,39 @@ if CLIENT then
         end, ConVarName)
     end
 
+    local DefaultFonts = {
+        BudgetLabel = true,
+        CenterPrintText = true,
+        ChatFont = true,
+        CloseCaption_Bold = true,
+        CloseCaption_BoldItalic = true,
+        CloseCaption_Italic = true,
+        CloseCaption_Normal = true,
+        CreditsOutroText = true,
+        CreditsText = true,
+        DebugFixed = true,
+        DebugFixedSmall = true,
+        DebugOverlay = true,
+        Default = true,
+        DefaultFixed = true,
+        DefaultFixedDropShadow = true,
+        DefaultSmall = true,
+        DefaultUnderline = true,
+        DefaultVerySmall = true,
+        HudDefault = true,
+        HudHintTextLarge = true,
+        HudHintTextSmall = true,
+        HudSelectionNumbers = true,
+        HudSelectionText = true,
+        TargetID = true,
+        TargetIDSmall = true,
+        Trebuchet18 = true,
+        Trebuchet24 = true,
+    }
+
     hook.Add("HUDPaint", "rv_damageflyout", function()
         if ConVars["rv_damageflyouts_enabled"][2] ~= "1" then return end
-        for _, tbl in pairs(Damages) do
+        for index, tbl in pairs(Damages) do
             local StartTime = tbl[1]
             local HitPos = tbl[2]
             local weapclass = tbl[3]
@@ -85,14 +146,18 @@ if CLIENT then
             local x, y = toscreen.x, toscreen.y
             local DamageColor = DefaultDamageColor
             DamageColor = (Settings[weapclass] and Settings[weapclass]["color"]) or DamageColor
-            local NewAlpha = ExpDecay((tbl[7] and tbl[7].a) or DamageColor.a, 0, 2, FrameTime())
+            local NewAlpha = ExpDecay((tbl[7] and tbl[7].a) or DamageColor.a, 0, ConVars["rv_damageflyouts_fadespeed"][2], FrameTime())
             local DamageColorAlphaed = ColorAlpha(DamageColor, NewAlpha)
             tbl[7] = DamageColorAlphaed
-            local Duration = 2
+            local Duration = 0.5
             local Decayed = math.Clamp((CurTime() - StartTime) / Duration, 0, 1)
             local xmultiple, ymultiple = tbl[4], tbl[5]
-            x, y = x + Decayed * xmultiple, y - (Decayed * 2 - 1) ^ 2 * -ymultiple - ymultiple
-            draw.SimpleText(damage, "ChatFont", x, y, DamageColorAlphaed, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+            x, y = x + Decayed * xmultiple, y - (Decayed - 1) ^ 2 * -ymultiple - ymultiple
+            if Decayed >= 1 then -- it should never be more than 1, but just in case
+                Damages[index] = nil
+            end
+
+            draw.SimpleText(damage, (DefaultFonts[ConVars["rv_damageflyouts_font"][2]] and ConVars["rv_damageflyouts_font"][2]) or "rv_damageflyoutfont", x, y, DamageColorAlphaed, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
         end
     end)
 
@@ -112,46 +177,71 @@ if CLIENT then
 
     local HitGroups = {}
     net.Receive("NetworkHitGroupDamage", function(_, _)
-        print("REC")
         for hitgroup = HITGROUP_GENERIC, HITGROUP_RIGHTLEG do
-            print(type(hitgroup), "HI")
             HitGroups[hitgroup] = net.ReadFloat()
         end
 
         HitGroups[HITGROUP_GEAR] = net.ReadFloat() -- theres a break for some reason
-        PrintTable(HitGroups)
     end)
 
-    timer.Create("ddd", 3, 0, function() print(HitGroups[1]) end)
+    local CollectionDamage = 0
+    local PelletCount = 0
+    local LastHit = nil
+    local FirstTrace = nil
     hook.Add("ScalePlayerDamage", "rv_damageflyout", function(ply, hitgroup, dmginfo)
         local Attacker = dmginfo:GetAttacker()
-        if Attacker ~= LocalPlayer() then return end
+        local localply = LocalPlayer()
+        if Attacker ~= localply then return end
         local HitPos = dmginfo:GetDamagePosition()
         local weapclass = dmginfo:GetWeapon():GetClass() -- can this be invalid?
         local Damage = dmginfo:GetDamage() * (HitGroups[hitgroup] or 1)
-        print("HEYYY")
-        PrintTable(HitGroups)
-        print(dmginfo:GetDamage(), type(hitgroup), hitgroup, HitGroups[hitgroup])
         local xmultiple, ymultiple = RandomGravMultiple()
-        Damages[#Damages + 1] = {CurTime(), HitPos, weapclass, xmultiple, ymultiple, Damage}
+        if ConVars["rv_damageflyouts_combine_shotgun"][2] == "1" then
+            CollectionDamage = CollectionDamage + Damage
+            if LastHit == CurTime() then PelletCount = PelletCount + 1 end
+            if PelletCount == 0 then --
+                local shootpos = localply:GetShootPos()
+                FirstTrace = util.TraceLine({
+                    start = shootpos,
+                    endpos = shootpos + localply:GetAimVector() * 5000,
+                    filter = localply
+                }).HitPos
+            end
+
+            timer.Simple(0, function()
+                if CollectionDamage == 0 then -- works well enough
+                    return
+                end
+
+                Damages[#Damages + 1] = {CurTime(), PelletCount > 1 and FirstTrace or HitPos, weapclass, xmultiple, ymultiple, math.Truncate(CollectionDamage, 2)}
+                CollectionDamage = 0
+                PelletCount = 0
+            end)
+        else
+            Damages[#Damages + 1] = {CurTime(), HitPos, weapclass, xmultiple, ymultiple, Damage}
+        end
+
+        LastHit = CurTime()
     end)
 elseif SERVER then
     -- networking for explosives / bolt
     util.AddNetworkString("rv_damageflyout")
     hook.Add("ScalePlayerDamage", "rv_damageflyout", function(ply, _, dmginfo)
         local Attacker = dmginfo:GetAttacker()
-        if Attacker:GetInfo("rv_damageflyouts_enabled") ~= "1" then return end
-        if dmginfo:IsDamageType(DMG_BULLET) then -- we only network non bullets, bullets are already handled clientside
-            return
-        end
-
-        local HitPos = ply:GetPos()
         local weap = dmginfo:GetWeapon()
         local weapclass = nil
         if IsValid(weap) then
             weapclass = weap:GetClass() -- can this be invalid? edit: yes it can be
         end
 
+        if Attacker:GetInfo("rv_damageflyouts_enabled") ~= "1" then return end
+        if dmginfo:IsDamageType(DMG_BULLET) and weapclass ~= "weapon_crossbow" then
+            -- we only network non bullets, bullets are already handled clientside
+            -- the crossbow also apparently does bullet damage, so we have to check that too
+            return
+        end
+
+        local HitPos = ply:GetPos() + ply:OBBCenter()
         local Damage = dmginfo:GetDamage()
         net.Start("rv_damageflyout")
         net.WriteVector(HitPos)
@@ -211,7 +301,6 @@ elseif SERVER then
 
     util.AddNetworkString("NetworkHitGroupDamage")
     local function NetworkHitGroupDamage(ply)
-        print("called")
         net.Start("NetworkHitGroupDamage")
         --local NumHitGroups = net.WriteUInt(9, 4)
         for hit_group = HITGROUP_GENERIC, HITGROUP_RIGHTLEG do
@@ -223,14 +312,14 @@ elseif SERVER then
         if ply then
             net.Send(ply)
         else
-            print("broadcast")
             net.Broadcast()
         end
     end
 
     if CurTime() > 15 then -- autorefresh
         GetDamageNumbers()
-        timer.Simple(0, function() -- this timer is ridiculous
+        timer.Simple(0, function()
+            -- this timer is ridiculous
             NetworkHitGroupDamage()
         end)
     end

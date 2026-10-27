@@ -4,10 +4,11 @@ if CLIENT then
         return b + (a - b) * math.exp(-decay * dt)
     end
 
+    --[[
     local function easedLerp(fraction, from, to)
         return Lerp(math.ease.OutBounce(fraction), from, to)
     end
-
+    --]]
     -- Custimoization table
     local Settings = {
         ["weapon_357"] = {
@@ -52,7 +53,6 @@ if CLIENT then
         ["rv_damageflyouts_enabled"] = CreateClientConVar("rv_damageflyouts_enabled", "1", true, true, "", 0, 1),
         ["rv_damageflyouts_size"] = CreateClientConVar("rv_damageflyouts_size", "26", true, false, "Damage flyout size"),
         ["rv_damageflyouts_combine_shotgun"] = CreateClientConVar("rv_damageflyouts_combine_shotgun", "1", true, false, "Combine shotgun damage numbers"),
-        ["rv_damageflyouts_fadespeed"] = CreateClientConVar("rv_damageflyouts_size", "2", true, false, "Damage flyout fade speed"),
         ["rv_damageflyouts_fadespeed"] = CreateClientConVar("rv_damageflyouts_fadespeed", "2", true, false, "Damage flyout fade speed, sort of broken, remind me to fix this later"),
     }
 
@@ -188,7 +188,9 @@ if CLIENT then
     local PelletCount = 0
     local LastHit = nil
     local FirstTrace = nil
+    local Shots = {}
     hook.Add("ScalePlayerDamage", "rv_damageflyout", function(ply, hitgroup, dmginfo)
+        if not IsFirstTimePredicted() then return end
         local Attacker = dmginfo:GetAttacker()
         local localply = LocalPlayer()
         if Attacker ~= localply then return end
@@ -208,12 +210,19 @@ if CLIENT then
                 }).HitPos
             end
 
+            Shots[CurTime()] = {CurTime(), PelletCount > 1 and FirstTrace or HitPos, weapclass, xmultiple, ymultiple, math.Truncate(CollectionDamage, 2)}
+            if PelletCount == 0 and Shots[LastHit] then
+                Damages[#Damages + 1] = Shots[LastHit]
+                return
+            end
+
             timer.Simple(0, function()
                 if CollectionDamage == 0 then -- works well enough
                     return
                 end
 
-                Damages[#Damages + 1] = {CurTime(), PelletCount > 1 and FirstTrace or HitPos, weapclass, xmultiple, ymultiple, math.Truncate(CollectionDamage, 2)}
+                Damages[#Damages + 1] = Shots[LastHit]
+                Shots[LastHit] = nil
                 CollectionDamage = 0
                 PelletCount = 0
             end)

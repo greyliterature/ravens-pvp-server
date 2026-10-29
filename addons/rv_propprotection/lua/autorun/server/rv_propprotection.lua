@@ -19,6 +19,14 @@ hook.Add("GravGunPunt", "TurnOffGravGunPunt", function(ply, entity)
 end)
 
 hook.Add("CanProperty", "PreventProperties", function(ply, property, ent) if not ply:IsSuperAdmin() then return false end end)
+
+hook.Add("PostUndo", "RemoveFromTables", function(undotbl, _)
+    local ply = undotbl.Owner
+    for _, ent in ipairs(undotbl.Entities) do
+        ply.PropProtectionEntities[ent] = nil
+    end
+end)
+
 hook.Add("PlayerDisconnected", "ClearPropsOnDisconnect", function(ply)
     if not ply.PropProtectionEntities then return end
     for entity, _ in pairs(ply.PropProtectionEntities) do

@@ -9,7 +9,7 @@
 -- let canvas be set to the entire screen
 -- let texture be set for rectangles on rightclick
 -- outline selected rectangle in preview.paintover
-local function WhatPanelTrace(PanelToIgnore) -- check what panels the cursor is within the bounds of, and choose the frontmost one
+local function WhatPanelTrace(PanelToIgnore, fullpierce) -- check what panels the cursor is within the bounds of, and choose the frontmost one
     local TrueHoveredPanel = nil
     local ValidPanels = {} -- list of panels to go through with zpos score
     local cursorx, cursory = input.GetCursorPos()
@@ -21,9 +21,20 @@ local function WhatPanelTrace(PanelToIgnore) -- check what panels the cursor is 
         if IsValid(parent) and parent:IsVisible() == false then continue end
         local x, y = panel:LocalToScreen(0, 0)
         local xextent, yextent = panel:GetWide(), panel:GetTall()
+        if panel.IsShape then
+            print("HEIEIY")
+            print(panel.IsShape, panel)
+        end
+
         if cursorx <= x + xextent and cursorx >= x and cursory <= y + yextent and cursory >= y then --
             ValidPanels[#ValidPanels + 1] = panel
         end
+    end
+
+    if fullpierce == true then --
+        TrueHoveredPanel = {}
+        table.Add(TrueHoveredPanel, ValidPanels)
+        return TrueHoveredPanel
     end
 
     if not TrueHoveredPanel then
@@ -37,6 +48,10 @@ local function WhatPanelTrace(PanelToIgnore) -- check what panels the cursor is 
         end
     end
     return TrueHoveredPanel
+end
+
+local function EuclideanDistance(x_1, y_1, x_2, y_2)
+    return math.sqrt((x_2 - x_1) ^ 2 + (y_2 - y_1) ^ 2)
 end
 
 --timer.Simple(1, function() WhatPanelTrace():Remove() end)
@@ -227,7 +242,6 @@ concommand.Add("rv_custom_crosshair_setup", function()
             for _, pnl in ipairs(LastAnchorPoints) do
                 if not IsValid(pnl) then continue end
                 if pnl == currentanchorpoint then continue end
-                print(anchorpoints[pnl.Position][1], anchorpoints[pnl.Position][1], "HEYY")
                 pnl:SetPos(anchorpoints[pnl.Position][1], anchorpoints[pnl.Position][2])
             end
         end
@@ -318,19 +332,52 @@ concommand.Add("rv_custom_crosshair_setup", function()
             end
         end
 
-        shapepanel.edittype = nil
+        EditType = nil
         function shapepanel.OnMousePressed(truthfullyself, keycode)
             if keycode == MOUSE_LEFT then --
-                if shapepanel.edittype == true then
-                    MakeAnchorPoints(truthfullyself, "drag")
-                else
-                    MakeAnchorPoints(truthfullyself)
+                --self.Dragging = true just replace this with a right click and "drag selected" context menu option, this is too annoying
+                print("HEYO!")
+                local OverlappingPanels = WhatPanelTrace(nil, true)
+                for i = #OverlappingPanels, 1, -1 do
+                    local panel = OverlappingPanels[i]
+                    if not panel.IsShape then --
+                        table.remove(OverlappingPanels, i)
+                    end
                 end
 
-                shapepanel.edittype = not shapepanel.edittype
-                --self.Dragging = true just replace this with a right click and "drag selected" context menu option, this is too annoying
-                SelectedPanel = truthfullyself
+                PrintTable(OverlappingPanels)
+                print("heyo")
+                if #OverlappingPanels == 1 then --
+                    SelectedPanel = truthfullyself
+                elseif #OverlappingPanels > 1 then
+                    local BestDist, BestMidPointPanel = math.huge, nil
+                    for _, panel in ipairs(OverlappingPanels) do
+                        local panelsizex, panelsizey = panel:GetSize()
+                        local centerx, centery = panel:GetX() + panelsizex * 0.5, panel:GetY() + panelsizey * 0.5
+                        local cursorx, cursory = self:CursorPos()
+                        --local DistanceToCursorX, DistanceToCursorY = math.abs(cursorx - centerx), math.abs(cursory - centery)
+                        local EuclidDist = EuclideanDistance(cursorx, cursory, centerx, centery)
+                        print(EuclidDist, "hiya")
+                        if EuclidDist < BestDist then -- if the dist is equal then it should add to a table to cycle through, do that later probably
+                            BestDist = EuclidDist
+                            BestMidPointPanel = panel
+                        end
+                    end
+
+                    SelectedPanel = BestMidPointPanel
+                end
+
+                MakeAnchorPoints(SelectedPanel)
             end
+
+            if not IsValid(SelectedPanel) then return end
+            if EditType == true then
+                MakeAnchorPoints(SelectedPanel, "drag")
+            else
+                MakeAnchorPoints(SelectedPanel)
+            end
+
+            EditType = not EditType
         end
 
         function shapepanel.OnMouseReleased(_, keycode)
@@ -355,7 +402,13 @@ concommand.Add("rv_custom_crosshair_setup", function()
     hook.Add("VGUIMousePressed", "SelectedPanel", function(panel, mouseCode)
         -- remember to hook.remove this later
         if panel.IsAnchorPoint == true then return end
-        if panel.IsShape == true then return end
+        if panel.IsShape == true then
+            if panel ~= SelectedPanel then --
+                EditType = nil
+            end
+            return
+        end
+
         if IsValid(SelectedPanel) then SelectedPanel.edittype = nil end
         SelectedPanel = nil
         SelectedPosition = nil -- the anchorpoints

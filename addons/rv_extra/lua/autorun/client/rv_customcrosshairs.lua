@@ -3,6 +3,12 @@
 -- editing shapes should be based on the midpoint and click throughable until you get the one you want
 -- when clicking to edit the shape it should be right clickable and also change to a random color temporarily
 -- add shapes
+-- add rotation
+-- add unfilled polygons option
+-- add midpoint traces for selection
+-- let canvas be set to the entire screen
+-- let texture be set for rectangles on rightclick
+-- outline selected rectangle in preview.paintover
 local function WhatPanelTrace(PanelToIgnore) -- check what panels the cursor is within the bounds of, and choose the frontmost one
     local TrueHoveredPanel = nil
     local ValidPanels = {} -- list of panels to go through with zpos score
@@ -37,9 +43,12 @@ end
 local color_green = Color(0, 255, 0)
 local color_red = Color(255, 0, 0)
 local color_hammer_grey = Color(82, 82, 82)
+local color_darkgrey = Color(50, 50, 50)
 local color_black_transparentish = Color(0, 0, 0, 240)
 --
 local background_1 = Material("gui/crosshair_bg2.png")
+local AcceptMaterial = Material("icon16/accept.png")
+--
 concommand.Add("rv_custom_crosshair_setup", function()
     if IsValid(MegaPanel) then
         print("yep removed`")
@@ -92,10 +101,15 @@ concommand.Add("rv_custom_crosshair_setup", function()
     end
     --]]
     local PreviewShapes = {}
+    local FillPolygons = true
     local function ShapeTableToDrawFunction(shapetable, w, h)
         if shapetable["Shape"] == "Rectangle" then
             surface.SetDrawColor(shapetable.Color)
-            surface.DrawRect(shapetable["X"], shapetable["Y"], w or shapetable["W"], h or shapetable["H"])
+            if FillPolygons then
+                surface.DrawRect(shapetable["X"], shapetable["Y"], w or shapetable["W"], h or shapetable["H"])
+            else
+                surface.DrawOutlinedRect(shapetable["X"], shapetable["Y"], w or shapetable["W"], h or shapetable["H"], 2)
+            end
         else
         end
     end
@@ -146,6 +160,22 @@ concommand.Add("rv_custom_crosshair_setup", function()
         --]]
     end
 
+    local SelectedPanel = nil
+    function preview.PaintOver(self, w, h)
+        for _, child in ipairs(self:GetChildren()) do
+            if not child.IsShape then continue end
+            local x, y = child:GetPos()
+            local sizex, sizey = child:GetSize()
+            surface.SetDrawColor(color_red)
+            surface.DrawRect(x + sizex * 0.5, y + sizey * 0.5, 5, 5)
+            if not IsValid(SelectedPanel) then continue end
+            local selectedx, selectedy = SelectedPanel:GetPos()
+            local selectedsizex, selectedsizey = SelectedPanel:GetSize()
+            surface.SetDrawColor(color_darkgrey)
+            surface.DrawOutlinedRect(selectedx, selectedy, selectedsizex, selectedsizey, 2)
+        end
+    end
+
     local GridSize = math.floor(preview:GetWide() / MatrixSize)
     preview:SetSize(GridSize * MatrixSize, GridSize * MatrixSize)
     frame:SetTall(preview:GetTall() + top + bottom) -- sigh
@@ -155,7 +185,6 @@ concommand.Add("rv_custom_crosshair_setup", function()
         return math.floor(x / GridSize) * GridSize, math.floor(y / GridSize) * GridSize
     end
 
-    local SelectedPanel = nil
     local SelectedPosition = nil
     local LastAnchorPoints = {}
     function preview.AddShape(self, shapetable)
@@ -170,7 +199,7 @@ concommand.Add("rv_custom_crosshair_setup", function()
         local gridx, gridy = AlignToGrid(shapetable["X"], shapetable["Y"])
         shapepanel:SetPos(gridx + OutlineThickness, gridy + OutlineThickness)
         shapepanel:SetSize(GridSize - OutlineThickness, GridSize - OutlineThickness)
-        shapepanel:SetZPos(100)
+        shapepanel:SetZPos(1)
         shapepanel.IsShape = true
         --shapepanel:InsetWithOutlines()
         shapepanel.shapetable = shapetable
@@ -238,7 +267,7 @@ concommand.Add("rv_custom_crosshair_setup", function()
                 local anchorpoint = vgui.Create("DPanel", AnchorPointParent)
                 anchorpoint:SetSize(AnchorPointSize, AnchorPointSize)
                 anchorpoint:SetPos(tbl[1], tbl[2])
-                anchorpoint:SetZPos(-1)
+                anchorpoint:SetZPos(2)
                 anchorpoint:SetMouseInputEnabled(true)
                 anchorpoint.IsAnchorPoint = true
                 anchorpoint.Position = point
@@ -397,9 +426,39 @@ concommand.Add("rv_custom_crosshair_setup", function()
     settings:Dock(FILL)
     settings:DockPadding(5, 0, 0, 0)
     settings:SetBackgroundColor(color_black)
+    settings:SetTall(math.ceil(frame:GetTall() - bottom - top - 1))
     local MarginX = ScrW() * 0.01
     local MarginY = ScrH() * 0.02
     local ButtonSizes = GridSize -- shared between all the buttons
+    local ShadingButton = vgui.Create("DPanel", settings)
+    ShadingButton:SetPos(MarginX, settings:GetTall() - MarginY)
+    ShadingButton:SetSize(ButtonSizes * 0.5, ButtonSizes * 0.5)
+    ShadingButton:SetMouseInputEnabled(true)
+    function ShadingButton.OnMousePressed(_, keyCode)
+        if keyCode == MOUSE_LEFT then --
+            FillPolygons = not FillPolygons
+        end
+    end
+
+    function ShadingButton.Paint(_, w, h)
+        surface.SetDrawColor(color_white)
+        surface.DrawRect(0, 0, w, h)
+        if FillPolygons == true then --
+            surface.SetMaterial(AcceptMaterial)
+            surface.DrawTexturedRect(0, 0, w, h)
+        end
+    end
+
+    local ShadingLabel = vgui.Create("DPanel", settings)
+    ShadingLabel:SetPos(MarginX + ButtonSizes + MarginX, ShadingButton:GetY())
+    ShadingLabel:SetSize(ButtonSizes, ButtonSizes * 0.5)
+    ShadingLabel.Text = "Fill polygons"
+    surface.SetFont("DermaDefault")
+    ShadingLabel:SetWide(select(1, surface.GetTextSize(ShadingLabel.Text)))
+    function ShadingLabel.Paint(self, w, h)
+        draw.SimpleText(self.Text, "DermaDefault", 0, h * 0.5, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+    end
+
     local RectButton = vgui.Create("DPanel", settings)
     RectButton:SetPos(MarginX, MarginY)
     RectButton:SetSize(ButtonSizes, ButtonSizes)

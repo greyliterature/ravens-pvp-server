@@ -242,7 +242,7 @@ concommand.Add("rv_custom_crosshair_setup", function()
             for _, pnl in ipairs(LastAnchorPoints) do
                 if not IsValid(pnl) then continue end
                 if pnl == currentanchorpoint then continue end
-                pnl:SetPos(anchorpoints[pnl.Position][1], anchorpoints[pnl.Position][2])
+                pnl:SetPos(math.Clamp(anchorpoints[pnl.Position][1], 0, GridSize * MatrixSize - AnchorPointSize), math.Clamp(anchorpoints[pnl.Position][2], 0, GridSize * MatrixSize - AnchorPointSize))
             end
         end
 
@@ -280,7 +280,7 @@ concommand.Add("rv_custom_crosshair_setup", function()
             for point, tbl in pairs((anchorpointtype == "drag" and anchorpoints["dragging"]) or anchorpoints["sizing"]) do
                 local anchorpoint = vgui.Create("DPanel", AnchorPointParent)
                 anchorpoint:SetSize(AnchorPointSize, AnchorPointSize)
-                anchorpoint:SetPos(tbl[1], tbl[2])
+                anchorpoint:SetPos(math.Clamp(tbl[1], 0, GridSize * MatrixSize - AnchorPointSize), math.Clamp(tbl[2], 0, GridSize * MatrixSize - AnchorPointSize))
                 anchorpoint:SetZPos(2)
                 anchorpoint:SetMouseInputEnabled(true)
                 anchorpoint.IsAnchorPoint = true
@@ -297,7 +297,7 @@ concommand.Add("rv_custom_crosshair_setup", function()
                 function anchorpoint.Think(truthfullyself)
                     if not SelectedPosition then return end
                     if truthfullyself.Position ~= SelectedPosition then return end
-                    if anchorpointtype == "drag" then
+                    if anchorpointtype == "drag" then -- make a drag type thats like the 3rd edit type of hammer
                         local oldcursorx, oldcursory = truthfullyself.OldCursorPos[1], truthfullyself.OldCursorPos[2]
                         local currentcursorx, currentcursory = self:CursorPos()
                         local offsetx, offsety = currentcursorx - oldcursorx, currentcursory - oldcursory
@@ -315,16 +315,31 @@ concommand.Add("rv_custom_crosshair_setup", function()
                         -- dont move the thing past the panel bounds, 
                         -- dont do this for sizing though, causes issues, and also unexpected behavior (ish?)
                         SelectedPanel:SetPos(math.min(preview:GetWide() - SelectedPanel:GetWide(), SelectedPanel:GetX()), math.min(preview:GetTall() - SelectedPanel:GetTall(), SelectedPanel:GetY()))
-                        MoveAnchorPoints(panel)
-                    else
+                        MoveAnchorPoints(SelectedPanel)
+                    else -- "sizing" anchors
                         if SelectedPosition == "bottomright" then
                             local SelectedPanelX, SelectedPanelY = SelectedPanel:GetPos()
                             truthfullyself:SetPos(AlignToGrid(self:CursorPos()))
                             SelectedPanel:SetSize(math.max(MinimumShapeSize, truthfullyself:GetX() - SelectedPanelX), math.max(MinimumShapeSize, truthfullyself:GetY() - SelectedPanelY))
+                        elseif SelectedPosition == "topleft" then
+                            local cursorposgridx, cursorposgridy = AlignToGrid(self:CursorPos())
+                            --truthfullyself:SetPos(cursorposgridx, cursorposgridy)
+                            local selectedpanelx, selectedpanely = SelectedPanel:GetPos()
+                            local selectedpanelsizex, selectedpanelsizey = SelectedPanel:GetSize()
+                            local formerbottomleftx, formerbottomlefty = selectedpanelx, selectedpanely + selectedpanelsizey
+                            local formerbottomrightx, formerbottomrighty = selectedpanelx + selectedpanelsizex, selectedpanely + selectedpanelsizey
+                            local newposx, newposy = cursorposgridx, cursorposgridy
+                            local newbottomleftx, newbottomlefty = newposx, newposy + selectedpanelsizey
+                            local newbottomrightx, newbottomrighty = newposx + selectedpanelsizex, newposy + selectedpanelsizey
+                            SelectedPanel:SetSize(selectedpanelsizex + (formerbottomrightx - newbottomrightx), selectedpanelsizey + (formerbottomrighty - newbottomrighty))
+                            SelectedPanel:SetPos(cursorposgridx, cursorposgridy)
                         end
 
-                        SelectedPanel:SetSize(math.Clamp(select(1, AlignToGrid(self:CursorPos())) - SelectedPanel:GetX(), GridSize - OutlineThickness, preview:GetWide() - SelectedPanel:GetX()), math.Clamp(select(2, AlignToGrid(self:CursorPos())) - SelectedPanel:GetY(), GridSize - OutlineThickness, preview:GetTall() - SelectedPanel:GetY()))
-                        MoveAnchorPoints(panel)
+                        -- clamping to be within bounds 
+                        --SelectedPanel:SetSize(math.Clamp(select(1, AlignToGrid(self:CursorPos())) - SelectedPanel:GetX(), GridSize - OutlineThickness, preview:GetWide() - SelectedPanel:GetX()), math.Clamp(select(2, AlignToGrid(self:CursorPos())) - SelectedPanel:GetY(), GridSize - OutlineThickness, preview:GetTall() - SelectedPanel:GetY()))
+                        --print(GridSize * MatrixSize, SelectedPanel:GetX() + SelectedPanel:GetWide())
+                        --SelectedPanel:SetSize(math.Clamp(SelectedPanel:GetX() + SelectedPanel:GetWide(), 0, GridSize * MatrixSize), math.Clamp(SelectedPanel:GetY() + SelectedPanel:GetTall(), 0, GridSize * MatrixSize))
+                        MoveAnchorPoints(SelectedPanel)
                     end
                 end
 

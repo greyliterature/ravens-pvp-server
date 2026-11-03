@@ -121,7 +121,7 @@ concommand.Add("rv_custom_crosshair_setup", function()
         if shapetable["Shape"] == "Rectangle" then
             surface.SetDrawColor(shapetable.Color)
             if FillPolygons then
-                surface.DrawRect(shapetable["X"], shapetable["Y"], w or shapetable["W"], h or shapetable["H"])
+                surface.DrawRect(0, 0, w or shapetable["W"], h or shapetable["H"])
             else
                 surface.DrawOutlinedRect(shapetable["X"], shapetable["Y"], w or shapetable["W"], h or shapetable["H"], 2)
             end
@@ -537,7 +537,56 @@ concommand.Add("rv_custom_crosshair_setup", function()
         draw.SimpleText(self.Text, "DermaDefault", 0, h * 0.5, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
     end
 
+    local TestShapeTable = {
+        ["Color"] = {
+            ["a"] = 255,
+            ["b"] = 255,
+            ["g"] = 255,
+            ["r"] = 255,
+        },
+        ["H"] = 95,
+        ["Shape"] = "Rectangle",
+        ["W"] = 95,
+        ["X"] = 321,
+        ["Y"] = 193,
+    }
+
+    local function ZeroPadInt(x, numberpad)
+        x = tostring(x)
+        for i = 1, numberpad do
+            if #x == numberpad then return x end
+            x = "0" .. x
+        end
+    end
+
+    print(ZeroPadInt(255, 3))
+    local function ShapeTableToString(shapetable)
+        local str = ""
+        local colortable = shapetable.Color
+        str = str .. ZeroPadInt(colortable.a, 3) .. ZeroPadInt(colortable.r, 3) .. ZeroPadInt(colortable.g, 3) .. ZeroPadInt(colortable.b, 3)
+        str = str .. "|" .. shapetable.W .. "|" .. shapetable.H .. "|" .. shapetable.X .. "|" .. shapetable.Y .. "|"
+        return str
+    end
+
+    print(ShapeTableToString(TestShapeTable))
+    local function StringToShapeTable()
+    end
+
+    local ShapeTables = {}
     local function ExportPanels()
+        print("H")
+        ShapeTables = {}
+        for _, pnl in ipairs(preview:GetChildren()) do
+            if not IsValid(pnl) then continue end
+            if not pnl.shapetable then continue end
+            local shapetable = pnl.shapetable
+            shapetable["X"] = pnl:GetX()
+            shapetable["Y"] = pnl:GetY()
+            shapetable["W"] = pnl:GetWide()
+            shapetable["H"] = pnl:GetTall()
+            ShapeTables[#ShapeTables + 1] = shapetable
+            PrintTable(ShapeTables)
+        end
     end
 
     local ExportButton = vgui.Create("DButton", settings)
@@ -546,9 +595,8 @@ concommand.Add("rv_custom_crosshair_setup", function()
     ExportButton:SetMouseInputEnabled(true)
     ExportButton:SetText("Copy code")
     function ExportButton.DoClick()
-        if keyCode == MOUSE_LEFT then --
-            print("yea")
-        end
+        print("HIIIIIIIIIIIIIIIIIIIIIdsfdsaf")
+        ExportPanels()
     end
 
     local RectButton = vgui.Create("DPanel", settings)

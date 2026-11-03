@@ -98,7 +98,7 @@ concommand.Add("rv_custom_crosshair_setup", function()
 
     local preview = vgui.Create("DImage", frame)
     preview:Dock(LEFT)
-    local _, top, _, bottom = frame:GetDockPadding()
+    local left, top, right, bottom = frame:GetDockPadding()
     --preview:SetPos(left, top)
     preview:SetTall(math.ceil(frame:GetTall() - bottom - top - 1))
     preview:SetWide(preview:GetTall())
@@ -317,28 +317,37 @@ concommand.Add("rv_custom_crosshair_setup", function()
                         SelectedPanel:SetPos(math.min(preview:GetWide() - SelectedPanel:GetWide(), SelectedPanel:GetX()), math.min(preview:GetTall() - SelectedPanel:GetTall(), SelectedPanel:GetY()))
                         MoveAnchorPoints(SelectedPanel)
                     else -- "sizing" anchors
+                        local cursorposgridx, cursorposgridy = AlignToGrid(self:CursorPos())
+                        --truthfullyself:SetPos(cursorposgridx, cursorposgridy)
+                        local selectedpanelx, selectedpanely = SelectedPanel:GetPos()
+                        local selectedpanelsizex, selectedpanelsizey = SelectedPanel:GetSize()
+                        local formerbottomleftx, formerbottomlefty = selectedpanelx, selectedpanely + selectedpanelsizey
+                        local formerbottomrightx, formerbottomrighty = selectedpanelx + selectedpanelsizex, selectedpanely + selectedpanelsizey
+                        local newposx, newposy = cursorposgridx, cursorposgridy
+                        local newbottomleftx, newbottomlefty = newposx, newposy + selectedpanelsizey
+                        local newbottomrightx, newbottomrighty = newposx + selectedpanelsizex, newposy + selectedpanelsizey
                         if SelectedPosition == "bottomright" then
-                            local SelectedPanelX, SelectedPanelY = SelectedPanel:GetPos()
-                            truthfullyself:SetPos(AlignToGrid(self:CursorPos()))
-                            SelectedPanel:SetSize(math.max(MinimumShapeSize, truthfullyself:GetX() - SelectedPanelX), math.max(MinimumShapeSize, truthfullyself:GetY() - SelectedPanelY))
+                            truthfullyself:SetPos(cursorposgridx, cursorposgridy)
+                            SelectedPanel:SetSize(math.max(MinimumShapeSize, truthfullyself:GetX() - selectedpanelx), math.max(MinimumShapeSize, truthfullyself:GetY() - selectedpanely))
+                        elseif SelectedPosition == "topright" then
+                            local newy = math.max(0, math.min(cursorposgridy, formerbottomrighty - MinimumShapeSize))
+                            SelectedPanel:SetY(newy)
+                            SelectedPanel:SetSize(math.max(MinimumShapeSize, cursorposgridx - selectedpanelx), formerbottomrighty - newy)
                         elseif SelectedPosition == "topleft" then
-                            local cursorposgridx, cursorposgridy = AlignToGrid(self:CursorPos())
-                            --truthfullyself:SetPos(cursorposgridx, cursorposgridy)
-                            local selectedpanelx, selectedpanely = SelectedPanel:GetPos()
-                            local selectedpanelsizex, selectedpanelsizey = SelectedPanel:GetSize()
-                            local formerbottomleftx, formerbottomlefty = selectedpanelx, selectedpanely + selectedpanelsizey
-                            local formerbottomrightx, formerbottomrighty = selectedpanelx + selectedpanelsizex, selectedpanely + selectedpanelsizey
-                            local newposx, newposy = cursorposgridx, cursorposgridy
-                            local newbottomleftx, newbottomlefty = newposx, newposy + selectedpanelsizey
-                            local newbottomrightx, newbottomrighty = newposx + selectedpanelsizex, newposy + selectedpanelsizey
-                            SelectedPanel:SetSize(selectedpanelsizex + (formerbottomrightx - newbottomrightx), selectedpanelsizey + (formerbottomrighty - newbottomrighty))
-                            SelectedPanel:SetPos(cursorposgridx, cursorposgridy)
+                            local newx = math.max(0, math.min(cursorposgridx, formerbottomrightx - MinimumShapeSize))
+                            local newy = math.max(0, math.min(cursorposgridy, formerbottomrighty - MinimumShapeSize))
+                            SelectedPanel:SetPos(newx, newy)
+                            SelectedPanel:SetSize(formerbottomrightx - newx, formerbottomrighty - newy)
+                        elseif SelectedPosition == "bottomleft" then
+                            local newx = math.max(0, math.min(cursorposgridx, formerbottomrightx - MinimumShapeSize)) -- claaaude
+                            SelectedPanel:SetX(newx)
+                            SelectedPanel:SetSize(formerbottomrightx - newx, math.max(MinimumShapeSize, cursorposgridy - selectedpanely))
                         end
 
                         -- clamping to be within bounds 
                         --SelectedPanel:SetSize(math.Clamp(select(1, AlignToGrid(self:CursorPos())) - SelectedPanel:GetX(), GridSize - OutlineThickness, preview:GetWide() - SelectedPanel:GetX()), math.Clamp(select(2, AlignToGrid(self:CursorPos())) - SelectedPanel:GetY(), GridSize - OutlineThickness, preview:GetTall() - SelectedPanel:GetY()))
                         --print(GridSize * MatrixSize, SelectedPanel:GetX() + SelectedPanel:GetWide())
-                        --SelectedPanel:SetSize(math.Clamp(SelectedPanel:GetX() + SelectedPanel:GetWide(), 0, GridSize * MatrixSize), math.Clamp(SelectedPanel:GetY() + SelectedPanel:GetTall(), 0, GridSize * MatrixSize))
+                        SelectedPanel:SetSize(math.max(SelectedPanel:GetWide(), MinimumShapeSize), math.max(SelectedPanel:GetTall(), MinimumShapeSize))
                         MoveAnchorPoints(SelectedPanel)
                     end
                 end
@@ -492,6 +501,7 @@ concommand.Add("rv_custom_crosshair_setup", function()
 --]]
     local settings = vgui.Create("DPanel", frame)
     settings:Dock(FILL)
+    settings:SetWide(frame:GetWide() - left - right - preview:GetWide())
     settings:DockPadding(5, 0, 0, 0)
     settings:SetBackgroundColor(color_black)
     settings:SetTall(math.ceil(frame:GetTall() - bottom - top - 1))
@@ -525,6 +535,20 @@ concommand.Add("rv_custom_crosshair_setup", function()
     ShadingLabel:SetWide(select(1, surface.GetTextSize(ShadingLabel.Text)))
     function ShadingLabel.Paint(self, w, h)
         draw.SimpleText(self.Text, "DermaDefault", 0, h * 0.5, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+    end
+
+    local function ExportPanels()
+    end
+
+    local ExportButton = vgui.Create("DButton", settings)
+    ExportButton:SetPos(MarginX, settings:GetTall() - MarginY * 2)
+    ExportButton:SetSize(settings:GetWide() - MarginX * 2, ButtonSizes * 0.5)
+    ExportButton:SetMouseInputEnabled(true)
+    ExportButton:SetText("Copy code")
+    function ExportButton.DoClick()
+        if keyCode == MOUSE_LEFT then --
+            print("yea")
+        end
     end
 
     local RectButton = vgui.Create("DPanel", settings)

@@ -547,4 +547,21 @@ elseif CLIENT then
     end)
 end
 
+if SERVER then
+    local DEBUGGING_HOOKS = true -- YOU SHOULD TURN THIS OFF, 99.9% OF THE TIME. JUST DEBUGGING IT FOR A SPECIFIC USE
+    if DEBUGGING_HOOKS == true then
+        local WhitelistedHooks = {
+            ["OnLuaError"] = true,
+        }
+
+        if not hook.oldRun then hook.oldRun = hook.Run end
+        function hook.Run(eventname, ...)
+            if DEBUGGING_HOOKS ~= true then return hook.oldRun(eventname, ...) end
+            local hooktable = hook.GetTable() -- oh god...
+            if not hooktable[eventname] and not WhitelistedHooks[eventname] then ErrorNoHaltWithStack("Hook does not exist but is being ran: \n", eventname, ...) end
+            return hook.oldRun(eventname, ...)
+        end
+    end
+end
+
 print("rv_util loaded :)")

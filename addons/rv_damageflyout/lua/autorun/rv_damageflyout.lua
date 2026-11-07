@@ -50,7 +50,7 @@ if CLIENT then
     local ConVars = {
         ["rv_damageflyouts_font"] = CreateClientConVar("rv_damageflyouts_font", "ChatFont", true, false, "Damage flyout font"),
         ["rv_damageflyouts_color"] = CreateClientConVar("rv_damageflyouts_color", "255 0 0 255", true, false, "Color of default damage flyout"),
-        ["rv_damageflyouts_enabled"] = CreateClientConVar("rv_damageflyouts_enabled", "1", true, true, "", 0, 1),
+        ["rv_damageflyouts_enabled"] = CreateClientConVar("rv_damageflyouts_enabled", "0", true, true, "", 0, 1),
         ["rv_damageflyouts_size"] = CreateClientConVar("rv_damageflyouts_size", "26", true, false, "Damage flyout size. You probably don't want to change this, use flyouts_scale instead."),
         ["rv_damageflyouts_scale"] = CreateClientConVar("rv_damageflyouts_scale", "1", true, false, "Damage flyout scale"),
         ["rv_damageflyouts_combine_shotgun"] = CreateClientConVar("rv_damageflyouts_combine_shotgun", "1", true, false, "Combine shotgun damage numbers"),

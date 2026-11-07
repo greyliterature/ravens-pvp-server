@@ -34,7 +34,7 @@ end
 sql.QueryTyped("ALTER TABLE match_data ADD COLUMN forfeited INTEGER DEFAULT 0;")
 sql.QueryTyped("ALTER TABLE match_data ADD COLUMN rated INTEGER DEFAULT 0;")
 --]]
-local function SendCommitData(ply)
+local function GetCommitData(callback)
     local CommitDatas = {}
     -- This http request is about the only thing made by ai in the entire rv_motd scripts
     local GITHUB_TOKEN = ENV.GITHUB_TOKEN
@@ -57,14 +57,79 @@ local function SendCommitData(ply)
                 CommitDatas[#CommitDatas + 1] = utf8.sub(commit.commit.message, 1, 79) .. ((#commit.commit.message + #commit.commit.author.name >= 79 and "... - ") or " - ") .. "Authored by " .. commit.commit.author.name
             end
 
-            net.Start("SendCommitData")
-            net.WriteTable(CommitDatas)
-            net.Send(ply)
+            callback(CommitDatas)
         end,
-        failed = function(err) print("GitHub request failed:", err) end
+        failed = function(err)
+            print("GitHub request failed:", err)
+            callback(nil)
+        end
     })
 end
 
+util.AddNetworkString("RequestMOTDData")
+util.AddNetworkString("SendMOTDData")
+local MOTDDataRequested = {}
+net.Receive("RequestMOTDData", function(len, ply)
+    if MOTDDataRequested[ply] then
+        print(ply:Nick() .. " " .. ply:SteamID() .. " Already requested MOTD data")
+        --return
+    end
+
+    MOTDDataRequested[ply] = true
+    GetCommitData(function(CommitDatas)
+        local Admins = {}
+        for group, _ in pairs(ulx.motdSettings.admins) do
+            --ulx.motdSettings.admins[group] = {}
+            for steamID, dt in pairs(ULib.ucl.users) do
+                if dt.group == group and dt.name then
+                    Admins[dt.name] = steamID
+                    --table.insert(ulx.motdSettings.admins[group], data.name)
+                end
+            end
+        end
+
+        local err = hook.Run("PlayerRequestDiscordInvite", ply)
+        local InviteMadeSuccessfully = false
+        if err == nil then
+            MakeDiscordInvite(ply, 86400, function(invite)
+                if not IsValid(ply) then return end
+                net.Start("SendMOTDData")
+                net.WriteTable(Admins)
+                net.WriteTable(CommitDatas) -- GetCommitDatas can callback nil, hopefully this isn't an issue though?
+                net.WriteString(invite)
+                net.WriteBool(true)
+                net.Send(ply)
+                InviteMadeSuccessfully = true
+            end, false)
+
+            timer.Simple(5, function()
+                if InviteMadeSuccessfully == true then return end
+                if not IsValid(ply) then return end
+                net.Start("SendMOTDData")
+                net.WriteTable(Admins)
+                net.WriteTable(CommitDatas) -- GetCommitDatas can callback nil, hopefully this isn't an issue though?
+                net.WriteString("Failed to fetch")
+                net.WriteBool(false) -- true = success
+                net.Send(ply)
+            end)
+        else
+            net.Start("SendMOTDData")
+            net.WriteTable(Admins)
+            net.WriteTable(CommitDatas) -- GetCommitDatas can callback nil, hopefully this isn't an issue though?
+            net.WriteString(tostring(err))
+            net.WriteBool(false) -- true = success
+            net.Send(ply)
+        end
+    end)
+end)
+
+hook.Add("PlayerRequestDiscordInvite", "GiveDiscordInvite", function(ply)
+    if ply:OwnerSteamID64() ~= ply:SteamID64() and ply:IsListenServerHost() == false then --
+        return false
+    end
+    return true
+end)
+--[[
 hook.Add("InitPostEntityStarted", "NetworkMOTD", function(ply)
     GetUniqueMatches(ply)
     local Admins = {}
@@ -91,3 +156,4 @@ hook.Add("InitPostEntityStarted", "NetworkMOTD", function(ply)
         print(ply:Nick() .. " does not own gmod, not making invite.\n")
     end
 end)
+--]]

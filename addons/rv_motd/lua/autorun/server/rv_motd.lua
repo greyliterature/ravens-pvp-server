@@ -1,11 +1,10 @@
+require("reqwest")
 local ENV = include("rv_env/sv_rv_env.lua")
-
 util.AddNetworkString("SendCommitData")
 util.AddNetworkString("SendAdminMOTDInfo")
 util.AddNetworkString("SendDiscordInvite")
 local DiscordInviteRequirement = 5 -- required amount of unique matches so that player gets an invite
 local function GetUniqueMatches(ply)
-    --
     local MatchesPlayed = sql.QueryTyped("SELECT * FROM match_data WHERE winner_SteamID64 = ? OR loser_SteamID64 = ?", ply:SteamID64(), ply:SteamID64())
     ply.matchesleft = DiscordInviteRequirement
     if MatchesPlayed ~= false then
@@ -39,8 +38,8 @@ local function SendCommitData(ply)
     local CommitDatas = {}
     -- This http request is about the only thing made by ai in the entire rv_motd scripts
     local GITHUB_TOKEN = ENV.GITHUB_TOKEN
-    local url = "https://api.github.com/repos/95348953489345893524897/ravens-server/commits?per_page=5"
-    HTTP({
+    local url = "https://api.github.com/repos/greyliterature/ravens-pvp-server/commits?per_page=5"
+    reqwest({
         url = url,
         method = "GET",
         headers = {
@@ -58,7 +57,6 @@ local function SendCommitData(ply)
                 CommitDatas[#CommitDatas + 1] = utf8.sub(commit.commit.message, 1, 79) .. ((#commit.commit.message + #commit.commit.author.name >= 79 and "... - ") or " - ") .. "Authored by " .. commit.commit.author.name
             end
 
-            PrintTable(CommitDatas)
             net.Start("SendCommitData")
             net.WriteTable(CommitDatas)
             net.Send(ply)
@@ -67,14 +65,8 @@ local function SendCommitData(ply)
     })
 end
 
-local Queue = {} -- https://gmodwiki.com/gameevent/OnRequestFullUpdate
-hook.Add("PlayerInitialSpawn", "NetworkMOTD", function(ply)
-    Queue[ply:UserID()] = true
+hook.Add("InitPostEntityStarted", "NetworkMOTD", function(ply)
     GetUniqueMatches(ply)
-end)
-
-gameevent.Listen("OnRequestFullUpdate")
-hook.Add("OnRequestFullUpdate", "NetworkMOTD", function(data)
     local Admins = {}
     for group, _ in pairs(ulx.motdSettings.admins) do
         --ulx.motdSettings.admins[group] = {}
@@ -86,10 +78,6 @@ hook.Add("OnRequestFullUpdate", "NetworkMOTD", function(data)
         end
     end
 
-    local UID = data.userid -- Same as Player:UserID()
-    local ply = Player(UID)
-    if not Queue[UID] then return end
-    Queue[UID] = nil
     SendCommitData(ply)
     net.Start("SendAdminMOTDInfo")
     net.WriteTable(Admins)

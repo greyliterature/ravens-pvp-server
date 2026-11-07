@@ -51,7 +51,8 @@ if CLIENT then
         ["rv_damageflyouts_font"] = CreateClientConVar("rv_damageflyouts_font", "ChatFont", true, false, "Damage flyout font"),
         ["rv_damageflyouts_color"] = CreateClientConVar("rv_damageflyouts_color", "255 0 0 255", true, false, "Color of default damage flyout"),
         ["rv_damageflyouts_enabled"] = CreateClientConVar("rv_damageflyouts_enabled", "1", true, true, "", 0, 1),
-        ["rv_damageflyouts_size"] = CreateClientConVar("rv_damageflyouts_size", "26", true, false, "Damage flyout size"),
+        ["rv_damageflyouts_size"] = CreateClientConVar("rv_damageflyouts_size", "26", true, false, "Damage flyout size. You probably don't want to change this, use flyouts_scale instead."),
+        ["rv_damageflyouts_scale"] = CreateClientConVar("rv_damageflyouts_scale", "1", true, false, "Damage flyout scale"),
         ["rv_damageflyouts_combine_shotgun"] = CreateClientConVar("rv_damageflyouts_combine_shotgun", "1", true, false, "Combine shotgun damage numbers"),
         ["rv_damageflyouts_fadespeed"] = CreateClientConVar("rv_damageflyouts_fadespeed", "2", true, false, "Damage flyout fade speed, sort of broken, remind me to fix this later"),
     }
@@ -89,6 +90,8 @@ if CLIENT then
             str = string.ToColor(str)
         elseif ConVarName == "rv_damageflyouts_fadespeed" then
             str = tonumber(str)
+        elseif ConVarName == "rv_damageflyouts_scale" then
+            str = tonumber(str)
         end
 
         ConVars[ConVarName] = {ConVarObj, str}
@@ -96,7 +99,9 @@ if CLIENT then
             if convar == "rv_damageflyouts_color" then --
                 new = string.ToColor(new)
             elseif convar == "rv_damageflyouts_fadespeed" then
-                new = tonumber(str)
+                new = tonumber(new)
+            elseif ConVarName == "rv_damageflyouts_scale" then
+                new = tonumber(new)
             end
 
             ConVars[ConVarName][2] = new
@@ -134,7 +139,7 @@ if CLIENT then
         Trebuchet24 = true,
     }
 
-    hook.Add("HUDPaint", "rv_damageflyout", function()
+    hook.Add("PostDrawTranslucentRenderables", "rv_damageflyout", function()
         if ConVars["rv_damageflyouts_enabled"][2] ~= "1" then return end
         for index, tbl in pairs(Damages) do
             local StartTime = tbl[1]
@@ -142,8 +147,8 @@ if CLIENT then
             local weapclass = tbl[3]
             local damage = tbl[6]
             --local StartTime = tbl[3]
-            local toscreen = HitPos:ToScreen()
-            local x, y = toscreen.x, toscreen.y
+            --local toscreen = HitPos:ToScreen()
+            --local x, y = toscreen.x, toscreen.y
             local DamageColor = DefaultDamageColor
             DamageColor = (Settings[weapclass] and Settings[weapclass]["color"]) or DamageColor
             local NewAlpha = ExpDecay((tbl[7] and tbl[7].a) or DamageColor.a, 0, ConVars["rv_damageflyouts_fadespeed"][2], FrameTime())
@@ -152,18 +157,28 @@ if CLIENT then
             local Duration = 0.5
             local Decayed = math.Clamp((CurTime() - StartTime) / Duration, 0, 1)
             local xmultiple, ymultiple = tbl[4], tbl[5]
-            x, y = x + Decayed * xmultiple, y - (Decayed - 1) ^ 2 * -ymultiple - ymultiple
+            local x, y = 0 + Decayed * xmultiple, 0 - (Decayed - 1) ^ 2 * -ymultiple - ymultiple
             if Decayed >= 1 then -- it should never be more than 1, but just in case
                 Damages[index] = nil
             end
 
+            -- angle calcs from https://wiki.facepunch.com/gmod/cam.Start3D2D#example
+            local angle = (HitPos - EyePos()):GetNormalized():Angle()
+            angle = Angle(0, angle.y, 0)
+            angle:RotateAroundAxis(angle:Up(), -90)
+            angle:RotateAroundAxis(angle:Forward(), 90)
+            ----
+            cam.IgnoreZ(true)
+            cam.Start3D2D(HitPos, angle, ConVars["rv_damageflyouts_scale"][2])
             draw.SimpleText(damage, (DefaultFonts[ConVars["rv_damageflyouts_font"][2]] and ConVars["rv_damageflyouts_font"][2]) or "rv_damageflyoutfont", x, y, DamageColorAlphaed, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+            cam.End3D2D()
+            cam.IgnoreZ(false)
         end
     end)
 
     local function RandomGravMultiple()
-        local xmultiple = math.random(-100, 100)
-        local ymultiple = math.random(50, 100)
+        local xmultiple = math.random(-25, 25)
+        local ymultiple = math.random(25, 25)
         return xmultiple, ymultiple
     end
 

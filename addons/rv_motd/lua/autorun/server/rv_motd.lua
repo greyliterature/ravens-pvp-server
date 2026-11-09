@@ -100,7 +100,7 @@ net.Receive("RequestMOTDData", function(len, ply)
                 net.WriteBool(true)
                 net.Send(ply)
                 InviteMadeSuccessfully = true
-            end, false)
+            end, ply:IsListenServerHost() == true)
 
             timer.Simple(5, function()
                 if InviteMadeSuccessfully == true then return end
@@ -127,7 +127,8 @@ hook.Add("PlayerRequestDiscordInvite", "GiveDiscordInvite", function(ply)
     if ply:OwnerSteamID64() ~= ply:SteamID64() and ply:IsListenServerHost() == false then --
         return false
     end
-    return true
+
+    return
 end)
 --[[
 hook.Add("InitPostEntityStarted", "NetworkMOTD", function(ply)

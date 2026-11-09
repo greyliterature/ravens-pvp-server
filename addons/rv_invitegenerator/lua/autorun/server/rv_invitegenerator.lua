@@ -24,7 +24,7 @@ function MakeDiscordInvite(ply, ExpirationTime, callback, forced)
         headers = {
             ["User-Agent"] = "Gmod Server Discord Invite Maker",
             ["Content-Type"] = "application/json",
-            ["Authorization"] = Token,
+            ["Authorization"] = "Bot " .. Token,
         },
         url = InviteChannel,
         body = util.TableToJSON({
@@ -35,7 +35,7 @@ function MakeDiscordInvite(ply, ExpirationTime, callback, forced)
         }),
         failed = function(error)
             --
-            ErrorNoHalt("SendWebhook HTTP Errored: ", error, "\n")
+            ErrorNoHaltWithStack("Invite errored: ", error, "\n")
         end,
         success = function(code, response)
             if code == 200 then --
@@ -58,7 +58,7 @@ function MakeDiscordInvite(ply, ExpirationTime, callback, forced)
                 SendWebhook(WebhookLink, Json, "Gmod Discord Invite Creation Informer")
                 callback("discord.gg/" .. DiscordInvite)
             else
-                ErrorNoHalt("SendWebhook HTTP Errored: ", code, response, "\n")
+                ErrorNoHaltWithStack("Invite errored: ", code, response, "\n")
                 callback(code)
             end
         end

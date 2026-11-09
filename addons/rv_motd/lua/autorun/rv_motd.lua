@@ -1,7 +1,6 @@
 if CLIENT then
     local DiscordInviteReceived = false
     local DiscordInvite = ""
-    local RequirementMet = false
     --
     local RNDX = include("rndx.lua")
     -- Fonts
@@ -228,7 +227,7 @@ if CLIENT then
 
         if DiscordInviteReceived == true then
             table.insert(MiddlePanelText, #MiddlePanelText + 1, {"Discord", "TimesNewRomanTitle", TEXT_ALIGN_LEFT, color_white})
-            table.insert(MiddlePanelText, #MiddlePanelText + 1, {"     " .. "https://" .. DiscordInvite, (RequirementMet == true and "TimesNewRomanUnderlined") or "TimesNewRomanBody", TEXT_ALIGN_LEFT, color_white, (RequirementMet == true and ("https:// " .. DiscordInvite)) or false})
+            table.insert(MiddlePanelText, #MiddlePanelText + 1, {"     " .. "https://" .. DiscordInvite, "TimesNewRomanUnderlined", TEXT_ALIGN_LEFT, color_white, "https:// " .. DiscordInvite})
         end
 
         table.insert(MiddlePanelText, #MiddlePanelText + 1, {"", "TimesNewRomanSubTitle", TEXT_ALIGN_LEFT, color_white})
@@ -362,26 +361,22 @@ if CLIENT then
         end
     end
 
-    net.Receive("SendDiscordInvite", function(len, ply)
-        DiscordInvite = net.ReadString()
-        RequirementMet = net.ReadBool()
-        DiscordInviteReceived = true
-    end)
+    local function RequestMOTDInfo()
+        net.Start("RequestMOTDData")
+        net.SendToServer()
+    end
 
-    net.Receive("SendCommitData", function(len, ply)
-        --
-        CommitData = net.ReadTable()
-    end)
-
-    net.Receive("SendAdminMOTDInfo", function(len, ply)
+    net.Receive("SendMOTDData", function(_, _)
         Admins = net.ReadTable()
-        timer.Create("MakeSureCommitDataIsReceived", 0.5, 50, function()
-            --
-            if #CommitData > 0 then --
-                timer.Remove("MakeSureCommitDataIsReceived")
-                ShowMOTD()
-            end
-        end)
+        CommitData = net.ReadTable()
+        DiscordInvite = net.ReadString()
+        DiscordInviteReceived = net.ReadBool()
+        ShowMOTD()
+    end)
+
+    hook.Add("InitPostEntity", "RequestMOTDData", function()
+        RequestMOTDInfo()
+        return
     end)
 
     hook.Add("OnPlayerChat", "ShowMOTDOnChat", function(ply, text, teamChat, isDead)

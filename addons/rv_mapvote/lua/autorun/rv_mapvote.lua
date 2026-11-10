@@ -1,6 +1,21 @@
+local debugvgui = true
+--
+local CalculateRowCount = nil
+local mapvote_colortable = nil
 if CLIENT then -- simplegrid
-    local PANEL = {}
-    function PANEL:Init()
+    --@ returns n amount of rows required to fit x number of items under constraint y width
+    CalculateRowCount = function(squaresize, width, numitems)
+        local columncount = math.floor(width / squaresize)
+        local rowcount = math.ceil(numitems / columncount)
+        return rowcount
+    end
+
+    if debugvgui == true then
+        mapvote_colortable = {}
+        mapvote_colortable.color_red = Color(255, 0, 0)
+        mapvote_colortable.color_blue = Color(0, 0, 255)
+        mapvote_colortable.color_yellow = Color(255, 255, 0)
+        mapvote_colortable.color_transparentishpurple = Color(255, 0, 255, 0)
     end
 end
 
@@ -41,103 +56,173 @@ if SERVER then -- SMapvoteIcon
         net.Send(ply)
     end)
 elseif CLIENT then
-    do
-        -- SMapvoteIcon
-        local MapsToPanel = {}
-        local MapNameToWSID = {}
-        local MapMaterials = {}
-        --@ panel is for the queue system table to remember
-        local function RequestMapWSID(panel, mapname) -- should this be batched? is net messages 1 by 1 sig worse than a large net message? probably
-            if MapMaterials[mapname] then
-                print("RET", MapMaterials[mapname])
-                panel.MapMaterial = MapMaterials[mapname]
-                return
-            end
+    -- SMapvoteIcon
+    local MapsToPanel = {}
+    local MapNameToWSID = {}
+    local MapMaterials = {}
+    --@ panel is for the queue system table to remember
+    local function RequestMapWSID(panel, mapname) -- should this be batched? is net messages 1 by 1 sig worse than a large net message? probably
+        if MapMaterials[mapname] then
+            --print("RET", MapMaterials[mapname])
+            panel.MapMaterial = MapMaterials[mapname]
+            return
+        end
 
-            --[[
+        --[[
             -- this didnt work properly
             if MapNameToWSID[mapname] then -- cached in server response netmessage
                 panel.MapMaterial = MapsToPanel[mapname].MapMaterial
                 return
             end
             --]]
-            MapsToPanel[mapname] = panel
-            net.Start("rv_mapvote_request_map_wsid")
-            net.WriteString(mapname)
-            net.SendToServer()
+        MapsToPanel[mapname] = panel
+        net.Start("rv_mapvote_request_map_wsid")
+        net.WriteString(mapname)
+        net.SendToServer()
+    end
+
+    local ERROR_DOWNLOADING_MAT = Material("maps/thumb/noicon.png")
+    net.Receive("rv_mapvote_request_map_wsid_response", function(_, _)
+        local mapname = net.ReadString()
+        local wsid = net.ReadString()
+        MapNameToWSID[mapname] = wsid
+        print("HIIIiii", wsid)
+        local MapPanel = MapsToPanel[mapname] -- this should always be valid 
+        if not IsValid(MapPanel) then -- fix not being valid because of autorefresh (can be removed later?)
+            print("NOT VALID!")
+            return
         end
 
-        local ERROR_DOWNLOADING_MAT = Material("maps/thumb/noicon.png")
-        net.Receive("rv_mapvote_request_map_wsid_response", function(_, _)
-            local mapname = net.ReadString()
-            local wsid = net.ReadString()
-            MapNameToWSID[mapname] = wsid
-            print("HIIIiii", wsid)
-            local MapPanel = MapsToPanel[mapname] -- this should always be valid 
-            if not IsValid(MapPanel) then -- fix not being valid because of autorefresh (can be removed later?)
-                print("NOT VALID!")
-                return
-            end
+        if MapMaterials[mapname] or wsid == "" then
+            print("RET", "AAA")
+            MapPanel.Mapmaterial = MapMaterials[mapname]
+            return
+        end
 
-            if MapMaterials[mapname] or wsid == "" then
-                print("RET", "AAA")
-                MapPanel.Mapmaterial = MapMaterials[mapname]
-                return
-            end
+        --MapMaterials[mapname] = ERROR_DOWNLOADING_MAT
+        if MapPanel.MapMaterial then
+            print("2")
+            return
+        end
 
-            --MapMaterials[mapname] = ERROR_DOWNLOADING_MAT
-            if MapPanel.MapMaterial then
-                print("2")
-                return
-            end
+        if wsid == "" then
+            print("SAD!")
+            MapPanel.MapMaterial = ERROR_DOWNLOADING_MAT
+            return
+        end
 
-            if wsid == "" then
-                print("SAD!")
-                MapPanel.MapMaterial = ERROR_DOWNLOADING_MAT
-                return
-            end
-
-            steamworks.FileInfo(wsid, function(result)
-                -- https://wiki.facepunch.com/gmod/steamworks.Download#example
-                steamworks.Download(result.previewid, true, function(name)
-                    print("got preview image for " .. name .. " " .. mapname .. " " .. wsid)
-                    local MapMaterial = AddonMaterial(name)
-                    MapPanel.MapMaterial = AddonMaterial(name)
-                    MapMaterials[mapname] = MapMaterial
-                end)
+        steamworks.FileInfo(wsid, function(result)
+            -- https://wiki.facepunch.com/gmod/steamworks.Download#example
+            steamworks.Download(result.previewid, true, function(name)
+                print("got preview image for " .. name .. " " .. mapname .. " " .. wsid)
+                local MapMaterial = AddonMaterial(name)
+                MapPanel.MapMaterial = AddonMaterial(name)
+                MapMaterials[mapname] = MapMaterial
             end)
         end)
+    end)
 
-        -- SVoteIcon
-        local PANEL = {}
-        function PANEL:Init()
-            self.Map = nil
-            self.WSID = nil -- is this important to store?
-            self.MapMaterial = nil
+    -- SVoteIcon
+    local PANEL = {}
+    function PANEL:Init()
+        self.Map = nil
+        self.WSID = nil -- is this important to store?
+        self.MapMaterial = nil
+        self:SetMouseInputEnabled(true)
+        self.Votes = {}
+        self.Grid = vgui.Create("SGrid", self)
+        self.Grid:Dock(FILL)
+        self.Grid:SetOverallAlignment(SGRID_ALIGN_RIGHT)
+        function self.Grid.Paint(_, w, h)
+            if debugvgui == true then
+                surface.SetDrawColor(mapvote_colortable.color_transparentishpurple)
+                surface.DrawRect(0, 0, w, h)
+            end
         end
 
-        function PANEL:IsMapAlreadyRegistered(mapname) -- this is a helper function that doesn't really belong on the object, but i dont know wheree else to puts it
-            return MapMaterials[mapname]
+        function self.Grid.OnMousePressed(_, keyCode)
+            self:OnMousePressed(keyCode)
         end
-
-        function PANEL:SetMap(mapname)
-            RequestMapWSID(self, mapname) -- request, which also handles setting the self.MapMaterial
-        end
-
-        function PANEL:Paint(w, h)
-            surface.SetDrawColor(color_white)
-            surface.SetMaterial(self.MapMaterial or ERROR_DOWNLOADING_MAT)
-            surface.DrawTexturedRect(0, 0, w, h)
-        end
-
-        vgui.Register("SVoteIcon", PANEL, "DPanel")
     end
+
+    function PANEL:IsMapAlreadyRegistered(mapname) -- this is a helper function that doesn't really belong on the object, but i dont know wheree else to puts it
+        return MapMaterials[mapname]
+    end
+
+    function PANEL:SetMap(mapname)
+        self.Map = mapname
+    end
+
+    function PANEL:DownloadMap()
+        RequestMapWSID(self, self.Map) -- request, which also handles setting the self.MapMaterial
+    end
+
+    function PANEL:Paint(w, h)
+        surface.SetDrawColor(color_white)
+        surface.SetMaterial(self.MapMaterial or ERROR_DOWNLOADING_MAT)
+        surface.DrawTexturedRect(0, 0, w, h)
+        if debugvgui == true then -- for showing if the bottom renders fully  
+            surface.SetDrawColor(ColorRand())
+            surface.DrawOutlinedRect(0, 0, w, h, 1)
+        end
+    end
+
+    local PlayerPanelVotes = {}
+    local PlayerAvatars = {}
+    function PANEL:RemoveVoteForMap(ply)
+        if not self.Votes[ply] then return end
+        self.Votes[ply] = nil
+        self.Grid:RemoveItem(PlayerAvatars[ply])
+        PlayerPanelVotes[ply] = nil
+        PlayerAvatars[ply] = nil
+    end
+
+    function PANEL:VoteForMap(ply)
+        if PlayerPanelVotes[ply] == self then return end
+        if PlayerPanelVotes[ply] then --
+            PlayerPanelVotes[ply]:RemoveVoteForMap(ply)
+        end
+
+        PlayerPanelVotes[ply] = self
+        self.Votes[ply] = true
+        print(ply, "voted for ", self)
+        --self:AddToVoterPanel(ply)
+        local IconSize = self:GetTall() * 0.2 -- this shouldnt be static, but ignorable for now
+        local Avatar = vgui.Create("AvatarImage", self.Grid)
+        Avatar:SetPlayer(ply, 184)
+        Avatar:SetWide(IconSize)
+        self.Grid:AddItem(Avatar)
+        self.Grid:SetRowHeight(IconSize)
+        PlayerAvatars[ply] = Avatar
+        print(self.Grid)
+    end
+
+    function PANEL:Debug_VoteEveryone()
+        for _, ply in player.Iterator() do
+            self:VoteForMap(ply)
+        end
+    end
+
+    function PANEL:OnMousePressed(keyCode)
+        if keyCode ~= MOUSE_LEFT then return end
+        if debugvgui == true then
+            self:Debug_VoteEveryone()
+            return
+        end
+
+        self:VoteForMap(LocalPlayer())
+    end
+
+    vgui.Register("SVoteIcon", PANEL, "DPanel")
 end
 
 if CLIENT then
     do
         -- SDropDown
         local PANEL = {}
+        local TriangHeight = ScrH() * 0.007
+        local TriangLength = ScrW() * 0.004
+        local offset = 0
         function PANEL:Init()
             --[[
                 figure out what selfs to delete here later, copy pasted from when work on mapvote version
@@ -154,6 +239,7 @@ if CLIENT then
             self.FullyExpanded = false
             self.ExpandedSize = 400 -- size to hold all maps
             self:SetMouseInputEnabled(true)
+            self.DropDownTriangleTable = {{}, {}, {}}
         end
 
         function PANEL:GetMinimizedSize() -- the size of the top dropdown "frame" (not really a frame but looks like one)
@@ -163,6 +249,15 @@ if CLIENT then
         local ExponentialOffset = 3 -- counter approaching
         function PANEL:SetExpandedSize(tallness)
             self.ExpandedSize = tallness + ExponentialOffset
+        end
+
+        function PANEL:PerformLayout(width, tallness)
+            self.DropDownTriangleTable[1].x = width * 0.98 + offset
+            self.DropDownTriangleTable[2].x = (width - TriangLength) * 0.98 + offset
+            self.DropDownTriangleTable[3].x = (width + TriangLength) * 0.98 + offset
+            self.DropDownTriangleTable[1].y = (self.MinimizedSize + ExponentialOffset) * 0.5 + TriangHeight * 0.5 + offset
+            self.DropDownTriangleTable[2].y = (self.MinimizedSize + ExponentialOffset) * 0.5 - TriangHeight * 0.5 + offset
+            self.DropDownTriangleTable[3].y = (self.MinimizedSize + ExponentialOffset) * 0.5 - TriangHeight * 0.5 + offset
         end
 
         function PANEL:GetExpandedSize()
@@ -188,7 +283,7 @@ if CLIENT then
                 PANEL.oldSetTall = vgui.GetControlTable("DPanel")["SetTall"]
                 self.MinimizedSize = self:GetTall() - ExponentialOffset
                 self:DockPadding(0, self.MinimizedSize, 0, 0)
-                self:SetExpandedSize(self.MinimizedSize + self:GetExpandedSize())
+                self:SetExpandedSize(self.MinimizedSize + self:GetExpandedSize() - ExponentialOffset) -- this leaves some space on the bottom but for now we wont care
                 function PANEL:SetTall(tallness, dynamiccall)
                     self.oldSetTall(self, tallness)
                     if not dynamiccall then -- only set minimizedsize for non dynamic settalls
@@ -218,6 +313,18 @@ if CLIENT then
 
                 self:SetTall(ExpDecay(self:GetTall(), self.MinimizedSize, 7, FrameTime()), true)
             end
+        end
+
+        function PANEL:Paint(w, h)
+            surface.SetDrawColor(color_black)
+            surface.DrawRect(0, 0, w, h)
+            surface.SetDrawColor(color_white)
+            if not self.DropDownTriangleTable[1].x then -- simple check
+                return
+            end
+
+            draw.NoTexture()
+            surface.DrawPoly(self.DropDownTriangleTable)
         end
 
         function PANEL:Expand()
@@ -257,21 +364,7 @@ if CLIENT then
     end
 
     do
-        local PANELMETA = FindMetaTable("Panel")
-        function PANELMETA:NumSquaresThatCanFitLeftAlignedInHere(squaresize)
-            -- do math here about row / columncount
-        end
-
         print("HI")
-        local debugvgui = true
-        local mapvote_colortable = {}
-        if debugvgui == true then
-            print("yo")
-            mapvote_colortable.color_red = Color(255, 0, 0)
-            mapvote_colortable.color_blue = Color(0, 0, 255)
-            mapvote_colortable.color_yellow = Color(255, 255, 0)
-        end
-
         local Categories = {
             -- the map networking would no longer be needed with this categories table, should only network x number of maps that aren't categorized
             [1] = {
@@ -286,7 +379,7 @@ if CLIENT then
 
         local IconSize = ScrH() * 0.15
         local RowGap = ScrH() * 0.005
-        local function Pop() -- THERE NEEDS TO BE A DROPUP MODIFIER MENU!
+        local function Pop() -- THERE NEEDS TO BE A DROPUP MODIFIER MENU FOR GAMEMODES!
             if IsValid(ScreenPanel) then ScreenPanel:Remove() end
             ScreenPanel = vgui.Create("DPanel") -- make this use panel:parenttohud instead or gethudpanel
             ScreenPanel:SetSize(ScrW(), ScrH())
@@ -310,10 +403,9 @@ if CLIENT then
                 DropDown:SetWide(VoteFrame:GetWide())
                 DropDown:DockMargin(0, 0, 0, TopDropDock)
                 DropDown:SetTall(SixtyFour * 0.4)
-                local ColumnCount = math.max(math.floor(VoteFrame:GetWide() / IconSize), 1)
-                local RowCount = math.ceil(#tbl.maps / ColumnCount)
+                local RowCount = CalculateRowCount(IconSize + RowGap, DropDown:GetWide(), #tbl.maps)
                 local ExpandedSize = RowCount * IconSize + (RowCount - 1) * RowGap
-                DropDown:SetExpandedSize(400)
+                DropDown:SetExpandedSize(ExpandedSize)
                 local Grid = nil
                 function DropDown:FullyExpandedHook()
                     Grid = vgui.Create("SGrid", DropDown)
@@ -330,7 +422,6 @@ if CLIENT then
                     end
 
                     for i = 1, #tbl.maps do
-                        local VoteIcon = vgui.Create("SVoteIcon", row) -- requires parent only because of autorefresh being annoying
                         local SpacerPanel = vgui.Create("DPanel", row)
                         function SpacerPanel.Paint(_, w, h)
                             if debugvgui == true then
@@ -340,15 +431,18 @@ if CLIENT then
                         end
 
                         SpacerPanel:SetWide(RowGap)
+                        local VoteIcon = vgui.Create("SVoteIcon", row) -- requires parent only because of autorefresh being annoying
+                        VoteIcon:SetMap(tbl.maps[i])
                         if not VoteIcon:IsMapAlreadyRegistered(tbl.maps[i]) then -- if the map is already registered it won't lag the player, set them all at the same time, its fine
                             timer.Simple((i - 1) * 0.5, function()
+                                if not IsValid(VoteIcon) then return end
                                 -- dont lag player so bad, and also let mapmaterials cache do its job
                                 -- this should be replaced by a proper queue system
-                                VoteIcon:SetMap(tbl.maps[i])
+                                VoteIcon:DownloadMap()
                                 return
                             end)
                         else
-                            VoteIcon:SetMap(tbl.maps[i])
+                            VoteIcon:DownloadMap()
                         end
 
                         VoteIcon:SetSize(IconSize, IconSize)

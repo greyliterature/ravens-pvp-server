@@ -146,7 +146,7 @@ end
 
 function PANEL:Paint(w, h)
     surface.SetDrawColor(color_black)
-    surface.DrawRect(0, 0, w, self:GetMinimizedSize())
+    surface.DrawRect(0, 0, w, self:GetMinimizedSize() + ExponentialOffset)
     surface.SetDrawColor(self:GetBackgroundColor())
     surface.DrawRect(0, self:GetMinimizedSize(), w, h) -- this math here is wrong possibly, i think its drawing under the minimized box, but it doesnt matter, since its drawn over anyway
     surface.SetDrawColor(color_white)

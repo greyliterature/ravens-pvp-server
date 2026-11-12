@@ -148,7 +148,7 @@ function PANEL:Paint(w, h)
     surface.SetDrawColor(color_black)
     surface.DrawRect(0, 0, w, self:GetMinimizedSize() + ExponentialOffset)
     surface.SetDrawColor(self:GetBackgroundColor())
-    surface.DrawRect(0, self:GetMinimizedSize(), w, h) -- this math here is wrong possibly, i think its drawing under the minimized box, but it doesnt matter, since its drawn over anyway
+    surface.DrawRect(0, self:GetMinimizedSize() + ExponentialOffset, w, h) -- this math here is wrong possibly, i think its drawing under the minimized box, but it doesnt matter, since its drawn over anyway
     surface.SetDrawColor(color_white)
     draw.SimpleText(self:GetCategoryTitle(), iconFont(23), w * 0.01, (self.MinimizedSize + ExponentialOffset) * 0.5, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
     if not self.DropDownTriangleTable[1].x then -- simple check

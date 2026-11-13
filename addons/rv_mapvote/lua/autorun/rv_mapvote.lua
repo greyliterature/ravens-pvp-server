@@ -27,7 +27,7 @@ end
 if SERVER then
     MapVote = {
         IsInProgress = false,
-        DefaultDuration = 15,
+        DefaultDuration = 3630,
         CurrentEndDate = 0,
         Config = {
             BlacklistedMaps = {
@@ -355,6 +355,12 @@ elseif CLIENT then
             self:Remove()
         end
 
+        timer.Create("AutoRemoveVotePanel", EndTime - CurTime(), 1, function()
+            if not IsValid(ScreenPanel) then return end
+            print("removing")
+            ScreenPanel:Remove()
+        end)
+
         MapVote.Panel = ScreenPanel
         local OuterPanel = vgui.Create("DPanel", ScreenPanel)
         -- always make outer panel hold 6 icons + 2 rowgaps to account for horiz sgrid padding 
@@ -372,12 +378,6 @@ elseif CLIENT then
         local TopHeader = vgui.Create("DPanel", OuterPanel)
         TopHeader:Dock(TOP)
         TopHeader:SetTall(HeaderSize)
-        timer.Create("AutoRemoveVotePanel", EndTime - CurTime(), 1, function()
-            if not IsValid(OuterPanel) then return end
-            print("removing")
-            OuterPanel:Remove()
-        end)
-
         function TopHeader.Paint(_, w, h)
             local TimeString = os.date("%M:%S", EndTime - CurTime())
             surface.SetDrawColor(color_cod_black)
@@ -510,9 +510,35 @@ elseif CLIENT then
         local BottomHeader = vgui.Create("DPanel", OuterPanel)
         BottomHeader:Dock(TOP)
         BottomHeader:SetTall(HeaderSize)
+        BottomHeader:SetWide(OuterPanel:GetWide())
         function BottomHeader.Paint(_, w, h)
             surface.SetDrawColor(color_cod_black)
             surface.DrawRect(0, 0, w, h)
+        end
+
+        local CheckBoxSize = 32
+        local CheckBoxSpacing = ScrW() * 0.0075
+        local CheckBoxGrid = vgui.Create("SGrid", BottomHeader)
+        CheckBoxGrid:SetSize(BottomHeader:GetWide(), CheckBoxSize)
+        CheckBoxGrid:SetPos(0, (BottomHeader:GetTall() - CheckBoxSize) * 0.5)
+        CheckBoxGrid:SetRowHeight(CheckBoxSize)
+        CheckBoxGrid:SetOverallAlignment(SGRID_ALIGN_LEFT)
+        CheckBoxGrid:SetBackgroundColor(color_transparent)
+        local Players = player.GetAll()
+        local NumPlayers = 21 -- debug number
+        for i = 1, NumPlayers or #Players do
+            local SpacerPanel = vgui.Create("DPanel", BottomHeader)
+            SpacerPanel:SetSize(CheckBoxSpacing)
+            CheckBoxGrid:AddItem(SpacerPanel)
+            function SpacerPanel.Paint(_, _, _)
+            end
+
+            local CheckBox = vgui.Create("SCheckBox", BottomHeader)
+            -- this will break at about 21 players, 
+            -- the grid has to be resized vertically to account for more players
+            -- however, i dont care, as it wont affect me
+            CheckBox:SetWide(CheckBoxSize)
+            CheckBoxGrid:AddItem(CheckBox)
         end
 
         hook.Run("MapVote_VoteStarted")

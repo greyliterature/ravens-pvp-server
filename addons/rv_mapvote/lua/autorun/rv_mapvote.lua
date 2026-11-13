@@ -33,11 +33,13 @@ if SERVER then
             BlacklistedMaps = {
                 ["test_hardware"] = true,
             }
-        }
+        },
+        AutoRTVTime = 3,
     }
 
     function MapVote.StartVote(time)
-        print("MapVote: Starting " .. CurTime())
+        local TimeString = os.date("%H:%M:%S", os.time())
+        print("MapVote: Starting at " .. CurTime() .. ", " .. TimeString)
         time = time or MapVote.DefaultDuration
         local EndDate = CurTime() + time
         timer.Create("MapVote_VoteFinishTimer", time, 1, function()
@@ -50,6 +52,28 @@ if SERVER then
         MapVote.IsInProgress = true
         MapVote.SendMapList()
         MapVote.SendVoteStatus()
+    end
+
+    timer.Simple(0, function() MapVote.StartVote() end)
+    function MapVote.SetAutoRTVTimer(time)
+        time = time or MapVote.AutoRTVTime
+        local NiceTime = string.NiceTime(time)
+        timer.Create("MapVote_AutoRTVTimer", time, 0, function()
+            if MapVote.IsInProgress == true then -- in case someone configs it stupidly
+                print("MapVote: Map vote already in progress, not autoRTVing")
+                return
+            end
+
+            PrintMessage(HUD_PRINTTALK, "Changing maps as we've been on the same map for " .. NiceTime)
+            MapVote.StartVote()
+        end)
+
+        print("MapVote: Made AutoRTVTimer, time: " .. NiceTime)
+    end
+
+    if MapVote.AutoRTVTime then
+        print("yea")
+        MapVote.SetAutoRTVTimer()
     end
 
     --[[
@@ -204,8 +228,6 @@ if SERVER then
         local MapName = net.ReadString()
         ply:VoteForMap(MapName, RemoveVote)
     end)
-
-    timer.Simple(0, function() MapVote.StartVote() end)
 elseif CLIENT then
     if MapVote and IsValid(MapVote.Panel) then -- for autorefresh
         MapVote.Panel:Remove()

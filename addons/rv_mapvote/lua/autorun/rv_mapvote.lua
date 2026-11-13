@@ -34,7 +34,7 @@ if SERVER then
                 ["test_hardware"] = true,
             }
         },
-        AutoRTVTime = 3,
+        AutoRTVTime = 3630,
     }
 
     function MapVote.StartVote(time)
@@ -259,6 +259,28 @@ elseif CLIENT then
     end)
 
     --[[-------------------------------------------------------
+       MISC VGUI STUFF
+    ---------------------------------------------------------]]
+    local fontCreated = {}
+    function MapVote.iconFont(size) -- https://github.com/greyliterature/map_vote/blob/3e18c15656596f705442bc47dc6283f0027ac770/lua/mapvote/client/vgui/map_icon.lua#L6
+        -- no smaller  than 10
+        size = math.max(size, 10)
+        if fontCreated["MapVote_MapIcon" .. size] then return "MapVote_MapIcon" .. size end
+        local name = "MapVote_MapIcon" .. size
+        surface.CreateFont(name, {
+            font = "Roboto",
+            size = size,
+            weight = 600,
+            antialias = true,
+            shadow = true,
+            outline = true,
+        })
+
+        fontCreated[name] = true
+        return name
+    end
+
+    --[[-------------------------------------------------------
         FRAME STUFF
     ---------------------------------------------------------]]
     function MapVote.FinishVote(mapIndex)
@@ -314,20 +336,27 @@ elseif CLIENT then
     local color_cod_light_black = Color(35, 35, 35, 254)
     local color_cod_black = Color(0, 0, 0, 254)
     local color_cod_lighter_black = Color(0, 0, 0, 200)
+    local color_transparentish_black = Color(0, 0, 0, 155)
     --
     local SixtyFour = ScrH() * 0.059259999 -- basically 64
     local IconSize = ScrH() * 0.15
     local RowGap = ScrH() * 0.005
     local HeaderSize = ScrH() * 0.05
-    function MapVote.StartVote(endTime)
+    function MapVote.StartVote(EndTime)
         print("OPEN")
-        MapVote.EndTime = endTime
-        if IsValid(MapVote.Panel) then
-            print("yep")
-            MapVote.Panel:Remove()
+        MapVote.EndTime = EndTime -- is this necessary?
+        if IsValid(MapVote.Panel) then MapVote.Panel:Remove() end
+        local ScreenPanel = vgui.Create("DPanel")
+        ScreenPanel:SetSize(ScrW(), ScrH())
+        ScreenPanel:SetMouseInputEnabled(true)
+        ScreenPanel:MakePopup(true)
+        ScreenPanel:SetBackgroundColor(color_transparentish_black)
+        function ScreenPanel.OnMousePressed(self, _)
+            self:Remove()
         end
 
-        local OuterPanel = vgui.Create("DPanel")
+        MapVote.Panel = ScreenPanel
+        local OuterPanel = vgui.Create("DPanel", ScreenPanel)
         -- always make outer panel hold 6 icons + 2 rowgaps to account for horiz sgrid padding 
         -- and 2 headers
         OuterPanel:SetSize(IconSize * 6 + RowGap * 5 + RowGap * 2, ScrH() * 0.5 + HeaderSize * 2)
@@ -343,19 +372,26 @@ elseif CLIENT then
         local TopHeader = vgui.Create("DPanel", OuterPanel)
         TopHeader:Dock(TOP)
         TopHeader:SetTall(HeaderSize)
+        timer.Create("AutoRemoveVotePanel", EndTime - CurTime(), 1, function()
+            if not IsValid(OuterPanel) then return end
+            print("removing")
+            OuterPanel:Remove()
+        end)
+
         function TopHeader.Paint(_, w, h)
+            local TimeString = os.date("%M:%S", EndTime - CurTime())
             surface.SetDrawColor(color_cod_black)
             surface.DrawRect(0, 0, w, h)
+            draw.SimpleText(TimeString, MapVote.iconFont(40), w * 0.02, h * 0.5, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
         end
 
-        MapVote.Panel = OuterPanel
-        local ScreenPanel = vgui.Create("DScrollPanel", OuterPanel)
-        --ScreenPanel:MakePopup()
-        ScreenPanel:Dock(TOP)
-        ScreenPanel:SetWide(OuterPanel:GetWide())
-        ScreenPanel:SetTall(ScrH() * 0.5)
-        -- SCREENPANELS HEIGHT IS WRONG. there is a large margin below the bottom dropdown, which is ugly
-        local VBar = ScreenPanel:GetVBar()
+        local ScrollPanel = vgui.Create("DScrollPanel", OuterPanel)
+        --ScrollPanel:MakePopup()
+        ScrollPanel:Dock(TOP)
+        ScrollPanel:SetWide(OuterPanel:GetWide())
+        ScrollPanel:SetTall(ScrH() * 0.5)
+        -- SCROLLPANELS HEIGHT IS WRONG. there is a large margin below the bottom dropdown, which is ugly
+        local VBar = ScrollPanel:GetVBar()
         function VBar.Paint(_, _, _)
         end
 
@@ -369,8 +405,8 @@ elseif CLIENT then
         end
 
         VBar:SetWide(0) -- fixes annoying docking issues
-        local VoteFrame = vgui.Create("DPanel", ScreenPanel)
-        VoteFrame:SetSize(ScreenPanel:GetWide(), ScrH() * 0.7)
+        local VoteFrame = vgui.Create("DPanel", ScrollPanel)
+        VoteFrame:SetSize(ScrollPanel:GetWide(), ScrH() * 0.7)
         VoteFrame:SetY(0, 0)
         VoteFrame:CenterHorizontal()
         VoteFrame:Dock(FILL)

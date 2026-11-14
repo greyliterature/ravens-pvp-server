@@ -1,6 +1,10 @@
 local PANEL = {}
 function PANEL:Init()
-    self.ClickFunction = function() print("I am " .. ((self.bool == false and "On ") or "Off ") .. " . . .Override my function. . . ") end
+    self.ClickFunction = function()
+        self:Toggle()
+        print("I am " .. ((self.bool == true and "On ") or "Off ") .. " . . .Override my function. . . ")
+    end
+
     self.BoxThickness = 2
     self.BoxColor = color_white
     self.bool = false
@@ -21,7 +25,7 @@ function PANEL:SetFunction(func)
     self.ClickFunction = func
 end
 
-function PANEL:SetOn(bool)
+function PANEL:SetBool(bool)
     self.bool = bool
 end
 
@@ -30,10 +34,7 @@ function PANEL:Toggle()
 end
 
 function PANEL:OnMousePressed(keyCode)
-    if keyCode == MOUSE_LEFT then
-        self:Toggle()
-        self.ClickFunction(bool)
-    end
+    if keyCode == MOUSE_LEFT then if self.ClickFunction then self.ClickFunction(bool) end end
 end
 
 vgui.Register("SCheckBox", PANEL, "DPanel")

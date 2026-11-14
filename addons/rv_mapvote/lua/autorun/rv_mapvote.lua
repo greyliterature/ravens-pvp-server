@@ -275,7 +275,7 @@ if SERVER then
         if MapVote.VoteCancelRateLimit + PlayerSkipVotesRateLimitTracking[ply] > CurTime() then return end
         PlayerSkipVotesRateLimitTracking[ply] = CurTime()
         MapVote.PlayerSkipVotes[ply] = (MapVote.PlayerSkipVotes[ply] == nil and true) or nil -- toggle their cancel
-        print("MapVote: " .. ply:Nick() .. ((MapVote.PlayerSkipVotes[ply] == true and " un") or " ") .. "voted to cancel the vote")
+        print("MapVote: " .. ply:Nick() .. ((MapVote.PlayerSkipVotes[ply] == nil and " un") or " ") .. "voted to cancel the vote")
         if table.Count(MapVote.PlayerSkipVotes) > MapVote.VoteCancelRatio * player.GetCount() then --
             MapVote.CancelVote()
         end
@@ -392,21 +392,32 @@ elseif CLIENT then
         net.SendToServer()
     end
 
+    local TextMargin = ScrW() * 0.0105
     function MapVote.MakeCheckBoxes(parent, numcheckboxes)
         if not IsValid(parent) then
             print("return me sad")
             return
         end
 
+        local NumPlayers = math.ceil(MapVote.PlayerCount * MapVote.VoteCancelRatio)
+        local CheckBoxesToMake = numcheckboxes or NumPlayers
         print("YES MAKING!!")
         local CheckBoxSize = 32
         local CheckBoxSpacing = ScrW() * 0.0075
         local CheckBoxGrid = vgui.Create("SGrid", parent)
-        CheckBoxGrid:SetSize(parent:GetWide(), CheckBoxSize)
-        CheckBoxGrid:SetPos(0, (parent:GetTall() - CheckBoxSize) * 0.5)
+        local TotalGridSize = math.max(CheckBoxSize * 3, CheckBoxSize * CheckBoxesToMake + CheckBoxSpacing * CheckBoxesToMake)
+        surface.SetFont(MapVote.iconFont(25))
+        local TextW, _ = surface.GetTextSize("Space bar - vote to cancel")
+        CheckBoxGrid:SetSize(TotalGridSize, CheckBoxSize)
+        CheckBoxGrid:SetPos(parent:GetWide() - TextW - TextMargin * 0.5 - TextMargin - TotalGridSize, (parent:GetTall() - CheckBoxSize) * 0.5)
         CheckBoxGrid:SetRowHeight(CheckBoxSize)
-        CheckBoxGrid:SetOverallAlignment(SGRID_ALIGN_LEFT)
+        CheckBoxGrid:SetOverallAlignment(SGRID_ALIGN_RIGHT)
         CheckBoxGrid:SetBackgroundColor(color_transparent)
+        function CheckBoxGrid.Paint(_, w, h)
+            --surface.SetDrawColor(ColorRand())
+            --surface.DrawRect(0, 0, w, h)
+        end
+
         MapVote.CheckBoxes = MapVote.CheckBoxes or {}
         for i = #MapVote.CheckBoxes, 1, -1 do
             if IsValid(MapVote.CheckBoxes[i]) then
@@ -416,12 +427,12 @@ elseif CLIENT then
         end
 
         MapVote.CheckBoxes = {}
-        local NumPlayers = MapVote.PlayerCount
-        for i = 1, numcheckboxes or NumPlayers do
+        for i = 1, CheckBoxesToMake do
             local SpacerPanel = vgui.Create("DPanel", parent)
             SpacerPanel:SetSize(CheckBoxSpacing)
             CheckBoxGrid:AddItem(SpacerPanel)
-            function SpacerPanel.Paint(_, _, _)
+            function SpacerPanel.Paint(_, w, h)
+                --surface.DrawRect(0, 0, w, h)
             end
 
             local CheckBox = vgui.Create("SCheckBox", parent)
@@ -549,7 +560,8 @@ elseif CLIENT then
             local TimeString = os.date("%M:%S", EndTime - CurTime())
             surface.SetDrawColor(color_cod_black)
             surface.DrawRect(0, 0, w, h)
-            draw.SimpleText(TimeString, MapVote.iconFont(40), w * 0.02, h * 0.5, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+            draw.SimpleText(TimeString, MapVote.iconFont(40), 0 + TextMargin, h * 0.5, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+            draw.SimpleText("Vote new map", MapVote.iconFont(40), w - TextMargin, h * 0.5, color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
         end
 
         local ScrollPanel = vgui.Create("DScrollPanel", OuterPanel)
@@ -681,6 +693,7 @@ elseif CLIENT then
         function BottomHeader.Paint(_, w, h)
             surface.SetDrawColor(color_cod_black)
             surface.DrawRect(0, 0, w, h)
+            draw.SimpleText("Space bar - vote to cancel", MapVote.iconFont(25), w - TextMargin, h * 0.5, color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
         end
 
         MapVote.BottomHeader = BottomHeader

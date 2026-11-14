@@ -35,8 +35,13 @@ if SERVER then
             }
         },
         AutoRTVTime = 3630,
+        VoteCancelRateLimit = 0.1,
+        VoteCancelRatio = 0.75,
+        PlayerVotes = {},
+        PlayerSkipVotes = {}
     }
 
+    SetGlobal3("Int", "MapVote_VoteCancelRatio", MapVote.VoteCancelRatio)
     function MapVote.StartVote(time)
         local TimeString = os.date("%H:%M:%S", os.time())
         print("MapVote: Starting at " .. CurTime() .. ", " .. TimeString)
@@ -122,6 +127,25 @@ if SERVER then
         return WinningMaps
     end
 
+    function MapVote.ResetVotes()
+        MapVote.PlayerVotes = {}
+    end
+
+    util.AddNetworkString("MapVote_VoteEnded")
+    function MapVote.EndVoteEarly()
+        MapVote.IsInProgress = false
+        net.Start("MapVote_VoteEnded")
+        net.Broadcast()
+        timer.Remove("MapVote_VoteFinishTimer")
+    end
+
+    function MapVote.CancelVote() -- https://github.com/greyliterature/map_vote/blob/3e18c15656596f705442bc47dc6283f0027ac770/lua/mapvote/server/modules/map_vote.lua#L107-L119
+        if not MapVote.IsInProgress then return end
+        MapVote.ResetVotes()
+        MapVote.EndVoteEarly()
+        PrintMessage(HUD_PRINTTALK, "Map vote finished because " .. table.Count(MapVote.PlayerSkipVotes) .. " players voted to cancel")
+    end
+
     function MapVote.FinishVote()
         local PlayableMaps = MapVote.GetMapList()
         local FallbackMap = PlayableMaps[math.random(1, #PlayableMaps)]
@@ -167,10 +191,17 @@ if SERVER then
         net[(ply and "Send") or "Broadcast"](ply)
     end
 
+    function MapVote.SendCancellers(ply)
+        net.Start("MapVote_SendCancellers")
+        net.WriteUInt(table.Count(MapVote.PlayerSkipVotes), MAX_PLAYER_BITS)
+        net.Send(ply)
+    end
+
     hook.Add("InitPostEntityStarted", "SendMapVoteToNewPlayers", function(ply, _)
         if MapVote.IsInProgress == true then
             MapVote.SendMapList(ply)
             MapVote.SendVoteStatus(ply)
+            MapVote.SendCancellers(ply)
             return
         end
     end)
@@ -179,13 +210,19 @@ if SERVER then
         SV NET STUFF
     ---------------------------------------------------------]]
     local PLAYERMETA = FindMetaTable("Player")
-    local PlayerVotes = {}
     function MapVote.GetVoterList()
-        return PlayerVotes
+        return MapVote.PlayerVotes
     end
 
     util.AddNetworkString("MapVote_votemap_announcement")
     function PLAYERMETA:VoteForMap(MapName, RemoveVote)
+        if not MapName then
+            -- when a bot is kicked without voting for a map, this function errors. it is functionally 
+            -- the same by returning anyway, because if the voter didnt vote, there is nothing to remove
+            -- so we dont need any special handling
+            return
+        end
+
         local CanVoteForMap = hook.Run("MapVote_CanPlayerVoteForMap", self, MapName, RemoveVote)
         if CanVoteForMap == false then return end
         if MapVote.Config.BlacklistedMaps[MapName] then
@@ -199,7 +236,7 @@ if SERVER then
         end
 
         hook.Run("MapVote_PlayerVotedForMap", self, MapName, RemoveVote)
-        PlayerVotes[self] = (RemoveVote == false and MapName) or nil
+        MapVote.PlayerVotes[self] = (RemoveVote == false and MapName) or nil
         print(self:Nick() .. ((RemoveVote == false and " voted for ") or " cleared vote of ") .. MapName)
         net.Start("MapVote_votemap_announcement")
         net.WriteBool(RemoveVote)
@@ -209,7 +246,7 @@ if SERVER then
     end
 
     hook.Add("PlayerDisconnected", "RemoveVoteOnDisconnect", function(ply)
-        ply:VoteForMap(PlayerVotes[ply], true)
+        ply:VoteForMap(MapVote.PlayerVotes[ply], true)
         return
     end)
 
@@ -228,12 +265,35 @@ if SERVER then
         local MapName = net.ReadString()
         ply:VoteForMap(MapName, RemoveVote)
     end)
+
+    util.AddNetworkString("MapVote_VoteToCancel_Announcement")
+    util.AddNetworkString("MapVote_VoteToCancel")
+    local PlayerSkipVotesRateLimitTracking = {}
+    net.Receive("MapVote_VoteToCancel", function(_, ply)
+        if not MapVote.IsInProgress then return end
+        PlayerSkipVotesRateLimitTracking[ply] = PlayerSkipVotesRateLimitTracking[ply] or 0
+        if MapVote.VoteCancelRateLimit + PlayerSkipVotesRateLimitTracking[ply] > CurTime() then return end
+        PlayerSkipVotesRateLimitTracking[ply] = CurTime()
+        MapVote.PlayerSkipVotes[ply] = (MapVote.PlayerSkipVotes[ply] == nil and true) or nil -- toggle their cancel
+        print("MapVote: " .. ply:Nick() .. ((MapVote.PlayerSkipVotes[ply] == true and " un") or " ") .. "voted to cancel the vote")
+        if table.Count(MapVote.PlayerSkipVotes) > MapVote.VoteCancelRatio * player.GetCount() then --
+            MapVote.CancelVote()
+        end
+
+        net.Start("MapVote_VoteToCancel_Announcement")
+        net.WriteUInt((MapVote.PlayerSkipVotes[ply] and 1) or 0, 1)
+        net.Broadcast()
+    end)
 elseif CLIENT then
     if MapVote and IsValid(MapVote.Panel) then -- for autorefresh
         MapVote.Panel:Remove()
     end
 
-    MapVote = {}
+    MapVote = {
+        NumberOfCancellers = 0,
+        VoteCancelRatio = 0.75,
+    }
+
     --[[-------------------------------------------------------
         LOGIC / HELPER STUFF
     ---------------------------------------------------------]]
@@ -244,6 +304,14 @@ elseif CLIENT then
     --[[-------------------------------------------------------
         NET STUFF
     ---------------------------------------------------------]]
+    local PREFIX_NUM_CHARS = string.len("MapVote_")
+    hook.Add("Global3VarChanged", "ConfigNetworking", function(VarType, VarIndex, VarNewValue)
+        if string.sub(VarIndex, 1, PREFIX_NUM_CHARS) ~= "MapVote_" then return end
+        local subbed = string.sub(VarIndex, PREFIX_NUM_CHARS + 1)
+        print("yepp", subbed, "HI")
+        MapVote[subbed] = tonumber(VarNewValue) -- should tonumber this with an if statement probably
+    end)
+
     net.Receive("MapVote_VoteStarted", function(_, _)
         local EndDate = net.ReadFloat()
         MapVote.StartVote(EndDate)
@@ -256,6 +324,24 @@ elseif CLIENT then
         local maps = net.ReadTable() -- make this not bad later
         print("got maps: ")
         MapVote.maps = maps
+    end)
+
+    net.Receive("MapVote_VoteEnded", function(_, _)
+        MapVote.CancelVote()
+        return
+    end)
+
+    net.Receive("MapVote_VoteToCancel_Announcement", function(_, _)
+        local uint = net.ReadUInt(1)
+        local increment = (uint == 0 and -1) or 1
+        MapVote.IncrementCancelCheckboxes(increment)
+        MapVote.UpdateCheckBoxes()
+    end)
+
+    net.Receive("MapVote_SendCancellers", function(_, _)
+        local NumCancellers = net.ReadUInt(MAX_PLAYER_BITS)
+        MapVote.NumberOfCancellers = NumCancellers
+        MapVote.UpdateCheckBoxes()
     end)
 
     --[[-------------------------------------------------------
@@ -300,6 +386,87 @@ elseif CLIENT then
         ["gm_c17map"] = "MyCoolCategory1",
         ["fof_city17"] = "MyCoolCategory2"
     }
+
+    function MapVote.VoteToCancel()
+        net.Start("MapVote_VoteToCancel")
+        net.SendToServer()
+    end
+
+    function MapVote.MakeCheckBoxes(parent, numcheckboxes)
+        if not IsValid(parent) then
+            print("return me sad")
+            return
+        end
+
+        print("YES MAKING!!")
+        local CheckBoxSize = 32
+        local CheckBoxSpacing = ScrW() * 0.0075
+        local CheckBoxGrid = vgui.Create("SGrid", parent)
+        CheckBoxGrid:SetSize(parent:GetWide(), CheckBoxSize)
+        CheckBoxGrid:SetPos(0, (parent:GetTall() - CheckBoxSize) * 0.5)
+        CheckBoxGrid:SetRowHeight(CheckBoxSize)
+        CheckBoxGrid:SetOverallAlignment(SGRID_ALIGN_LEFT)
+        CheckBoxGrid:SetBackgroundColor(color_transparent)
+        MapVote.CheckBoxes = MapVote.CheckBoxes or {}
+        for i = #MapVote.CheckBoxes, 1, -1 do
+            if IsValid(MapVote.CheckBoxes[i]) then
+                MapVote.CheckBoxes[i]:Remove()
+                MapVote.CheckBoxes[i] = nil
+            end
+        end
+
+        MapVote.CheckBoxes = {}
+        local NumPlayers = MapVote.PlayerCount
+        for i = 1, numcheckboxes or NumPlayers do
+            local SpacerPanel = vgui.Create("DPanel", parent)
+            SpacerPanel:SetSize(CheckBoxSpacing)
+            CheckBoxGrid:AddItem(SpacerPanel)
+            function SpacerPanel.Paint(_, _, _)
+            end
+
+            local CheckBox = vgui.Create("SCheckBox", parent)
+            -- this will break at about 21 players, 
+            -- the grid has to be resized vertically to account for more players
+            -- however, i dont care, as it wont affect me
+            CheckBox:SetBool((i <= MapVote.NumberOfCancellers and true) or false)
+            CheckBox:SetWide(CheckBoxSize)
+            CheckBox:SetFunction(nil)
+            MapVote.CheckBoxes[#MapVote.CheckBoxes + 1] = CheckBox
+            CheckBoxGrid:AddItem(CheckBox)
+        end
+        --MapVote.CheckBoxGrid = CheckBoxGrid
+    end
+
+    function MapVote.UpdateCheckBoxes()
+        if not MapVote.CheckBoxes or #MapVote.CheckBoxes == 0 then return end
+        for i = 1, #MapVote.CheckBoxes do
+            if i <= MapVote.NumberOfCancellers then --
+                MapVote.CheckBoxes[i]:SetBool(true)
+            else
+                MapVote.CheckBoxes[i]:SetBool(false)
+            end
+        end
+    end
+
+    MapVote.PlayerCount = player.GetCount()
+    gameevent.Listen("player_disconnect")
+    gameevent.Listen("player_connect")
+    hook.Add("player_disconnect", "UpdateCheckboxes", function()
+        print("WAN")
+        MapVote.PlayerCount = MapVote.PlayerCount - 1
+        MapVote.MakeCheckBoxes(MapVote.BottomHeader)
+    end)
+
+    hook.Add("player_activate", "UpdateCheckboxes", function()
+        print("TOO")
+        MapVote.PlayerCount = MapVote.PlayerCount + 1
+        MapVote.MakeCheckBoxes(MapVote.BottomHeader)
+    end)
+
+    MapVote.UpdateCheckBoxes()
+    function MapVote.IncrementCancelCheckboxes(increment)
+        MapVote.NumberOfCancellers = MapVote.NumberOfCancellers + increment
+    end
 
     local DropDowns = {} -- "category" = panel
     local Voters = {}
@@ -374,7 +541,7 @@ elseif CLIENT then
         function OuterPanel.Paint(_, _, _)
         end
 
-        OuterPanel:MakePopup()
+        --OuterPanel:MakePopup()
         local TopHeader = vgui.Create("DPanel", OuterPanel)
         TopHeader:Dock(TOP)
         TopHeader:SetTall(HeaderSize)
@@ -516,29 +683,13 @@ elseif CLIENT then
             surface.DrawRect(0, 0, w, h)
         end
 
-        local CheckBoxSize = 32
-        local CheckBoxSpacing = ScrW() * 0.0075
-        local CheckBoxGrid = vgui.Create("SGrid", BottomHeader)
-        CheckBoxGrid:SetSize(BottomHeader:GetWide(), CheckBoxSize)
-        CheckBoxGrid:SetPos(0, (BottomHeader:GetTall() - CheckBoxSize) * 0.5)
-        CheckBoxGrid:SetRowHeight(CheckBoxSize)
-        CheckBoxGrid:SetOverallAlignment(SGRID_ALIGN_LEFT)
-        CheckBoxGrid:SetBackgroundColor(color_transparent)
-        local Players = player.GetAll()
-        local NumPlayers = 21 -- debug number
-        for i = 1, NumPlayers or #Players do
-            local SpacerPanel = vgui.Create("DPanel", BottomHeader)
-            SpacerPanel:SetSize(CheckBoxSpacing)
-            CheckBoxGrid:AddItem(SpacerPanel)
-            function SpacerPanel.Paint(_, _, _)
+        MapVote.BottomHeader = BottomHeader
+        MapVote.MakeCheckBoxes(BottomHeader, math.ceil(player.GetCount() * MapVote.VoteCancelRatio))
+        function ScreenPanel.OnKeyCodePressed(self, keyCode)
+            if keyCode == KEY_SPACE then
+                MapVote.VoteToCancel()
+                print("ye")
             end
-
-            local CheckBox = vgui.Create("SCheckBox", BottomHeader)
-            -- this will break at about 21 players, 
-            -- the grid has to be resized vertically to account for more players
-            -- however, i dont care, as it wont affect me
-            CheckBox:SetWide(CheckBoxSize)
-            CheckBoxGrid:AddItem(CheckBox)
         end
 
         hook.Run("MapVote_VoteStarted")

@@ -1,22 +1,33 @@
+local MapToWSIDCache = {}
 local function GetMapWSID(mapname) -- copy pasted from https://github.com/greyliterature/ravens-pvp-server/blob/f8cac2289072ca737d27308025075ff8d983dfa6/addons/rv_maphotload/lua/autorun/server/rv_maphotload.lua#L1-L11
+    if MapToWSIDCache[mapname] then
+        print("Returning cached wsid " .. MapToWSIDCache[mapname] .. " for " .. mapname)
+        return
+    end
+
     local CurrentMap = sql.QueryTyped("SELECT wsid FROM hotloaded_maps WHERE mapname = ?", mapname .. ".bsp")
-    if CurrentMap ~= false and CurrentMap[1] then return CurrentMap[1]["wsid"] end
+    if CurrentMap ~= false and CurrentMap[1] then
+        MapToWSIDCache[mapname] = CurrentMap[1]["wsid"]
+        return CurrentMap[1]["wsid"]
+    end
+
     for _, v in ipairs(engine.GetAddons()) do
         if v.Mounted == false then continue end
         local files, _ = file.Find("maps/*.bsp", v.title)
         for _, bspname in ipairs(files) do
-            print(bspname)
-            if bspname == mapname .. ".bsp" then return v.wsid end
+            if bspname == mapname .. ".bsp" then
+                MapToWSIDCache[mapname] = v.wsid
+                return v.wsid
+            end
         end
     end
 end
 
-local MapVoteInProgress = true -- make this do dynamic later
 local AlreadyRequestedWSIDs = {}
 util.AddNetworkString("MapVote_request_map_wsid")
 util.AddNetworkString("MapVote_request_map_wsid_response")
 net.Receive("MapVote_request_map_wsid", function(len, ply)
-    if MapVoteInProgress == false then return end
+    if MapVote.IsInProgress == false then return end
     local mapname = net.ReadString() -- THIS SHOULD TAKE A CATEGORY AS THE ARGUMENT, SO PEOPLE CANT SPAM REQUEST EVERY SINGLE MAP, AND HAVE A CATEGORY RATE LIMIT
     AlreadyRequestedWSIDs[ply] = AlreadyRequestedWSIDs[ply] or {}
     if AlreadyRequestedWSIDs[ply][mapname] then -- dont lag the server if the player already knows the wsid

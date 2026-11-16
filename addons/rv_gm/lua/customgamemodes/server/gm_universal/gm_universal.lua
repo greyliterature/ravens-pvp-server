@@ -685,8 +685,10 @@ function rv_gm.SetJoinTeam(ply)
 end
 
 AddGamemodeHook("PlayerInitialSpawn", "SetTeamOnJoin", function(ply, _)
-    --
-    rv_gm.SetJoinTeam(ply)
+    timer.Simple(0, function()
+        rv_gm.SetJoinTeam(ply)
+        return
+    end)
 end)
 
 function rv_gm.ResetScores(Teams)

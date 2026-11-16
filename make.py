@@ -20,6 +20,7 @@ repositories = {
         ["https://github.com/greyliterature/map_vote", "./garrysmod/addons/mapvote"],
         ["https://github.com/greyliterature/FSpectate", "./garrysmod/addons/fspectate"],
         ["https://github.com/wrefgtzweve/luapad", "./garrysmod/addons/luapad"],
+        ["https://github.com/wgetJane/gmod-clientside-hitreg", "./garrysmod/addons/clientsidehitreg"],
         #["https://github.com/greyliterature/garrysmod/", "./garrysmod/addons/rv_extra/lua/autorun/client", None, True], # this doesnt work, overwrites it, unfortunate
 
     ],

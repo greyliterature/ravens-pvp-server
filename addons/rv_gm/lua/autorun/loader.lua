@@ -88,7 +88,7 @@ end
 --------------------------------]]
 local GamemodeVars = include("customgamemodes/gamemodevars.lua")
 rv_gm = rv_gm or {}
-rv_gm.Gamemode = "FFA" -- this file shouldnt be included anywhere, so it should be fine to do this on every single run
+rv_gm.CurrentGamemode = "FFA" -- this file shouldnt be included anywhere, so it should be fine to do this on every single run
 AddCSLuaFile("customgamemodes/gamemodevars.lua")
 if SERVER then
     util.AddNetworkString("SendNewGamemode")
@@ -104,7 +104,7 @@ if SERVER then
             RemoveLastGamemodesTimers()
             RemoveLastGamemodesHooks()
             RemoveLastGamemodesEntities()
-            rv_gm.Gamemode = NewGamemode
+            rv_gm.CurrentGamemode = NewGamemode
             include(InitPath)
         end
     end

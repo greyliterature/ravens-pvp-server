@@ -176,6 +176,7 @@ hook.Add("PlayerSay", "VotemodeCommands", function(sender, text, teamChat)
                 --
                 sender:ChatPrint("2 or more players are required to change modes.")
             end)
+            return
         end
 
         local VotedForMode = args[1]

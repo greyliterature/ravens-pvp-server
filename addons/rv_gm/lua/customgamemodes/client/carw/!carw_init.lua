@@ -1,6 +1,7 @@
 --[[------------------------------
     init 
 --------------------------------]]
+local _ = include("../gm_universal/gm_universal.lua")
 TEAM_RED = 1
 TEAM_BLUE = 2
 --[[------------------------------
@@ -82,7 +83,7 @@ AddGamemodeHook("HUDPaint", "ScoreHud", function()
         local LiveCountRectWidth = ScrW() * 0.025
         local AllowanceForLiveCount = LiveCountRectWidth + ScrW() * 0.003
         -- Red team
-        draw.DrawText(team.GetName(Teams[i]) .. " team", "RobotoBig", 0 + RectWidth * 0.09 + AllowanceForLiveCount, 0 + MarginFromScreenEdge + ((i - 1) * 30), color_white, TEXT_ALIGN_LEFT)
+        draw.DrawText(team.GetName(Teams[i]), "RobotoBig", 0 + RectWidth * 0.09 + AllowanceForLiveCount, 0 + MarginFromScreenEdge + ((i - 1) * 30), color_white, TEXT_ALIGN_LEFT)
         -- score
         draw.DrawText(team.GetScore(Teams[i]), "RobotoBig", 0 + MarginFromScreenEdge + RectWidth * 0.96, 0 + MarginFromScreenEdge + ((i - 1) * 30), color_white, TEXT_ALIGN_RIGHT)
         -- live count box

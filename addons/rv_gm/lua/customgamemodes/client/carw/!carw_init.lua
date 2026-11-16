@@ -1,7 +1,7 @@
 --[[------------------------------
     init 
 --------------------------------]]
-local _ = include("../gm_universal/gm_universal.lua")
+local _ = include("customgamemodes/client/gm_universal/gm_universal.lua")
 TEAM_RED = 1
 TEAM_BLUE = 2
 --[[------------------------------

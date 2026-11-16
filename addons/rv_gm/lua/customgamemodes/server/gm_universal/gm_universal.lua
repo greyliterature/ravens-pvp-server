@@ -651,14 +651,14 @@ end
 --[[------------------------------
     Match logic
 --------------------------------]]
-local MatchInProgress = false
+rv_gm.MatchInProgress = false
 function rv_gm.SetMatchInProgress(bool)
-    MatchInProgress = bool
+    rv_gm.MatchInProgress = bool
     SetGlobal3("Bool", "MatchInProgress", bool)
 end
 
 function rv_gm.IsMatchInProgress()
-    return MatchInProgress
+    return rv_gm.MatchInProgress
 end
 
 local RoundInProgress = false
@@ -671,7 +671,7 @@ function rv_gm.SetTimeLimit(delayfromnow)
     --MatchEndDate = CurTime() + delayfromnow
     SetGlobal3("Float", "MatchTimeLimit", CurTime() + delayfromnow)
     timer.Create("MatchTimeLimit", delayfromnow, 1, function()
-        if MatchInProgress == false then return end
+        if rv_gm.MatchInProgress == false then return end
         rv_gm.EndMatch()
     end)
 end
@@ -703,7 +703,7 @@ function rv_gm.SetScoreLimit(score)
 end
 
 function rv_gm.AddTeamScore(teamindex, score)
-    if MatchInProgress == false then return end
+    if rv_gm.MatchInProgress == false then return end
     if RoundInProgress == false then return end
     team.AddScore(teamindex, score)
     if team.GetScore(teamindex) >= ScoreLimit then
@@ -714,7 +714,7 @@ end
 
 -- Start/endround
 function rv_gm.EndRound(WinnerTeamIndex)
-    if MatchInProgress == false then return end
+    if rv_gm.MatchInProgress == false then return end
     if RoundInProgress == false then return end
     if StartingNewRound == true then return end
     RoundInProgress = false
@@ -1199,7 +1199,7 @@ AddGamemodeHook("PlayerButtonDown", "ReadyUpButtons", function(ply, button)
     end
 
     LastReadyUpTimes[ply] = CurTime()
-    if MatchInProgress == true then
+    if rv_gm.MatchInProgress == true then
         print(ply:Nick() .. " tried readying up while match is started")
         return
     end
@@ -1273,7 +1273,7 @@ net.Receive("RequestTeamJoin", function(len, ply)
         return
     end
 
-    if MatchInProgress == true then --
+    if rv_gm.MatchInProgress == true then --
         if ply:Team() == TEAM_SPECTATOR then
             ply.DiedInRound = true
         else
@@ -1290,10 +1290,10 @@ end)
 
 AddGamemodeHook("PlayerChangedTeam", "SpectateStateOnTeamChange", function(ply, oldTeam, newTeam)
     if TeamJoins == false then return end
-    if oldTeam == TEAM_SPECTATOR and (RoundInProgress == false or MatchInProgress == false) then
+    if oldTeam == TEAM_SPECTATOR and (RoundInProgress == false or rv_gm.MatchInProgress == false) then
         FSpectate.forceUnspectate(ply)
         rv_gm.DelayedRespawn(ply)
-    elseif (oldTeam == TEAM_BLUE or oldTeam == TEAM_RED) and MatchInProgress == false and newTeam ~= TEAM_SPECTATOR then
+    elseif (oldTeam == TEAM_BLUE or oldTeam == TEAM_RED) and rv_gm.MatchInProgress == false and newTeam ~= TEAM_SPECTATOR then
         FSpectate.forceUnspectate(ply)
         rv_gm.DelayedRespawn(ply)
     elseif newTeam == TEAM_SPECTATOR then

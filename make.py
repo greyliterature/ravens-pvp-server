@@ -17,7 +17,7 @@ repositories = {
         ["https://github.com/greyliterature/ravens-pvp-server", "./garrysmod", None],
         ["https://github.com/TeamUlysses/ulx", "./garrysmod/addons/ulx", None],
         ["https://github.com/TeamUlysses/ulib", "./garrysmod/addons/ulib", None],
-        ["https://github.com/greyliterature/map_vote", "./garrysmod/addons/mapvote", "hotloading_concept"],
+        ["https://github.com/greyliterature/map_vote", "./garrysmod/addons/mapvote"],
         ["https://github.com/greyliterature/FSpectate", "./garrysmod/addons/fspectate"],
         ["https://github.com/wrefgtzweve/luapad", "./garrysmod/addons/luapad"],
         #["https://github.com/greyliterature/garrysmod/", "./garrysmod/addons/rv_extra/lua/autorun/client", None, True], # this doesnt work, overwrites it, unfortunate

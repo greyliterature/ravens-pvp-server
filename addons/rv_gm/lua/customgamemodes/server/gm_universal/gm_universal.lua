@@ -41,7 +41,7 @@ function rv_gm.SetPlayerToNotRespawn(ply, bool)
 end
 
 AddGamemodeHook("PlayerDeathThink", "AllowPlayerRespawns", function(ply)
-    if CanPlayersRespawn == false then
+    if CanPlayersRespawn == false and rv_gm.MatchInProgress == true then
         if not ply.CanRespawn then
             return false
         else
@@ -178,6 +178,30 @@ function rv_gm.RemoveConflictingHooks()
     hook.Remove("ShouldCollide", "MakePlayersNotCollide")
     hook.Remove("ShouldCollide", "OnlyCollideEntWithSelf")
     hook.Remove("PlayerSpawn", "SetSpawnHealthArmor")
+end
+
+local CanPlayersSpawnWeapons = false
+function rv_gm.AllowPlayersToSpawnWeapons(bool)
+    CanPlayersSpawnWeapons = bool
+end
+
+function rv_gm.SetWhitelistedWeapons(WeaponTable)
+    WhitelistedWeapons = WeaponTable
+end
+
+AddGamemodeHook("PlayerSpawnSWEP", "rv_gm.CanPlayersSpawnWeapons", function(ply, weap)
+    if CanPlayersSpawnWeapons ~= false then return end
+    return false
+end)
+
+AddGamemodeHook("PlayerGiveSWEP", "rv_gm.CanPlayersSpawnWeapons", function(ply, weap)
+    if CanPlayersSpawnWeapons ~= false then return end
+    return false
+end)
+
+local Loadout = nil
+function rv_gm.SetLoadout(LoadoutTable)
+    Loadout = LoadoutTable
 end
 
 function rv_gm.DisablePlayerRewards()
@@ -1218,7 +1242,7 @@ AddGamemodeHook("PlayerButtonDown", "ReadyUpButtons", function(ply, button)
 
     if #team.GetPlayers(TEAM_RED) == 0 or #team.GetPlayers(TEAM_BLUE) == 0 then
         rv_gm.SendNotif(ply, {"Both teams must be present to ready-up."}, {CurTime() + 2}, nil, true)
-        return
+        if debugging ~= true then return end
     end
 
     local CanPlayerReadyUp, err = hook.Run("rv_gm.CanPlayerReadyUp", ply)

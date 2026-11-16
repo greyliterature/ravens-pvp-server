@@ -981,7 +981,7 @@ function rv_gm.BalanceTeams(Teams)
                 continue
             end
 
-            local mew, _ = WL.GetPlayerPLR(ply)
+            local mew, _ = WL.GetPlayerPLR(rv_gm.CurrentGamemode, ply)
             local nick = ply:Nick()
             --[[
             -- testing
@@ -1085,7 +1085,7 @@ function rv_gm.EndMatch()
         end
     end
 
-    WL.PlackettLuce(GameResult)
+    WL.PlackettLuce(rv_gm.CurrentGamemode, GameResult)
     --
     rv_gm.SetAllPlayersUnready()
     table.remove(loserstbl, WinnerIndex)
@@ -1125,13 +1125,19 @@ function rv_gm.GetValidPlayers()
     return players
 end
 
+function rv_gm.ClearCustomNames()
+    for _, ply in player.Iterator() do
+        ply:SetNW3Var("String", "CustomName", "")
+    end
+end
+
 local ReadyUpCount = 0
 function rv_gm.SetPlayerReadiedUp(ply, bool, sendnotif)
     ply.ReadyUpState = (bool == nil and not ply.ReadyUpState) or bool
     ReadyUpCount = (ply.ReadyUpState == true and 1) or -1
     print("Set readyup state for " .. ply:Nick() .. " " .. tostring(ply.ReadyUpState))
     SetGlobal3("Int", "ReadyUpCount", ReadyUpCount)
-    ply:SetNW3Var("String", "CustomName", ply:Nick() .. ((bool == true and " (R)") or " (NR)"))
+    ply:SetNW3Var("String", "CustomName", ((bool == true and " (R)") or " (NR)") .. ply:Nick())
     if sendnotif ~= false then --
         rv_gm.SendNotif(nil, {ply:Nick() .. " is" .. (((ply.ReadyUpState == true) and "") or " not") .. " Ready"}, {CurTime() + 2}, nil, true)
     end

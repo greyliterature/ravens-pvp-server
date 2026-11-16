@@ -171,6 +171,13 @@ hook.Add("PlayerSay", "VotemodeCommands", function(sender, text, teamChat)
             return
         end
 
+        if #player.GetAll() < 2 then
+            timer.Simple(0, function()
+                --
+                sender:ChatPrint("2 or more players are required to change modes.")
+            end)
+        end
+
         local VotedForMode = args[1]
         local ShouldPlayGamemode, err = CanPlayGamemode(VotedForMode)
         if ShouldPlayGamemode == false then

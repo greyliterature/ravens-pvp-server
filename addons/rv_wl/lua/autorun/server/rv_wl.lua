@@ -198,7 +198,7 @@ local PlayerCache = {}
 -- {["mew"] = mew, ["variance"] = variance}
 --sql.QueryTyped("CREATE TABLE IF NOT EXISTS player_plratings ( steamid32 TEXT UNIQUE, mew DOUBLE, variance DOUBLE )")
 function WL.GetPlayerPLR(category, ply) -- take from cache or sql query if not cached, or give default variance mew 
-    local CategoryTable = "player_plratings" .. "_" .. category
+    local CategoryTable = "player_plratings_" .. category
     sql.QueryTyped("CREATE TABLE IF NOT EXISTS " .. CategoryTable .. " ( steamid32 TEXT UNIQUE, mew DOUBLE, variance DOUBLE )")
     local steamid32 = ply
     if not isstring(ply) and ply:IsPlayer() then --
@@ -227,7 +227,7 @@ function WL.GetPlayerPLR(category, ply) -- take from cache or sql query if not c
     return mew, variance
 end
 
-function WL.UpdatePlayerPLR(ply, category, newmew, newvariance)
+function WL.UpdatePlayerPLR(category, ply, newmew, newvariance)
     local CategoryTable = "player_plratings" .. "_" .. category
     local steamid32 = ply
     if not isstring(ply) and ply:IsPlayer() then --
@@ -273,7 +273,7 @@ function WL.PlackettLuce(category, GameResult)
             local PlayerTable = TeamTable.Players[ply] or {}
             do
                 -- set defaults
-                local mew, variance = WL.GetPlayerPLR(ply)
+                local mew, variance = WL.GetPlayerPLR(category, ply)
                 PlayerTable.μ = mew
                 PlayerTable.σ² = variance
             end

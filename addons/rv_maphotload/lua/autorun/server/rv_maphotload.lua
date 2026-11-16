@@ -75,10 +75,12 @@ function GetMapPreviewUrl(mapid, callback)
             end)
         end
     end
+
     callback(MapPreviewUrlFallback)
 end
 
+local hostname = "Ravenholm"
 hook.Add("InitPostEntity", "SetServerName", function()
-    -- 
-    RunConsoleCommand("hostname", "raven's awesome pvp 128 tick" .. ((game.GetMap() and " @ " .. game.GetMap()) or ""))
+    RunConsoleCommand("hostname", hostname .. ((game.GetMap() and " @ " .. game.GetMap()) or ""))
+    return
 end)

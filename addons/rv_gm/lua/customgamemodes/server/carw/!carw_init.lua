@@ -74,9 +74,9 @@ AddGamemodeHook("PlayerDeath", "TrackRoundDeath", function(victim, inflictor, at
     --
     if GetDeadCount(victim:Team()) == #team.GetPlayers(victim:Team()) then
         if victim == attacker then
-            Round.EndRound((victim:Team() == TEAM_RED and TEAM_BLUE) or TEAM_RED)
+            rv_gm.EndRound((victim:Team() == TEAM_RED and TEAM_BLUE) or TEAM_RED)
         else
-            Round.EndRound(AttackerTeam)
+            rv_gm.EndRound(AttackerTeam)
         end
     elseif GetDeadCount(victim:Team()) == #team.GetPlayers(victim:Team()) - 1 then
         for _, ply in ipairs(team.GetPlayers(victim:Team())) do

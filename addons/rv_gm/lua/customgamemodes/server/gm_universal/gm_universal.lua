@@ -1044,7 +1044,7 @@ function rv_gm.BalanceTeams(Teams)
     end
 
     for _, ply in ipairs(best_team2) do
-        team2_sum = team1_sum + select(1, WL.GetPlayerPLR(rv_gm.CurrentGamemode, ply))
+        team2_sum = team2_sum + select(1, WL.GetPlayerPLR(rv_gm.CurrentGamemode, ply))
         ply:SetTeam(2)
     end
 

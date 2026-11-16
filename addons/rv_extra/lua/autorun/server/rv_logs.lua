@@ -29,7 +29,7 @@ hook.Add("ULibPlayerKicked", "KickLogs", function(steamid, reason, caller)
 end)
 
 hook.Add("ULibUserGroupChange", "UserGroupLogs", function(id, _, _, new_group, old_group)
-    JSON["embeds"][1]["description"] = id .. " usergroup change: " .. old_group .. "->" .. new_group
+    JSON["embeds"][1]["description"] = id .. " usergroup change: " .. (old_group or "").. "->" .. new_group
     SendWebhook(ADMIN_LOGS_WEBHOOK, JSON, "Gmod Admin logs")
 end)
 

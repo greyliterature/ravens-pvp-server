@@ -134,7 +134,7 @@ AddGamemodeHook("rv_gm.MatchStarted", "MatchStarted", function()
 
     timer.Simple(1, function()
         rv_gm.ShuffleTeams()
-        rv_gm.SendNotif(nil, {"Starts in: 3", "Starts in: 2", "Starts in: 1"}, {CurTime() + 1, CurTime() + 2, CurTime() + 3}, "Capture the Flag")
+        rv_gm.SendNotif(nil, {"Starts in: 3", "Starts in: 2", "Starts in: 1"}, {CurTime() + 1, CurTime() + 2, CurTime() + 3}, "Clan Arena")
         rv_gm.RespawnAllPlayers()
         -- this seems redundant and unnecessary 
         timer.Simple(MatchStartDelay, function()

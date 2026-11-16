@@ -138,9 +138,9 @@ SOFTWARE.
 local WebhookRateLimit = 5
 local LastTime = 0
 local LastAvailableTime = nil
-function SendWebhook(WebhookLink, content, WebhookName)
+function SendWebhook(WebhookLink, content, WebhookName, ForceOriginalFormatting)
     local toJson = util.TableToJSON(content)
-    toJson = string.Replace(toJson, "`", "\\\\`")
+    if ForceOriginalFormatting == nil then toJson = string.Replace(toJson, "`", "\\\\`") end
     if CurTime() > LastTime + WebhookRateLimit then
         LastTime = CurTime()
         print("Sending content to " .. WebhookName)

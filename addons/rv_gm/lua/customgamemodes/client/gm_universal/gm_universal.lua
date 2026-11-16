@@ -746,6 +746,14 @@ function rv_gm.OpenJoinTeamPopup()
     end
 end
 
+AddGamemodeHook("HUDPaint", "TeamJoinMenuReminder", function()
+    if LocalPlayer():Team() ~= TEAM_SPECTATOR then --
+        hook.Remove("HUDPaint", "TeamJoinMenuReminder")
+    end
+
+    draw.DrawText("Press F4 to open team menu", "RobotoSecondaryHeader", ScrW() * 0.5, ScrH() * 0.2, color_white, TEXT_ALIGN_CENTER)
+end)
+
 AddGamemodeHook("PlayerButtonDown", "JoinTeamPopup", function(ply, button)
     if JoinTeamPopup == false then return end
     if button == KEY_F4 then

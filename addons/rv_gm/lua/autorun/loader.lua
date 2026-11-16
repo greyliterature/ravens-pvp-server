@@ -87,6 +87,8 @@ end
         SetGamemode
 --------------------------------]]
 local GamemodeVars = include("customgamemodes/gamemodevars.lua")
+rv_gm = rv_gm or {}
+rv_gm.CurrentGamemode = "FFA" -- this file shouldnt be included anywhere, so it should be fine to do this on every single run
 AddCSLuaFile("customgamemodes/gamemodevars.lua")
 if SERVER then
     util.AddNetworkString("SendNewGamemode")
@@ -102,6 +104,7 @@ if SERVER then
             RemoveLastGamemodesTimers()
             RemoveLastGamemodesHooks()
             RemoveLastGamemodesEntities()
+            rv_gm.CurrentGamemode = NewGamemode
             include(InitPath)
         end
     end
@@ -164,6 +167,14 @@ hook.Add("PlayerSay", "VotemodeCommands", function(sender, text, teamChat)
             timer.Simple(0, function()
                 --
                 sender:ChatPrint("Please wait " .. math.floor((LastModeChange + ChangeModeRateLimit) - CurTime()) .. " seconds before voting to change mode.")
+            end)
+            return
+        end
+
+        if #player.GetAll() < 2 then
+            timer.Simple(0, function()
+                --
+                sender:ChatPrint("2 or more players are required to change modes.")
             end)
             return
         end

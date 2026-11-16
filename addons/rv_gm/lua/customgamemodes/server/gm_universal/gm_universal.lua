@@ -1,4 +1,4 @@
-rv_gm = {}
+rv_gm = rv_gm or {}
 RemoveLastGamemodesEntities()
 local TEAM_RED, TEAM_BLUE = 1, 2
 local debugging = false
@@ -651,14 +651,14 @@ end
 --[[------------------------------
     Match logic
 --------------------------------]]
-local MatchInProgress = false
+rv_gm.MatchInProgress = false
 function rv_gm.SetMatchInProgress(bool)
-    MatchInProgress = bool
+    rv_gm.MatchInProgress = bool
     SetGlobal3("Bool", "MatchInProgress", bool)
 end
 
 function rv_gm.IsMatchInProgress()
-    return MatchInProgress
+    return rv_gm.MatchInProgress
 end
 
 local RoundInProgress = false
@@ -671,7 +671,7 @@ function rv_gm.SetTimeLimit(delayfromnow)
     --MatchEndDate = CurTime() + delayfromnow
     SetGlobal3("Float", "MatchTimeLimit", CurTime() + delayfromnow)
     timer.Create("MatchTimeLimit", delayfromnow, 1, function()
-        if MatchInProgress == false then return end
+        if rv_gm.MatchInProgress == false then return end
         rv_gm.EndMatch()
     end)
 end
@@ -685,8 +685,10 @@ function rv_gm.SetJoinTeam(ply)
 end
 
 AddGamemodeHook("PlayerInitialSpawn", "SetTeamOnJoin", function(ply, _)
-    --
-    rv_gm.SetJoinTeam(ply)
+    timer.Simple(0, function()
+        rv_gm.SetJoinTeam(ply)
+        return
+    end)
 end)
 
 function rv_gm.ResetScores(Teams)
@@ -703,7 +705,7 @@ function rv_gm.SetScoreLimit(score)
 end
 
 function rv_gm.AddTeamScore(teamindex, score)
-    if MatchInProgress == false then return end
+    if rv_gm.MatchInProgress == false then return end
     if RoundInProgress == false then return end
     team.AddScore(teamindex, score)
     if team.GetScore(teamindex) >= ScoreLimit then
@@ -713,11 +715,41 @@ function rv_gm.AddTeamScore(teamindex, score)
 end
 
 -- Start/endround
+function rv_gm.SetRoundLimit(roundlimit)
+    rv_gm.RoundLimit = roundlimit
+end
+
+local StartingNewRound = false
+function rv_gm.EndRound(WinnerTeamIndex)
+    if rv_gm.MatchInProgress == false then return end
+    if RoundInProgress == false then return end
+    if StartingNewRound == true then return end
+    print("Round ended")
+    RoundInProgress = false
+    StartingNewRound = true
+    team.AddScore(WinnerTeamIndex, 1)
+    if team.GetScore(WinnerTeamIndex) >= rv_gm.RoundLimit then --
+        rv_gm.EndMatch(WinnerTeamIndex, true)
+        return
+    end
+
+    rv_gm.SendNotif(nil, {""}, {CurTime() + 3}, team.GetName(WinnerTeamIndex) .. " wins the round", true)
+    local NextRoundDelay = 4
+    rv_gm.LockAttacks(NextRoundDelay)
+    timer.Simple(NextRoundDelay, function()
+        --
+        rv_gm.StartRound()
+    end)
+end
+
 local RoundCount = 0
 function rv_gm.StartRound()
+    print("Starting new round")
+    StartingNewRound = false
     rv_gm.RespawnAllDeadPlayers()
     RoundCount = RoundCount + 1
     SetGlobal3("Bool", "MatchStarting", false)
+    rv_gm.SetRoundInProgress(true)
     hook.Run("rv_gm.RoundStarted", RoundCount)
 end
 
@@ -981,7 +1013,7 @@ function rv_gm.BalanceTeams(Teams)
                 continue
             end
 
-            local mew, _ = WL.GetPlayerPLR(ply)
+            local mew, _ = WL.GetPlayerPLR(rv_gm.CurrentGamemode, ply)
             local nick = ply:Nick()
             --[[
             -- testing
@@ -1015,12 +1047,12 @@ function rv_gm.BalanceTeams(Teams)
     local best_team1, best_team2, _ = BLDM(Players)
     local team1_sum, team2_sum = 0, 0
     for _, ply in ipairs(best_team1) do
-        team1_sum = team1_sum + select(1, WL.GetPlayerPLR(ply))
+        team1_sum = team1_sum + select(1, WL.GetPlayerPLR(rv_gm.CurrentGamemode, ply))
         ply:SetTeam(1)
     end
 
     for _, ply in ipairs(best_team2) do
-        team2_sum = team1_sum + select(1, WL.GetPlayerPLR(ply))
+        team2_sum = team2_sum + select(1, WL.GetPlayerPLR(rv_gm.CurrentGamemode, ply))
         ply:SetTeam(2)
     end
 
@@ -1053,6 +1085,7 @@ end
 rv_gm.SetMatchInProgress(false) -- autorefresh
 function rv_gm.StartMatch()
     --rv_gm.SetMatchInProgress(true) -- this was a bad idea
+    StartingNewRound = true
     rv_gm.SetAllPlayersUnready()
     timer.Remove("MatchTimeLimit") -- or else conflicts, annoying but yeah
     SetGlobal3("Bool", "MatchStarting", true)
@@ -1078,14 +1111,16 @@ function rv_gm.EndMatch()
 
     for _, teamindex in ipairs(Teams) do
         GameResult["Teams"][teamindex] = {}
-        GameResult["Teams"]["Score"] = {}
+        GameResult["Teams"][teamindex]["Score"] = team.GetScore(teamindex)
         GameResult["Teams"]["Players"] = {}
         for _, ply in ipairs(team.GetPlayers(teamindex)) do
-            GameResult["Teams"]["Players"][ply:SteamID()] = {}
+            GameResult["Teams"]["Players"][ply:SteamID()] = {} -- unsure if this is needed, probably not
+            GameResult["Teams"][teamindex]["Players"] = GameResult["Teams"][teamindex]["Players"] or {}
+            GameResult["Teams"][teamindex]["Players"][ply:SteamID()] = {}
         end
     end
 
-    WL.PlackettLuce(GameResult)
+    WL.PlackettLuce(rv_gm.CurrentGamemode, GameResult)
     --
     rv_gm.SetAllPlayersUnready()
     table.remove(loserstbl, WinnerIndex)
@@ -1125,13 +1160,19 @@ function rv_gm.GetValidPlayers()
     return players
 end
 
+function rv_gm.ClearCustomNames()
+    for _, ply in player.Iterator() do
+        ply:SetNW3Var("String", "CustomName", "")
+    end
+end
+
 local ReadyUpCount = 0
 function rv_gm.SetPlayerReadiedUp(ply, bool, sendnotif)
     ply.ReadyUpState = (bool == nil and not ply.ReadyUpState) or bool
     ReadyUpCount = (ply.ReadyUpState == true and 1) or -1
     print("Set readyup state for " .. ply:Nick() .. " " .. tostring(ply.ReadyUpState))
     SetGlobal3("Int", "ReadyUpCount", ReadyUpCount)
-    ply:SetNW3Var("String", "CustomName", ply:Nick() .. ((bool == true and " (R)") or " (NR)"))
+    ply:SetNW3Var("String", "CustomName", ((bool == true and " (R)") or " (NR)") .. ply:Nick())
     if sendnotif ~= false then --
         rv_gm.SendNotif(nil, {ply:Nick() .. " is" .. (((ply.ReadyUpState == true) and "") or " not") .. " Ready"}, {CurTime() + 2}, nil, true)
     end
@@ -1170,7 +1211,7 @@ AddGamemodeHook("PlayerButtonDown", "ReadyUpButtons", function(ply, button)
     end
 
     LastReadyUpTimes[ply] = CurTime()
-    if MatchInProgress == true then
+    if rv_gm.MatchInProgress == true then
         print(ply:Nick() .. " tried readying up while match is started")
         return
     end
@@ -1244,7 +1285,7 @@ net.Receive("RequestTeamJoin", function(len, ply)
         return
     end
 
-    if MatchInProgress == true then --
+    if rv_gm.MatchInProgress == true then --
         if ply:Team() == TEAM_SPECTATOR then
             ply.DiedInRound = true
         else
@@ -1261,10 +1302,10 @@ end)
 
 AddGamemodeHook("PlayerChangedTeam", "SpectateStateOnTeamChange", function(ply, oldTeam, newTeam)
     if TeamJoins == false then return end
-    if oldTeam == TEAM_SPECTATOR and (RoundInProgress == false or MatchInProgress == false) then
+    if oldTeam == TEAM_SPECTATOR and (RoundInProgress == false or rv_gm.MatchInProgress == false) then
         FSpectate.forceUnspectate(ply)
         rv_gm.DelayedRespawn(ply)
-    elseif (oldTeam == TEAM_BLUE or oldTeam == TEAM_RED) and MatchInProgress == false and newTeam ~= TEAM_SPECTATOR then
+    elseif (oldTeam == TEAM_BLUE or oldTeam == TEAM_RED) and rv_gm.MatchInProgress == false and newTeam ~= TEAM_SPECTATOR then
         FSpectate.forceUnspectate(ply)
         rv_gm.DelayedRespawn(ply)
     elseif newTeam == TEAM_SPECTATOR then

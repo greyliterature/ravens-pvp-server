@@ -196,8 +196,10 @@ end
 -----------------------------------------------]]
 local PlayerCache = {}
 -- {["mew"] = mew, ["variance"] = variance}
-sql.QueryTyped("CREATE TABLE IF NOT EXISTS player_plratings ( steamid32 TEXT UNIQUE, mew DOUBLE, variance DOUBLE )")
-function WL.GetPlayerPLR(ply) -- take from cache or sql query if not cached, or give default variance mew 
+--sql.QueryTyped("CREATE TABLE IF NOT EXISTS player_plratings ( steamid32 TEXT UNIQUE, mew DOUBLE, variance DOUBLE )")
+function WL.GetPlayerPLR(category, ply) -- take from cache or sql query if not cached, or give default variance mew 
+    local CategoryTable = "player_plratings_" .. category
+    sql.QueryTyped("CREATE TABLE IF NOT EXISTS " .. CategoryTable .. " ( steamid32 TEXT UNIQUE, mew DOUBLE, variance DOUBLE )")
     local steamid32 = ply
     if not isstring(ply) and ply:IsPlayer() then --
         steamid32 = ply:SteamID()
@@ -211,7 +213,7 @@ function WL.GetPlayerPLR(ply) -- take from cache or sql query if not cached, or 
     local PlayerTable = PlayerCache[steamid32]
     local mew, variance = (PlayerTable and PlayerTable["mew"]) or nil, (PlayerTable and PlayerTable["variance"]) or nil
     if not mew or not variance then
-        local query = sql.QueryTyped("SELECT mew, variance FROM player_plratings WHERE steamid32 = ?", steamid32)
+        local query = sql.QueryTyped("SELECT mew, variance FROM " .. CategoryTable .. " WHERE steamid32 = ?", steamid32)
         if query[1] then --
             mew, variance = query[1]["mew"], query[1]["variance"]
         end
@@ -225,7 +227,8 @@ function WL.GetPlayerPLR(ply) -- take from cache or sql query if not cached, or 
     return mew, variance
 end
 
-function WL.UpdatePlayerPLR(ply, newmew, newvariance)
+function WL.UpdatePlayerPLR(category, ply, newmew, newvariance)
+    local CategoryTable = "player_plratings" .. "_" .. category
     local steamid32 = ply
     if not isstring(ply) and ply:IsPlayer() then --
         steamid32 = ply:SteamID()
@@ -241,10 +244,10 @@ function WL.UpdatePlayerPLR(ply, newmew, newvariance)
         ["variance"] = newvariance
     }
 
-    sql.QueryTyped("INSERT INTO player_plratings ( steamid32, mew, variance ) VALUES( ?, ?, ? ) ON CONFLICT(steamid32) DO UPDATE SET mew=excluded.mew, variance=excluded.variance", steamid32, newmew, newvariance) -- https://www.sqlite.org/lang_upsert.html
+    sql.QueryTyped("INSERT INTO " .. CategoryTable .. " ( steamid32, mew, variance ) VALUES( ?, ?, ? ) ON CONFLICT(steamid32) DO UPDATE SET mew=excluded.mew, variance=excluded.variance", steamid32, newmew, newvariance) -- https://www.sqlite.org/lang_upsert.html
 end
 
-function WL.PlackettLuce(GameResult)
+function WL.PlackettLuce(category, GameResult)
     -- Step 1. "Given a game result and the current μᵢⱼ, σ²ᵢⱼ, ∀ᵢ, ∀ⱼ. Given β² and κ > 0. Decide a way to set γ_q in (50)
     -- (50) is shown in step 3.1
     -- Step 2. "For i = 1, ..., k, set"
@@ -270,7 +273,7 @@ function WL.PlackettLuce(GameResult)
             local PlayerTable = TeamTable.Players[ply] or {}
             do
                 -- set defaults
-                local mew, variance = WL.GetPlayerPLR(ply)
+                local mew, variance = WL.GetPlayerPLR(category, ply)
                 PlayerTable.μ = mew
                 PlayerTable.σ² = variance
             end
@@ -418,7 +421,7 @@ function WL.PlackettLuce(GameResult)
                 PlayerTable[i][ply] = {}
                 PlayerTable[i][ply][1] = μ[i][j]
                 PlayerTable[i][ply][2] = σ²[i][j]
-                WL.UpdatePlayerPLR(ply, μ[i][j], σ²[i][j])
+                WL.UpdatePlayerPLR(category, ply, μ[i][j], σ²[i][j])
                 j = j + 1
             end
         end

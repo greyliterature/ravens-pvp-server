@@ -34,8 +34,22 @@ hook.Add("ULibUserGroupChange", "UserGroupLogs", function(id, _, _, new_group, o
 end)
 
 hook.Add("LuapadRanSV", "LuapadLogs", function(ply, code)
-    JSON["embeds"][1]["description"] = nil
     JSON["embeds"][1]["description"] = ply:Nick() .. "(" .. ply:SteamID() .. ")" .. " ran lua: " .. "\n ```" .. utf8.sub(code, 1, 1900) .. "```"
+    SendWebhook(ADMIN_LOGS_WEBHOOK, JSON, "Gmod Admin logs", true)
+    JSON.embeds[1].fields = nil
+end)
+
+hook.Add("InitPostEntity", "StartLogs", function()
+    if game.IsDedicated() == false then -- therefore local p2p testing 
+        return
+    end
+
+    if game.GetMapChangeCount() == 1 then
+        JSON["embeds"][1]["description"] = "Server started"
+    else
+        JSON["embeds"][1]["description"] = "Map started on " .. game.GetMap()
+    end
+
     SendWebhook(ADMIN_LOGS_WEBHOOK, JSON, "Gmod Admin logs", true)
     JSON.embeds[1].fields = nil
 end)

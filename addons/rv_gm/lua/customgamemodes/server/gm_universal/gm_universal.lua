@@ -715,33 +715,41 @@ function rv_gm.AddTeamScore(teamindex, score)
 end
 
 -- Start/endround
+function rv_gm.SetRoundLimit(roundlimit)
+    rv_gm.RoundLimit = roundlimit
+end
+
+local StartingNewRound = false
 function rv_gm.EndRound(WinnerTeamIndex)
     if rv_gm.MatchInProgress == false then return end
     if RoundInProgress == false then return end
     if StartingNewRound == true then return end
+    print("Round ended")
     RoundInProgress = false
     StartingNewRound = true
     team.AddScore(WinnerTeamIndex, 1)
-    if team.GetScore(WinnerTeamIndex) >= RoundLimit then --
+    if team.GetScore(WinnerTeamIndex) >= rv_gm.RoundLimit then --
         rv_gm.EndMatch(WinnerTeamIndex, true)
         return
     end
 
-    SendNotif(nil, {""}, {CurTime() + 3}, team.GetName(WinnerTeamIndex) .. " wins the round", true)
+    rv_gm.SendNotif(nil, {""}, {CurTime() + 3}, team.GetName(WinnerTeamIndex) .. " wins the round", true)
     local NextRoundDelay = 4
     rv_gm.LockAttacks(NextRoundDelay)
     timer.Simple(NextRoundDelay, function()
         --
-        rv_gm.StartRound(RoundLimit)
+        rv_gm.StartRound()
     end)
 end
 
 local RoundCount = 0
 function rv_gm.StartRound()
+    print("Starting new round")
     StartingNewRound = false
     rv_gm.RespawnAllDeadPlayers()
     RoundCount = RoundCount + 1
     SetGlobal3("Bool", "MatchStarting", false)
+    rv_gm.SetRoundInProgress(true)
     hook.Run("rv_gm.RoundStarted", RoundCount)
 end
 
@@ -1103,10 +1111,12 @@ function rv_gm.EndMatch()
 
     for _, teamindex in ipairs(Teams) do
         GameResult["Teams"][teamindex] = {}
-        GameResult["Teams"]["Score"] = {}
+        GameResult["Teams"][teamindex]["Score"] = team.GetScore(teamindex)
         GameResult["Teams"]["Players"] = {}
         for _, ply in ipairs(team.GetPlayers(teamindex)) do
-            GameResult["Teams"]["Players"][ply:SteamID()] = {}
+            GameResult["Teams"]["Players"][ply:SteamID()] = {} -- unsure if this is needed, probably not
+            GameResult["Teams"][teamindex]["Players"] = GameResult["Teams"][teamindex]["Players"] or {}
+            GameResult["Teams"][teamindex]["Players"][ply:SteamID()] = {}
         end
     end
 

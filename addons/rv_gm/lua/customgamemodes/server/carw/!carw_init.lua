@@ -63,7 +63,7 @@ local function GetDeadCount(TeamIndex)
 end
 
 AddGamemodeHook("PlayerDeath", "TrackRoundDeath", function(victim, inflictor, attacker)
-    if MatchInProgress ~= true then --
+    if rv_gm.MatchInProgress ~= true then --
         return
     end
 

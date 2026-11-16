@@ -17,6 +17,7 @@ team.SetUp(TEAM_RED, "Red Team", Color(255, 0, 0), true)
 team.SetUp(TEAM_BLUE, "Blue Team", Color(0, 0, 255), true)
 rv_gm.SetAllToSpectate(true)
 rv_gm.AllowPlayerRespawns(false)
+rv_gm.AllowPlayerSuicide(false)
 rv_gm.EnableTeamJoins(true)
 rv_gm.SetUpTeams({
     [TEAM_RED] = {
@@ -31,32 +32,28 @@ rv_gm.SetUpTeams({
     }
 })
 
+rv_gm.SetRoundLimit(10)
 rv_gm.RemoveConflictingHooks()
 rv_gm.DisablePlayerRewards()
---[[----------------------------------------------------------------------
-    Revelation / return
-------------------------------------------------------------------------]]
-rv_gm.SetFlagReturnDelay(10)
-rv_gm.SetRevelationDelay(5)
-AddGamemodeHook("rv_gm.FlagRevealed", "RevealNotif", function(revealedply, ent, Revealed)
-    --
-    if not revealedply then return end
-    rv_gm.SendNotif(revealedply, {"Position revealed"}, {CurTime() + 1}, nil, true)
-end)
-
 --[[----------------------------------------------------------------------
     Death
 ------------------------------------------------------------------------]]
 local function GetDeadCount(TeamIndex)
+    local TeamPlayers = team.GetPlayers(TeamIndex)
     local DeadCount = 0
-    for _, ply in ipairs(team.GetPlayers(TeamIndex)) do
+    for _, ply in ipairs(TeamPlayers) do
         if ply:Alive() == false then --
             DeadCount = DeadCount + 1
         end
     end
 
-    if #team.GetPlayers(TeamIndex) == 0 then
+    if #TeamPlayers == 0 then
         print("Team is empty, squad wiped")
+        return true
+    end
+
+    if DeadCount == #TeamPlayers then
+        print("Team squad wiped proper")
         return true
     end
     return DeadCount
@@ -67,12 +64,13 @@ AddGamemodeHook("PlayerDeath", "TrackRoundDeath", function(victim, inflictor, at
         return
     end
 
-    if attacker:IsPlayer() and attacker:Team() ~= TEAM_RED and attacker:Team() ~= TEAM_BLUE then return end
+    if not attacker:IsPlayer() then return end
+    if attacker:Team() ~= TEAM_RED and attacker:Team() ~= TEAM_BLUE then return end
     if victim:Team() ~= TEAM_RED and victim:Team() ~= TEAM_BLUE then return end
     local OtherTeam = (victim:Team() == TEAM_RED and TEAM_BLUE) or TEAM_RED
     local AttackerTeam = (attacker:IsPlayer() and attacker:Team()) or OtherTeam
     --
-    if GetDeadCount(victim:Team()) == #team.GetPlayers(victim:Team()) then
+    if GetDeadCount(victim:Team()) == true then
         if victim == attacker then
             rv_gm.EndRound((victim:Team() == TEAM_RED and TEAM_BLUE) or TEAM_RED)
         else
@@ -114,7 +112,7 @@ end)
 
 -- round start 
 -- there is no RoundEnded for CTF because it is really just one round, this is just for notification formality
-local RoundStartDelay = 5
+local RoundStartDelay = 10
 AddGamemodeHook("rv_gm.RoundStarted", "RoundStarted", function(RoundCount)
     rv_gm.LockAttacks(RoundStartDelay)
     rv_gm.RespawnAllPlayers()
@@ -133,7 +131,7 @@ AddGamemodeHook("rv_gm.MatchStarted", "MatchStarted", function()
     end
 
     timer.Simple(1, function()
-        rv_gm.ShuffleTeams()
+        rv_gm.BalanceTeams()
         rv_gm.SendNotif(nil, {"Starts in: 3", "Starts in: 2", "Starts in: 1"}, {CurTime() + 1, CurTime() + 2, CurTime() + 3}, "Clan Arena")
         rv_gm.RespawnAllPlayers()
         -- this seems redundant and unnecessary 

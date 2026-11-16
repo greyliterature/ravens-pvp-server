@@ -247,7 +247,7 @@ function WL.UpdatePlayerPLR(ply, category, newmew, newvariance)
     sql.QueryTyped("INSERT INTO " .. CategoryTable .. " ( steamid32, mew, variance ) VALUES( ?, ?, ? ) ON CONFLICT(steamid32) DO UPDATE SET mew=excluded.mew, variance=excluded.variance", steamid32, newmew, newvariance) -- https://www.sqlite.org/lang_upsert.html
 end
 
-function WL.PlackettLuce(GameResult)
+function WL.PlackettLuce(category, GameResult)
     -- Step 1. "Given a game result and the current μᵢⱼ, σ²ᵢⱼ, ∀ᵢ, ∀ⱼ. Given β² and κ > 0. Decide a way to set γ_q in (50)
     -- (50) is shown in step 3.1
     -- Step 2. "For i = 1, ..., k, set"
@@ -421,7 +421,7 @@ function WL.PlackettLuce(GameResult)
                 PlayerTable[i][ply] = {}
                 PlayerTable[i][ply][1] = μ[i][j]
                 PlayerTable[i][ply][2] = σ²[i][j]
-                WL.UpdatePlayerPLR(ply, μ[i][j], σ²[i][j])
+                WL.UpdatePlayerPLR(category, ply, μ[i][j], σ²[i][j])
                 j = j + 1
             end
         end

@@ -135,7 +135,6 @@ if CLIENT then
             WeaponIcons[newpanel] = true
             function newpanel.PaintOver(_, w, h)
                 if IsInLoadout(spawnname) ~= true then return end
-                PrintTable(MyLoadout)
                 surface.SetDrawColor(color_black)
                 --surface.DrawRect(0, 0, w, h)
                 surface.SetDrawColor(color_addedtoloadout)
@@ -250,7 +249,6 @@ elseif SERVER then
             end
         end
 
-        PrintTable(Sums)
     end)
 
     net.Receive("InitLoadoutData", function(len, ply) end)

@@ -713,8 +713,30 @@ function rv_gm.AddTeamScore(teamindex, score)
 end
 
 -- Start/endround
+function rv_gm.EndRound(WinnerTeamIndex)
+    if MatchInProgress == false then return end
+    if RoundInProgress == false then return end
+    if StartingNewRound == true then return end
+    RoundInProgress = false
+    StartingNewRound = true
+    team.AddScore(WinnerTeamIndex, 1)
+    if team.GetScore(WinnerTeamIndex) >= RoundLimit then --
+        rv_gm.EndMatch(WinnerTeamIndex, true)
+        return
+    end
+
+    SendNotif(nil, {""}, {CurTime() + 3}, team.GetName(WinnerTeamIndex) .. " wins the round", true)
+    local NextRoundDelay = 4
+    rv_gm.LockAttacks(NextRoundDelay)
+    timer.Simple(NextRoundDelay, function()
+        --
+        rv_gm.StartRound(RoundLimit)
+    end)
+end
+
 local RoundCount = 0
 function rv_gm.StartRound()
+    StartingNewRound = false
     rv_gm.RespawnAllDeadPlayers()
     RoundCount = RoundCount + 1
     SetGlobal3("Bool", "MatchStarting", false)
@@ -1053,6 +1075,7 @@ end
 rv_gm.SetMatchInProgress(false) -- autorefresh
 function rv_gm.StartMatch()
     --rv_gm.SetMatchInProgress(true) -- this was a bad idea
+    StartingNewRound = true
     rv_gm.SetAllPlayersUnready()
     timer.Remove("MatchTimeLimit") -- or else conflicts, annoying but yeah
     SetGlobal3("Bool", "MatchStarting", true)

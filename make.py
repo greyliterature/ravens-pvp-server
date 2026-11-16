@@ -19,6 +19,7 @@ repositories = {
         ["https://github.com/TeamUlysses/ulib", "./garrysmod/addons/ulib", None],
         ["https://github.com/greyliterature/map_vote", "./garrysmod/addons/mapvote", "hotloading_concept"],
         ["https://github.com/greyliterature/FSpectate", "./garrysmod/addons/fspectate"],
+        ["https://github.com/wrefgtzweve/luapad", "./garrysmod/addons/luapad"],
         #["https://github.com/greyliterature/garrysmod/", "./garrysmod/addons/rv_extra/lua/autorun/client", None, True], # this doesnt work, overwrites it, unfortunate
 
     ],

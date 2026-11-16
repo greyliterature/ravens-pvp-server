@@ -227,7 +227,7 @@ function WL.GetPlayerPLR(category, ply) -- take from cache or sql query if not c
     return mew, variance
 end
 
-function WL.UpdatePlayerPLR(ply, newmew, newvariance)
+function WL.UpdatePlayerPLR(ply, category, newmew, newvariance)
     local CategoryTable = "player_plratings" .. "_" .. category
     local steamid32 = ply
     if not isstring(ply) and ply:IsPlayer() then --

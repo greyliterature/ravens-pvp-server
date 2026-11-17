@@ -793,7 +793,7 @@ if CLIENT then
                 local deaths = math.max(1, resulttbl[i]["deaths"])
                 _WeaponStats[i] = {
                     resulttbl[i]["weaponclass"], --
-                    kills / deaths,
+                    math.Truncate(kills / deaths, 2),
                     kills,
                 }
 

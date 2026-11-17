@@ -119,7 +119,7 @@ end)
     Remove conflicting hooks (FFA)
 --------------------------------]]
 function rv_gm.SetPlayerOutlineFlip(bool)
-    PlayerTeamOutlineFlip = bool
+    PlayerOutlineTeamFlip = bool
 end
 
 function rv_gm.RemoveConflictingHooks()

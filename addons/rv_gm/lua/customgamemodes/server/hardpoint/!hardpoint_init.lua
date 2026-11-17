@@ -217,15 +217,16 @@ AddGamemodeHook("rv_gm.GamemodeDataLoaded", "SetSpawns", function(gamemodetbl)
     HardPointsPoses = gamemodetbl[map]["HardPoints"]
     local random_hardpointpos = HardPointsPoses[math.random(1, #HardPointsPoses)]
     CreateHardPoint(random_hardpointpos)
-    for teamindex, tbl in pairs(gamemodetbl[map]["Spawns"]) do
-        for _, data in ipairs(tbl) do
-            local pos = data[1]
-            local angs = data[2]
-            local usePitch = nil
-            rv_gm.spawns[#rv_gm.spawns + 1] = CreateSpawnPoint(nil, pos, angs, usePitch, nil)
+    if gamemodetbl[map]["Spawns"] then
+        for teamindex, tbl in pairs(gamemodetbl[map]["Spawns"]) do
+            for _, data in ipairs(tbl) do
+                local pos = data[1]
+                local angs = data[2]
+                local usePitch = nil
+                rv_gm.spawns[#rv_gm.spawns + 1] = CreateSpawnPoint(nil, pos, angs, usePitch, nil)
+            end
         end
     end
-
     AddGamemodeTimer("SwapHardPoint", HardPointSwapDelay, 0, function()
         for _, HardPointPos in RandomPairs(HardPointsPoses) do
             if HardPointPos ~= LastHardPointPos then --

@@ -39,7 +39,7 @@ local function UpdateGlicko(ply, newrating, newrd, category, matchid)
 end
 
 -- Make match_data and player_glickos table
-sql.QueryTyped("CREATE TABLE IF NOT EXISTS match_data ( match_id INTEGER PRIMARY KEY AUTOINCREMENT, winner_SteamID64 TEXT, loser_SteamID64 TEXT, category TEXT, matchdate TEXT, forfeited BOOLEAN, winnerscore INTEGER, loserscore INTEGER, winnerglicko INTEGER, loserglicko INTEGER, ratingperiod INTEGER, rated INTEGER DEFAULT 0 )")
+sql.QueryTyped("CREATE TABLE IF NOT EXISTS match_data ( match_id INTEGER PRIMARY KEY AUTOINCREMENT, winner_SteamID64 TEXT, loser_SteamID64 TEXT, category TEXT, matchdate TEXT, forfeited BOOLEAN, winnerscore INTEGER, loserscore INTEGER, winnerglicko INTEGER, loserglicko INTEGER, ratingperiod INTEGER, rated INTEGER DEFAULT 0, map TEXT, mapwsid TEXT )")
 sql.QueryTyped("CREATE TABLE IF NOT EXISTS player_glickos (steamid64 TEXT UNIQUE, rating INTEGER, rd INTEGER, matchessincelastrating INTEGER, lastmatchid INTEGER)")
 --
 --[[

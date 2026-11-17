@@ -107,6 +107,7 @@ if CLIENT then
         end
 
         if bCache then return circle end
+        if table.Count(circle) < 3 then return end
         surface.DrawPoly(circle)
     end
 

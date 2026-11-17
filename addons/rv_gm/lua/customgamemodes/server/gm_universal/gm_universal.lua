@@ -143,7 +143,10 @@ end)
 --------------------------------]]
 rv_gm.Info_player_starts = {}
 function rv_gm.RemoveAllSpawns() -- don't forgot to run rv_gm.ReaddAllSpawns() after the match is over
-    for _, info_player_start in ipairs(ents.FindByClass("info_player_start")) do
+    rv_gm.SpawnsNeedToBeReadded = true
+    local Info_player_starts = ents.FindByClass("info_player_start")
+    table.Add(Info_player_starts, ents.FindByClass("info_player_deathmatch"))
+    for _, info_player_start in ipairs(Info_player_starts) do
         local pos = info_player_start:GetPos()
         local angs = info_player_start:GetAngles()
         rv_gm.Info_player_starts[#rv_gm.Info_player_starts + 1] = {pos, angs}
@@ -154,11 +157,13 @@ end
 function rv_gm.CreateSpawn(vec, angs, teamindex)
     local Info_player_start = rv_gm.CreateGamemodeEntity("info_player_start")
     Info_player_start:SetPos(vec)
+    Info_player_start:SetAngles(angs)
     Info_player_start.TeamIndex = teamindex
     Info_player_start:Spawn()
 end
 
 function rv_gm.ReaddAllSpawns()
+    rv_gm.SpawnsNeedToBeReadded = nil
     for _, tbl in ipairs(rv_gm.Info_player_starts) do
         local pos = tbl[1]
         local angs = tbl[2]
@@ -279,7 +284,7 @@ function rv_gm.CreateTrigger(vec, parent, minbounds, maxbounds, parentcolor, sta
     InfoParent:SetCollisionBounds(minbounds, maxbounds)
     InfoParent:SetCollisionGroup(COLLISION_GROUP_IN_VEHICLE)
     InfoParent:GetPhysicsObject():EnableMotion(false)
-    parentcolorcopy = parentcolor:Copy()
+    local parentcolorcopy = parentcolor:Copy()
     parentcolorcopy.a = 0
     InfoParent:SetColor(parentcolorcopy)
     InfoParent:SetRenderMode(RENDERMODE_TRANSCOLOR)
@@ -649,11 +654,11 @@ function rv_gm.CreateHill(vec, minbounds, maxbounds, hillreward)
         SetGlobal3("Int", "ControllingTeam", ControllingTeam)
     end
 
-    local hill = rv_gm.CreateTrigger(vec, nil, minbounds, maxbounds, color_transparent, starttouchfunc, touchfunc, endtouchfunc)
+    local hill = rv_gm.CreateTrigger(vec, nil, minbounds, maxbounds, color_transparent, starttouchfunc, nil, endtouchfunc)
     local AmmoCrate = rv_gm.CreateGamemodeEntity("prop_physics")
     AmmoCrate:SetModel("models/props/de_prodigy/ammo_can_01.mdl")
     AmmoCrate:SetPos(vec)
-    AmmoCrate:SetParent(hill)
+    --AmmoCrate:SetParent(hill)
     AmmoCrate:Spawn()
     AmmoCrate:GetPhysicsObject():EnableMotion(false)
     rv_gm.SetHillReward(hill, hillreward or DefaultHillScoreReward)
@@ -665,8 +670,8 @@ function rv_gm.CreateHill(vec, minbounds, maxbounds, hillreward)
             local highestteamindex, bestscore, secondbestteamindex, secondbestscore = rv_gm.GetHighestTeamOnHill(hillent)
             if not highestteamindex then continue end
             if bestscore == secondbestscore and secondbestteamindex then continue end
-            print("gave " .. team.GetName(highestteamindex) .. " score reward: " .. hill.ScoreReward .. " ( or maybe didnt )")
-            rv_gm.AddTeamScore(highestteamindex, hill.ScoreReward)
+            print("gave " .. team.GetName(highestteamindex) .. " score reward: " .. hillent.ScoreReward .. " ( or maybe didnt )")
+            rv_gm.AddTeamScore(highestteamindex, hillent.ScoreReward)
         end
     end)
     return hill
@@ -1027,7 +1032,6 @@ PrintTable(best_team1)
 PrintTable(best_team2)
 --]]
 local WL = include("autorun/server/rv_wl.lua")
--- partly based on reseacher paper https://arxiv.org/pdf/cs/9903011
 function rv_gm.BalanceTeams(Teams)
     if not Teams then Teams = rv_gm.GetTeamIndexes() end
     local Players = {}
@@ -1118,6 +1122,7 @@ function rv_gm.StartMatch()
 end
 
 function rv_gm.EndMatch()
+    if rv_gm.SpawnsNeedToBeReadded == true then rv_gm.ReaddAllSpawns() end
     local WinnerIndex, BestTeamScore = -9999, 0
     local loserstbl = {}
     local Teams = rv_gm.GetTeamIndexes()

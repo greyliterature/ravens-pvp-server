@@ -496,7 +496,7 @@ AddGamemodeHook("rv_gm.FlagRTBed", "GetFlagRTB", function(ent)
     local myflag = GetTeamFlag(LocalPlayer():Team())
     local myflagbase = GetTeamFlagBase(LocalPlayer():Team())
     if ent ~= myflag then -- if its not myflag its theirflag
-        myflagbase.Text = nil
+        if IsValid(myflagbase) then myflagbase.Text = nil end
         ent.Text = nil
     end
 

@@ -1027,6 +1027,7 @@ PrintTable(best_team1)
 PrintTable(best_team2)
 --]]
 local WL = include("autorun/server/rv_wl.lua")
+-- partly based on reseacher paper https://arxiv.org/pdf/cs/9903011
 function rv_gm.BalanceTeams(Teams)
     if not Teams then Teams = rv_gm.GetTeamIndexes() end
     local Players = {}

@@ -548,7 +548,7 @@ elseif CLIENT then
 end
 
 if SERVER then
-    local DEBUGGING_HOOKS = true -- YOU SHOULD TURN THIS OFF, 99.9% OF THE TIME. JUST DEBUGGING IT FOR A SPECIFIC USE
+    local DEBUGGING_HOOKS = false -- YOU SHOULD TURN THIS OFF, 99.9% OF THE TIME. JUST DEBUGGING IT FOR A SPECIFIC USE
     if DEBUGGING_HOOKS == true then
         local WhitelistedHooks = {
             ["OnLuaError"] = true,

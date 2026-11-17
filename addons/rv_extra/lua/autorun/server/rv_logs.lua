@@ -33,12 +33,6 @@ hook.Add("ULibUserGroupChange", "UserGroupLogs", function(id, _, _, new_group, o
     SendWebhook(ADMIN_LOGS_WEBHOOK, JSON, "Gmod Admin logs")
 end)
 
-hook.Add("LuapadRanSV", "LuapadLogs", function(ply, code)
-    JSON["embeds"][1]["description"] = ply:Nick() .. "(" .. ply:SteamID() .. ")" .. " ran lua: " .. "\n ```" .. utf8.sub(code, 1, 1900) .. "```"
-    SendWebhook(ADMIN_LOGS_WEBHOOK, JSON, "Gmod Admin logs", true)
-    JSON.embeds[1].fields = nil
-end)
-
 hook.Add("InitPostEntity", "StartLogs", function()
     if game.IsDedicated() == false then -- therefore local p2p testing 
         return

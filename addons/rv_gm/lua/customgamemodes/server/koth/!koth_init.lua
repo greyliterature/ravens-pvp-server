@@ -139,15 +139,17 @@ AddGamemodeHook("rv_gm.GamemodeDataLoaded", "SetSpawns", function(gamemodetbl)
     for _, hillpos in pairs(gamemodetbl[map]["Hills"]) do
         rv_gm.CreateHill(hillpos, HillMins, HillMaxes, 1)
     end
-
-    for teamindex, tbl in pairs(gamemodetbl[map]["Spawns"]) do
-        for _, data in ipairs(tbl) do
-            local pos = data[1]
-            local angs = data[2]
-            local usePitch = nil
-            print(pos, angs)
-            rv_gm.spawns[#rv_gm.spawns + 1] = CreateSpawnPoint(nil, pos, angs, usePitch, teamindex)
+    if gamemodetbl[map]["Spawns"] then 
+        for teamindex, tbl in pairs(gamemodetbl[map]["Spawns"]) do
+            for _, data in ipairs(tbl) do
+                local pos = data[1]
+                local angs = data[2]
+                local usePitch = nil
+                rv_gm.spawns[#rv_gm.spawns + 1] = CreateSpawnPoint(nil, pos, angs, usePitch, teamindex)
+            end
         end
+    else
+        PrintMessage(HUD_PRINTTALK, "NO SPAWNS!")
     end
 end)
 

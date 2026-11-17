@@ -32,7 +32,7 @@ local color_pfDarkRed = Color(90, 10, 0)
 ---- icons
 local LockIcon = Material("icon16/lock_delete.png")
 local LockSize = ScrW() * 0.01
-hook.Add("HUDPaint", "ShowHardpoint", function()
+AddGamemodeHook("HUDPaint", "ShowHardpoint", function()
     -- show hardpoints
     for _, hardpoint in ipairs(rv_gm.GetAllTriggerParents()) do
         if not IsValid(hardpoint) then continue end

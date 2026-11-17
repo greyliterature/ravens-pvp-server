@@ -757,7 +757,7 @@ if CLIENT then
             Damage = math.Truncate(Damage / 1000, 1) .. "k"
             Kills = resulttbl[1]["kills"]
             Deaths = resulttbl[1]["deaths"]
-            KD = math.Truncate(Kills / (Deaths == 0 and 1) or Deaths, 2)
+            KD = math.Truncate(Kills / ((Deaths == 0 and 1) or Deaths), 2)
         end)
 
         local BestWeapon = InfoHolder(Panel, Panel:GetWide() * 0.5, 128, "Best Weapon", "Stratum_Bold_Smaller", color_csgogrey, Panel:GetWide() * 0.01, Panel:GetTall() * 0.01)

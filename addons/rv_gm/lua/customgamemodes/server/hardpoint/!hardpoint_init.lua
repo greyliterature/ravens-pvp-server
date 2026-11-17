@@ -13,6 +13,7 @@ end)
 ------------------------------------------------------------------------]]
 -- autorefresh
 local CONTROLLING_TEAM_NOPLAYERS = 95316
+local CONTROLLING_TEAM_CONTESTED = 953493
 SetGlobal3("Int", "ControllingTeam", CONTROLLING_TEAM_NOPLAYERS)
 --
 local TEAM_RED, TEAM_BLUE = 1, 2

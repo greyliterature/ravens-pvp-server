@@ -34,6 +34,8 @@ local function DecideSpawn(ply, _)
     local spawns = nil
     if SERVER then -- from https://gmodwiki.com/GM:PlayerSelectSpawn#example
         spawns = ents.FindByClass("info_player_start")
+        local dm_spawns = ents.FindByClass("info_player_deathmatch")
+        table.Add(spawns, dm_spawns)
     elseif CLIENT then
         spawns = rv_spawns
     end

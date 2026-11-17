@@ -86,6 +86,16 @@ end
 --[[------------------------------
         SetGamemode
 --------------------------------]]
+local function CanPlayGamemode(GamemodeName)
+    local HookPath = "customgamemodes/server/" .. GamemodeName .. "/" .. "!" .. GamemodeName .. "_hookfile.lua" -- can we play this game?
+    if not file.Exists(HookPath, "LUA") then --
+        return true, nil
+    end
+
+    local ShouldPlayGamemode, err = include(HookPath)
+    return ShouldPlayGamemode, err
+end
+
 local GamemodeVars = include("customgamemodes/gamemodevars.lua")
 rv_gm = rv_gm or {}
 rv_gm.CurrentGamemode = "FFA" -- this file shouldnt be included anywhere, so it should be fine to do this on every single run
@@ -95,7 +105,12 @@ if SERVER then
     function SetGamemode(NewGamemode, RoundLimit, Ranked)
         NewGamemode = string.lower(NewGamemode)
         local InitPath = "customgamemodes/server/" .. NewGamemode .. "/" .. "!" .. NewGamemode .. "_init.lua"
-        if file.Exists(InitPath, "LUA") and hook.Run("CanPlayGamemode", NewGamemode) ~= false then --
+        local CanSetGamemode, err = CanPlayGamemode(NewGamemode)
+        if err then
+            PrintMessage(HUD_PRINTTALK, "Can't set gamemode because " .. err)
+        end
+        
+        if file.Exists(InitPath, "LUA") and hook.Run("CanPlayGamemode", NewGamemode) ~= false and select(1, CanPlayGamemode(NewGamemode)) ~= false then --
             GamemodeVars.CurrentGamemode[2] = NewGamemode
             SetGlobal3("Bool", "RankedMatch", Ranked == true)
             SetGlobal3("String", "CurrentGamemode", NewGamemode)
@@ -105,6 +120,7 @@ if SERVER then
             RemoveLastGamemodesHooks()
             RemoveLastGamemodesEntities()
             rv_gm.CurrentGamemode = NewGamemode
+            print("Setting gamemode to " .. rv_gm.CurrentGamemode)
             include(InitPath)
         end
     end
@@ -134,16 +150,6 @@ local function IsValidGamemode(GamemodeName)
     if not GamemodeName then return false end
     local ValidGamemode = file.IsDir("customgamemodes/server/" .. GamemodeName, "LUA")
     return ValidGamemode
-end
-
-local function CanPlayGamemode(GamemodeName)
-    local HookPath = "customgamemodes/server/" .. GamemodeName .. "/" .. "!" .. GamemodeName .. "_hookfile.lua" -- can we play this game?
-    if not file.Exists(HookPath, "LUA") then --
-        return true, nil
-    end
-
-    local ShouldPlayGamemode, err = include(HookPath)
-    return ShouldPlayGamemode, err
 end
 
 local VotedForModes = {}

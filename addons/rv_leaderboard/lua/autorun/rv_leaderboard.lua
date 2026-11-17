@@ -1015,7 +1015,7 @@ if SERVER then
         for steamid32, deathcount in pairs(DeathBatches) do
             if i >= BatchRunCount then break end
             print("Updating " .. steamid32)
-            sql.QueryTyped("INSERT INTO player_info (steamid32, kills) VALUES(?, ?) ON CONFLICT(steamid32) DO UPDATE SET kills=kills + ?", steamid32, deathcount, deathcount)
+            sql.QueryTyped("INSERT INTO player_info (steamid32, deaths) VALUES(?, ?) ON CONFLICT(steamid32) DO UPDATE SET deaths=deaths + ?", steamid32, deathcount, deathcount)
             DeathBatches[steamid32] = nil
             i = i + 1
         end

@@ -135,6 +135,7 @@ if SERVER then
         ActivePlayers[ply] = true
         net.Start("rv_sendspawns")
         local spawns = ents.FindByClass("info_player_start")
+        table.Add(spawns, ents.FindByClass("info_player_deathmatch"))
         local NumKeys = #spawns
         net.WriteUInt(NumKeys, 7)
         for i = 1, NumKeys do

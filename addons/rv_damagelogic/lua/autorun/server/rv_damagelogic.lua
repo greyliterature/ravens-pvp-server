@@ -107,7 +107,7 @@ if SERVER then
     local RefillAmmo = nil
     local RefillConvars = {
         RefillType = CreateConVar("rv_sv_refill_refilltype", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "Refill type per kill award", 0),
-        RefillMargin = CreateConVar("rv_sv_refill_refillmargin", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "What percentage of a player's CURRENT clip to refill (float)", 0),
+        RefillMargin = CreateConVar("rv_sv_refill_refillmargin", "0.33", FCVAR_ARCHIVE + FCVAR_NOTIFY, "What percentage of a player's CURRENT clip to refill (float)", 0),
         RefillAllWeapons = CreateConVar("rv_sv_refill_refillallweapons", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "Whether or not to refill all of a player's weapons", 0),
         RewardMargin = CreateConVar("rv_sv_refill_rewardmargin", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY, "What percentage of a player's health must an enemy deal to be rewarded ammo", 0),
     }

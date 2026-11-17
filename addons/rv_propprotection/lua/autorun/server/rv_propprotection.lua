@@ -26,6 +26,12 @@ hook.Add("PostUndo", "RemoveFromTables", function(undotbl, _)
         ply.PropProtectionEntities[ent] = nil
     end
 end)
+hook.Add("EntityRemoved", "RemoveFromTables", function(ent, _)
+    local creator = ent:GetCreator()
+    if IsValid(creator) and creator:IsPlayer() then
+        creator.PropProtectionEntities[ent] = nil
+    end
+end)
 
 hook.Add("PlayerDisconnected", "ClearPropsOnDisconnect", function(ply)
     if not ply.PropProtectionEntities then return end

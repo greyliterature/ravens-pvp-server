@@ -24,7 +24,7 @@ hook.Add("ULibPlayerBanned", "BanLogs", function(steamid, ban_data)
 end)
 
 hook.Add("ULibPlayerKicked", "KickLogs", function(steamid, reason, caller)
-    JSON["embeds"][1]["description"] = ((IsValid(caller) and caller:Nick()) or "CONSOLE") .. "(" .. caller:SteamID() .. ")" .. " kicked " .. steamid .. " because " .. reason
+    JSON["embeds"][1]["description"] = ((IsValid(caller) and caller:Nick()) or "CONSOLE") .. "(" .. ((IsValid(caller) and caller:SteamID()) or "") .. ")" .. " kicked " .. steamid .. " because " .. reason
     SendWebhook(ADMIN_LOGS_WEBHOOK, JSON, "Gmod Admin logs")
 end)
 

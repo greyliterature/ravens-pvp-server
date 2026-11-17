@@ -130,6 +130,7 @@ function rv_gm.RemoveConflictingHooks()
     for _, ply in player.Iterator() do
         if ply.Doll then --
             ply.Doll:Remove()
+            ply:SetColor(color_white) -- make this use cached values later?
         end
     end
 end

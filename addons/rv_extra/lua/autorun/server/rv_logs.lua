@@ -15,7 +15,7 @@ local JSON = {
 hook.Add("ULibPlayerBanned", "BanLogs", function(steamid, ban_data)
     PrintTable(ban_data)
     if not ban_data.modified_admin then
-        JSON["embeds"][1]["description"] = ban_data.admin .. " banned " .. ban_data.steamID .. " for " .. string.NiceTime(ban_data.time) .. " because " .. ban_data.reason
+        JSON["embeds"][1]["description"] = ban_data.admin .. " banned " .. ban_data.steamID .. " for " .. string.NiceTime(ban_data.time) .. " because " .. (ban_data.reason or "")
     else
         JSON["embeds"][1]["description"] = ban_data.modified_admin .. " changed ban for " .. ban_data.steamID .. " to " .. string.NiceTime(ban_data.modified_time)
     end

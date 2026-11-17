@@ -24,12 +24,12 @@ hook.Add("ULibPlayerBanned", "BanLogs", function(steamid, ban_data)
 end)
 
 hook.Add("ULibPlayerKicked", "KickLogs", function(steamid, reason, caller)
-    JSON["embeds"][1]["description"] = ((IsValid(caller) and (caller:Nick()) or "CONSOLE") .. "(" .. caller:SteamID() .. ")" .. " kicked " .. steamid .. " because " .. reason
+    JSON["embeds"][1]["description"] = ((IsValid(caller) and caller:Nick()) or "CONSOLE") .. "(" .. caller:SteamID() .. ")" .. " kicked " .. steamid .. " because " .. reason
     SendWebhook(ADMIN_LOGS_WEBHOOK, JSON, "Gmod Admin logs")
 end)
 
 hook.Add("ULibUserGroupChange", "UserGroupLogs", function(id, _, _, new_group, old_group)
-    JSON["embeds"][1]["description"] = id .. " usergroup change: " .. (old_group or "").. "->" .. new_group
+    JSON["embeds"][1]["description"] = id .. " usergroup change: " .. (old_group or "") .. "->" .. new_group
     SendWebhook(ADMIN_LOGS_WEBHOOK, JSON, "Gmod Admin logs")
 end)
 

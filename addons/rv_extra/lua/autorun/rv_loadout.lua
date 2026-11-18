@@ -109,7 +109,7 @@ elseif SERVER then
         PlayerLoadouts[ply] = PlayerLoadouts[ply] or {}
         local deltaweapon = net.ReadString()
         local IsAlreadyInLoadout = PlayerLoadouts[ply][deltaweapon]
-        PlayerLoadouts[ply][deltaweapon] = (IsAlreadyInLoadout == false and true) or nil -- remove if already in loadout, reduces networking
+        PlayerLoadouts[ply][deltaweapon] = (IsAlreadyInLoadout == nil and true) or nil -- remove if already in loadout, reduces networking
         PrintTable(PlayerLoadouts[ply])
         print(deltaweapon)
     end)

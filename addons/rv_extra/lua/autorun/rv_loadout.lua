@@ -153,8 +153,6 @@ elseif SERVER then
         return
     end)
 
-
-
     util.AddNetworkString("SendLoadoutInit")
     net.Receive("SendLoadoutInit", function(len, ply)
         if not LoadoutDataExpected[ply] then -- ban!
@@ -170,10 +168,8 @@ elseif SERVER then
 
         --[[--]]
         ply:StripWeapons()
-        for _, weapontbl in ipairs(Weapons) do
-            for _, weaponclass in ipairs(weapontbl) do
-                ply:Give(weaponclass)
-            end
+        for _, weaponclass in ipairs(Weapons) do
+            ply:Give(weaponclass)
         end
     end)
 

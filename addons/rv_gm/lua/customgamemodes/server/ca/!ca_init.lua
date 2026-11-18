@@ -14,6 +14,7 @@ end)
 ------------------------------------------------------------------------]]
 local TEAM_RED, TEAM_BLUE = 1, 2
 rv_gm.SetAllToSpectate(true)
+rv_gm.AllowPlayerFriendlyFire(false)
 rv_gm.AllowPlayerRespawns(false)
 rv_gm.AllowPlayerSuicide(false)
 rv_gm.EnableTeamJoins(true)

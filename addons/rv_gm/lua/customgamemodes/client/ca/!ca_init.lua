@@ -247,7 +247,7 @@ end)
 --[[------------------------------
     Remove conflicting hooks
 --------------------------------]]
-PlayerTeamOutlineFlip = true
+rv_gm.SetPlayerOutlineFlip(true)
 hook.Remove("PrePlayerDraw", "DuelDollModel")
 hook.Remove("PostPlayerDraw", "DuelDollModel")
 hook.Remove("ShouldCollide", "MakePlayersNotCollide")

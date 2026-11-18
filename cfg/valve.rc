@@ -1,3 +1,7 @@
+// mandatory
+sv_region "255"
+sv_location "US"
+
 // regular stuff
 sv_airaccelerate 9999
 sv_sticktoground 0

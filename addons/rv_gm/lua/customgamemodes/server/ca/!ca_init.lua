@@ -13,8 +13,6 @@ end)
     init
 ------------------------------------------------------------------------]]
 local TEAM_RED, TEAM_BLUE = 1, 2
-team.SetUp(TEAM_RED, "Red Team", Color(255, 0, 0), true)
-team.SetUp(TEAM_BLUE, "Blue Team", Color(0, 0, 255), true)
 rv_gm.SetAllToSpectate(true)
 rv_gm.AllowPlayerRespawns(false)
 rv_gm.AllowPlayerSuicide(false)

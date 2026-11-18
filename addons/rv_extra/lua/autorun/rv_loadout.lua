@@ -1,52 +1,3 @@
--- Source - https://stackoverflow.com/a/39087852
--- Posted by Dmitrii Bychenko, modified by community. See post 'Timeline' for change history
--- Retrieved 2026-11-02, License - CC BY-SA 3.0
---proof:
---print(GetBitCount(4294967295))
---output: 32
-local function GetBitCount(uint)
-    return math.floor(math.log(uint, 2)) + 1
-end
-
---[[
-
---]]
-local SerializedWeapons = {}
-local WeaponToSerial = {}
-local MAX_WEAPON_BITS = nil
-local i = 1
-for weaponclass, _ in pairs(list.Get("Weapon")) do
-    SerializedWeapons[#SerializedWeapons + 1] = weaponclass
-    WeaponToSerial[weaponclass] = i
-    i = i + 1
-end
-
-local BitFlag = {}
-local WeaponToBitFlag = {} -- this apparently is a bitfield (i think), but i already named it this so whatever
-i = 0
-local bitgroup = 1
-for _, weaponclass in ipairs(SerializedWeapons) do
-    if i == 32 then
-        i = 0
-        bitgroup = bitgroup + 1
-    end
-
-    BitFlag[bitgroup] = BitFlag[bitgroup] or {}
-    BitFlag[bitgroup][2 ^ i] = weaponclass
-    WeaponToBitFlag[weaponclass] = {2 ^ i, bitgroup}
-    i = i + 1
-end
-
-local MAX_WEAPON_BIT_GROUPS = bitgroup
-local function WeaponClassToBitFlag(weaponclass)
-    return WeaponToBitFlag[weaponclass][1], WeaponToBitFlag[weaponclass][2]
-end
-
---PrintTable(WeaponToBitFlag)
-MAX_WEAPON_BITS = GetBitCount(#SerializedWeapons)
---[[
-
---]]
 if CLIENT then
     local MyLoadout = {
         ["weapon_357"] = true,
@@ -76,22 +27,16 @@ if CLIENT then
 
     local function SendLoadoutInit()
         WriteReadNewLoadout(true)
-        local Sums = {}
-        for weaponclass, _ in pairs(MyLoadout) do
-            local bitflag, bitGroup = WeaponClassToBitFlag(weaponclass)
-            Sums[bitGroup] = Sums[bitGroup] or 0
-            Sums[bitGroup] = Sums[bitGroup] + bitflag
-        end
-
-        --[[--]]
         PrintTable(MyLoadout)
         net.Start("SendLoadoutInit")
-        for j = 1, MAX_WEAPON_BIT_GROUPS do
-            net.WriteUInt(Sums[j], 32)
+        net.WriteUInt(table.Count(MyLoadout), 7)
+        for weaponclass, _ in pairs(MyLoadout) do
+            net.WriteString(weaponclass)
         end
 
         net.SendToServer()
     end
+
     --[[
     if CurTime() > 5 then -- autorefresh debugging
         timer.Simple(0, function() SendLoadoutInit() end)
@@ -100,8 +45,7 @@ if CLIENT then
     hook.Add("InitPostEntity", "SendLoadoutInit", SendLoadoutInit)
     local function SendLoadoutChange(classdelta)
         net.Start("LoadoutDelta")
-        local deltaserial = WeaponToSerial[classdelta]
-        net.WriteUInt(deltaserial, MAX_WEAPON_BITS)
+        net.WriteString(classdelta)
         net.SendToServer()
     end
 
@@ -163,9 +107,7 @@ elseif SERVER then
     util.AddNetworkString("LoadoutDelta")
     net.Receive("LoadoutDelta", function(len, ply)
         PlayerLoadouts[ply] = PlayerLoadouts[ply] or {}
-        local deltaserial = net.ReadUInt(MAX_WEAPON_BITS)
-        local deltaweapon = SerializedWeapons[deltaserial]
-        local IsAlreadyInLoadout = PlayerLoadouts[ply][deltaweapon]
+        local deltaweapon = net.ReadString()
         PlayerLoadouts[ply][deltaweapon] = (IsAlreadyInLoadout == false and true) or nil -- remove if already in loadout, reduces networking
         PrintTable(PlayerLoadouts[ply])
         print(deltaweapon)
@@ -211,21 +153,7 @@ elseif SERVER then
         return
     end)
 
-    local function BitFlagToWeaponClass(bitGroup, bitflag)
-        --print(bitGroup, bitflag, "HIIII")
-        return BitFlag[bitGroup][2 ^ bitflag]
-    end
 
-    local function WeaponBitFlagToTable(bitGroup, bitflag)
-        local Weapons = {}
-        for index = 0, 31 do
-            local flag = bit.lshift(1, index)
-            if bit.band(flag, bitflag) ~= 0 then --
-                Weapons[#Weapons + 1] = BitFlagToWeaponClass(bitGroup, index)
-            end
-        end
-        return Weapons
-    end
 
     util.AddNetworkString("SendLoadoutInit")
     net.Receive("SendLoadoutInit", function(len, ply)
@@ -235,10 +163,9 @@ elseif SERVER then
 
         local Weapons = {}
         LoadoutDataExpected[ply] = nil
-        local Sums = {}
-        for j = 1, MAX_WEAPON_BIT_GROUPS do
-            Sums[j] = net.ReadUInt(32)
-            Weapons[#Weapons + 1] = WeaponBitFlagToTable(j, Sums[j])
+        local LoadoutCount = net.ReadUInt(7)
+        for i = 1, LoadoutCount do
+            Weapons[#Weapons + 1] = net.ReadString()
         end
 
         --[[--]]
@@ -248,7 +175,6 @@ elseif SERVER then
                 ply:Give(weaponclass)
             end
         end
-
     end)
 
     net.Receive("InitLoadoutData", function(len, ply) end)

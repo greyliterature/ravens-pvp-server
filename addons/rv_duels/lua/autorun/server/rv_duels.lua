@@ -373,7 +373,7 @@ hook.Add("PlayerSay", "HandleChatCommands", function(sender, text, teamChat)
 end)
 
 hook.Add("PlayerSpawn", "SetCollisionRulesOnSpawn", function(ply)
-    if DuelRunning == true then
+    if table.Count(DuelsRunning) >= 1 then
         ply:SetCustomCollisionCheck(true)
         ply:CollisionRulesChanged()
     end
@@ -389,7 +389,14 @@ end)
 
 local InvalidFallback = 134634196349634 -- A player's arenanumber should never be set to this number. If the fallback of the player == InvalidFallback then the nwint didnt get set
 hook.Add("ShouldCollide", "MakePlayersNotCollide", function(ent1, ent2)
-    if ent1:GetNWInt("ArenaNumber", InvalidFallback) == InvalidFallback or ent2:GetNWInt("ArenaNumber", InvalidFallback) == InvalidFallback then return end
+    if ent1:IsWorld() or ent2:IsWorld() then return end
+    --print(ent1:GetClass(), ent2:GetClass(), ent1:GetNWInt("ArenaNumber", InvalidFallback), ent2:GetNWInt("ArenaNumber", InvalidFallback))
+    if IsValid(ent1:GetOwner()) then ent1 = ent1:GetOwner() end 
+    if IsValid(ent2:GetOwner()) then ent2 = ent2:GetOwner() end
+    if ent1:GetNWInt("ArenaNumber", InvalidFallback) == InvalidFallback and ent2:GetNWInt("ArenaNumber", InvalidFallback) == InvalidFallback then 
+        return 
+    end
+    
     return ent1:GetNWInt("ArenaNumber", 0) == ent2:GetNWInt("ArenaNumber", 0)
 end)
 

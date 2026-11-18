@@ -82,7 +82,7 @@ AddGamemodeHook("HUDPaint", "ReadyUpReminder", function()
         local ReadyUpRatio = GetGlobal3("ReadyUpRatio")
         local ReadyUpCount = GetGlobal3("ReadyUpCount", 0)
         local ValidPlayers = #team.GetPlayers(TEAM_RED) + #team.GetPlayers(TEAM_BLUE)
-        draw.DrawText(ReadyUpCount .. " / " .. CeilZero(ReadyUpRatio * ValidPlayers) .. " players ready. " .. "Press f3 to unready yourself.", "RobotoSecondaryHeader", ScrW() * 0.5, ScrH() * 0.2, colortable.color_green, TEXT_ALIGN_CENTER)
+        draw.DrawText(ReadyUpCount .. " / " .. CeilZero((ReadyUpRatio or ValidPlayers) * ValidPlayers) .. " players ready. " .. "Press f3 to unready yourself.", "RobotoSecondaryHeader", ScrW() * 0.5, ScrH() * 0.2, colortable.color_green, TEXT_ALIGN_CENTER)
     end
 end)
 

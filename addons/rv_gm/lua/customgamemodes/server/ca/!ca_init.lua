@@ -58,6 +58,23 @@ local function GetDeadCount(TeamIndex)
     return DeadCount
 end
 
+local LastManStandingVoicelines = {
+    "vo/k_lab/kl_barneysturn.wav", --
+    "vo/canals/boxcar_becareful.wav",
+    "vo/k_lab/al_careful02.wav",
+    "vo/npc/male01/goodgod.wav",
+    "vo/trainyard/ba_goodluck01.wav",
+    "vo/trainyard/male01/cit_window_use01.wav",
+    "vo/trainyard/male01/cit_tvbust05.wav",
+    "vo/npc/male01/ohno.wav",
+    "vo/npc/male01/gordead_ans14.wav",
+    "vo/npc/male01/evenodds.wav",
+    "vo/npc/female01/question21.wav",
+    "vo/canals/arrest_lookingforyou.wav",
+    "vo/ravenholm/monk_helpme01.wav",
+    "vo/ravenholm/shotgun_advice.wav",
+}
+
 AddGamemodeHook("PlayerDeath", "TrackRoundDeath", function(victim, inflictor, attacker)
     if rv_gm.MatchInProgress ~= true then --
         return

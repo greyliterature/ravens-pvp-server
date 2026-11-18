@@ -32,7 +32,7 @@ end)
 
 hook.Add("PrePlayerDraw", "DuelDollModel", function(ply, flags)
     if ply == LocalPlayer() then return end
-    ply:SetNoDraw(ply:Team() ~= LocalPlayer():Team() and (ply:Team() ~= TEAM_RED and ply:Team() ~= TEAM_BLUE and (LocalPlayer():Team() == TEAM_RED or LocalPlayer():Team() == TEAM_BLUE)))
+    ply:SetNoDraw(ply:Team() ~= LocalPlayer():Team())
 end)
 
 hook.Add("PostPlayerDraw", "DuelDollModel", function(ply)

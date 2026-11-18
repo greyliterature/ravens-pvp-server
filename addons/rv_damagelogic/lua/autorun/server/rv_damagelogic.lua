@@ -216,11 +216,15 @@ if SERVER then
         victim.DamageContributions = {}
     end)
 
+    local InformEnemyHealth = nil
     hook.Add("PlayerDeath", "RewardPlayer", function(victim, _, attacker)
-        if victim ~= attacker then --
-            hook.Run("RewardPlayer", attacker, victim)
+        if victim == attacker then return end
+        local ShouldInformEnemyHealth = hook.Run("ShouldInformEnemyHealth", victim, attacker)
+        if ShouldInformEnemyHealth ~= false then --
+            InformEnemyHealth(victim, attacker)
         end
 
+        hook.Run("RewardPlayer", attacker, victim)
         victim.LastTickHealth = nil
         victim.DamageContributions = {}
         attacker.DamageContributions = {}
@@ -268,14 +272,8 @@ if SERVER then
         return true
     end)
 
-    local function InformEnemyHealth(victim, attacker)
-        victim:ChatPrintColor({"RV_OUTLINESCOLOR", attacker:Nick(), "COLOR_WHITE", " had ", "COLOR_GREEN", tostring(attacker:Health()), "COLOR_WHITE", " health remaining."})
+    InformEnemyHealth = function(victim, attacker)
+        victim:ChatPrintColor({"RV_OUTLINESCOLOR", attacker:Nick(), "COLOR_WHITE", " had ", "COLOR_GREEN", attacker:Health(), "COLOR_WHITE", " health remaining."})
+        return
     end
-
-    hook.Add("PlayerDeath", "InformEnemyHealth", function(victim, _, attacker)
-        if victim == attacker then return end
-        local ShouldInformEnemyHealth = hook.Run("ShouldInformEnemyHealth", victim, attacker)
-        if ShouldInformEnemyHealth == false then return end
-        InformEnemyHealth(victim, attacker)
-    end)
 end

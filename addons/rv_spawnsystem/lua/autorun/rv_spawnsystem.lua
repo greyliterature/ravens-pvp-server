@@ -57,17 +57,12 @@ local function DecideSpawn(ply, _)
             end
         end
         return random_spawn
-    else
-        local valid_spawns = {}
-        for _, spawn in ipairs(spawns) do
-            if IsSpawnUsable(ply, spawn) == true then --
-                valid_spawns[#valid_spawns + 1] = spawn
-            end
-        end
+    end
 
-        if #valid_spawns > 0 then
-            local random_entry = math.random(1, #valid_spawns)
-            return valid_spawns[random_entry]
+    for _, spawn in RandomPairs(spawns) do
+        local IsSpawnPointSuitable = hook.Run("IsSpawnpointSuitable", ply, spawn, false)
+        if IsSpawnUsable(ply, spawn) == true and IsSpawnPointSuitable ~= false then --
+            return spawn
         end
     end
 

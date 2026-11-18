@@ -144,7 +144,7 @@ elseif SERVER then
         print("Yo")
         for weapon, _ in pairs(Loadout) do
             if IsClassBlacklisted(ply, weapon) then continue end
-            ply:Give(weapon)
+            if list.GetEntry("Weapon", weapon) then ply:Give(weapon) end
         end
     end)
 
@@ -173,7 +173,7 @@ elseif SERVER then
         for _, weaponclass in ipairs(Weapons) do
             if IsClassBlacklisted(ply, weaponclass) then continue end
             PlayerLoadouts[ply][weaponclass] = true
-            ply:Give(weaponclass)
+            if list.GetEntry("Weapon", weaponclass) then ply:Give(weaponclass) end
         end
     end)
 

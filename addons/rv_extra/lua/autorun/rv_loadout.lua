@@ -108,6 +108,7 @@ elseif SERVER then
     net.Receive("LoadoutDelta", function(len, ply)
         PlayerLoadouts[ply] = PlayerLoadouts[ply] or {}
         local deltaweapon = net.ReadString()
+        local IsAlreadyInLoadout = PlayerLoadouts[ply][deltaweapon]
         PlayerLoadouts[ply][deltaweapon] = (IsAlreadyInLoadout == false and true) or nil -- remove if already in loadout, reduces networking
         PrintTable(PlayerLoadouts[ply])
         print(deltaweapon)
@@ -167,8 +168,11 @@ elseif SERVER then
         end
 
         --[[--]]
+        PlayerLoadouts[ply] = PlayerLoadouts[ply] or {}
         ply:StripWeapons()
         for _, weaponclass in ipairs(Weapons) do
+            if IsClassBlacklisted(ply, weaponclass) then continue end
+            PlayerLoadouts[ply][weaponclass] = true
             ply:Give(weaponclass)
         end
     end)

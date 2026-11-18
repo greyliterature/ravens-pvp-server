@@ -35,6 +35,7 @@ gameevent.Listen("entity_killed")
 AddGamemodeHook("entity_killed", "SpectateNextPlayer", function(data)
     local victim = Entity(data.entindex_killed)
     if not victim:IsPlayer() then return end
+    if not FSpectate.getSpecEnt then return end -- this should be resolved later
     if victim == FSpectate.getSpecEnt() then
         timer.Simple(2, function()
             spectateNextPlayer(1) --

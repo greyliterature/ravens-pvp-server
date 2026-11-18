@@ -124,7 +124,9 @@ if SERVER then
         local lastweap = ply:GetInternalVariable("m_hLastWeapon")
         if not IsValid(lastweap) or lastweap:GetClass() == "weapon_shotgun" then lastweap = nil end
         ply:StripWeapon("weapon_shotgun")
+        ply:SetSuppressPickupNotices(true)
         local weap = ply:Give("weapon_shotgun")
+        ply:SetSuppressPickupNotices(false)
         weap:SetClip1(ammocount or weap:GetMaxClip1())
         ply:SelectWeapon(lastweap or weap)
         ply:SelectWeapon(current)

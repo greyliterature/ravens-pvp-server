@@ -2,10 +2,8 @@ rv_gm = rv_gm or {}
 RemoveLastGamemodesEntities()
 local TEAM_RED, TEAM_BLUE = 1, 2
 local debugging = false
-if debugging == true then
-    for _, ply in player.Iterator() do
-        ply.FullyLoaded = true
-    end
+for _, ply in ipairs(player.GetAll()) do
+    ply.FullyLoaded = true
 end
 
 local CanPlayersRespawn = nil
@@ -108,7 +106,6 @@ end)
 function rv_gm.SetAllToSpectate(SetTeam, SilentKill)
     for _, ply in player.Iterator() do
         if SetTeam ~= false then ply:SetTeam(TEAM_SPECTATOR) end
-        ply:KillSilent()
         rv_gm.ForcePlayerToSpectate(ply, nil)
     end
 end
@@ -122,9 +119,13 @@ AddGamemodeHook("FSpectate_canSpectate", "NoSpectateWhileAlive", function(ply)
 end)
 
 function rv_gm.ForcePlayerToSpectate(ply, target)
-    if not ply.FullyLoaded then return end
-    FSpectate.startSpectating(ply, target, false)
+    if not ply.FullyLoaded then
+        print(ply:Nick() .. " is not fully loaded, not forcing spectate ")
+        return
+    end
+
     ply:KillSilent()
+    FSpectate.startSpectating(ply, target, false)
 end
 
 AddGamemodeHook("PlayerDeath", "ForceSpecOnDeath", function(victim)
@@ -1345,7 +1346,7 @@ net.Receive("RequestTeamJoin", function(len, ply)
         return
     end
 
-    if rv_gm.MatchInProgress == true then --
+    if rv_gm.MatchInProgress == true and RequestedTeam ~= TEAM_SPECTATOR then --
         if ply:Team() == TEAM_SPECTATOR then
             ply.DiedInRound = true
         else

@@ -37,7 +37,7 @@ AddGamemodeHook("PlayerSetModel", "ClanArenaSetArmor", function(ply)
     ply:SetMaxArmor(100)
 end)
 
-rv_gm.SetRoundLimit(10)
+--rv_gm.SetRoundLimit(10) score limit is more appropriate
 rv_gm.RemoveConflictingHooks()
 rv_gm.DisablePlayerRewards()
 --[[----------------------------------------------------------------------

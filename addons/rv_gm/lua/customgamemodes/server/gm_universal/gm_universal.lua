@@ -1137,7 +1137,8 @@ end
 
 rv_gm.SetMatchInProgress(false) -- autorefresh
 function rv_gm.StartMatch()
-    --rv_gm.SetMatchInProgress(true) -- this was a bad idea
+    if rv_gm.MatchInProgress == true then return end
+    rv_gm.SetMatchInProgress(true) -- this was a bad idea
     StartingNewRound = true
     rv_gm.SetAllPlayersUnready()
     timer.Remove("MatchTimeLimit") -- or else conflicts, annoying but yeah
@@ -1229,7 +1230,7 @@ function rv_gm.SetPlayerReadiedUp(ply, bool, sendnotif)
         rv_gm.SendNotif(nil, {ply:Nick() .. " is" .. (((ply.ReadyUpState == true) and "") or " not") .. " Ready"}, {CurTime() + 2}, nil, true)
     end
 
-    if ReadyUpCount > #rv_gm.GetValidPlayers() then --
+    if ReadyUpCount >= #rv_gm.GetValidPlayers() * ReadyUpRatio then --
         rv_gm.StartMatch()
     end
 end

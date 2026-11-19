@@ -225,6 +225,14 @@ function rv_gm.SetLoadout(LoadoutTable)
     Loadout = LoadoutTable
 end
 
+local ShouldInformEnemyHealth = false
+function rv_gm.ShouldInformEnemyHealth(bool)
+    AddGamemodeHook("ShouldInformEnemyHealth", "BlockEnemyHealthInfo", function(_, _)
+        --
+        return ShouldInformEnemyHealth
+    end)
+end
+
 function rv_gm.DisablePlayerRewards()
     AddGamemodeHook("ShouldRefillAmmoOnSpawn", "CustomLoadout", function(ply)
         --

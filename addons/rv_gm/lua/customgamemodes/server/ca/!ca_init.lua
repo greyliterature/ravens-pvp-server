@@ -31,6 +31,12 @@ rv_gm.SetUpTeams({
     }
 })
 
+RunConsoleCommand("unblacklistclass", "weapon_frag")
+AddGamemodeHook("PlayerSetModel", "ClanArenaSetArmor", function(ply)
+    ply:SetArmor(100)
+    ply:SetMaxArmor(100)
+end)
+
 rv_gm.SetRoundLimit(10)
 rv_gm.RemoveConflictingHooks()
 rv_gm.DisablePlayerRewards()

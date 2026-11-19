@@ -1177,7 +1177,7 @@ function rv_gm.EndMatch()
     WL.PlackettLuce(rv_gm.CurrentGamemode, GameResult)
     --
     rv_gm.SetAllPlayersUnready()
-    table.remove(loserstbl, WinnerIndex)
+    loserstbl[WinnerIndex] = nil
     timer.Remove("MatchTimeLimit")
     SetGlobal3("Bool", "MatchStarting", false)
     hook.Run("rv_gm.MatchEnded", WinnerIndex, loserstbl)

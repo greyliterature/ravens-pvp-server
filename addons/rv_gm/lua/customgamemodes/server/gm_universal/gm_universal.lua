@@ -173,6 +173,21 @@ function rv_gm.ReaddAllSpawns()
 end
 
 --[[------------------------------
+    Sound system
+--------------------------------]]
+util.AddNetworkString("SendSound")
+function rv_gm.SendSound(ply, StartDate, SoundName)
+    net.Start("SendSound")
+    net.WriteFloat(StartDate)
+    net.WriteString(SoundName)
+    if ply then
+        net.Send(ply)
+    else
+        net.Broadcast()
+    end
+end
+
+--[[------------------------------
     Remove conflicting hooks (FFA)
 --------------------------------]]
 function rv_gm.RemoveConflictingHooks()

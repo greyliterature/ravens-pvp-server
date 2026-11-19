@@ -781,7 +781,7 @@ function rv_gm.EndRound(WinnerTeamIndex)
     RoundInProgress = false
     StartingNewRound = true
     team.AddScore(WinnerTeamIndex, 1)
-    if team.GetScore(WinnerTeamIndex) >= rv_gm.RoundLimit then --
+    if team.GetScore(WinnerTeamIndex) >= rv_gm.ScoreLimit then --
         rv_gm.EndMatch(WinnerTeamIndex, true)
         return
     end

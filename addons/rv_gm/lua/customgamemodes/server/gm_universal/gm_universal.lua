@@ -1151,7 +1151,12 @@ end
 
 rv_gm.SetMatchInProgress(false) -- autorefresh
 function rv_gm.StartMatch()
-    if rv_gm.MatchInProgress == true then return end
+    if rv_gm.MatchInProgress == true then
+        print("A match is already in progress, not starting new one")
+        return
+    end
+
+    print("Starting match")
     rv_gm.SetMatchInProgress(true) -- this was a bad idea
     StartingNewRound = true
     rv_gm.SetAllPlayersUnready()
@@ -1244,7 +1249,7 @@ function rv_gm.SetPlayerReadiedUp(ply, bool, sendnotif)
         rv_gm.SendNotif(nil, {ply:Nick() .. " is" .. (((ply.ReadyUpState == true) and "") or " not") .. " Ready"}, {CurTime() + 2}, nil, true)
     end
 
-    if ReadyUpCount >= #rv_gm.GetValidPlayers() * ReadyUpRatio then --
+    if ReadyUpCount >= math.floor(#rv_gm.GetValidPlayers() * ReadyUpRatio) then --
         rv_gm.StartMatch()
     end
 end

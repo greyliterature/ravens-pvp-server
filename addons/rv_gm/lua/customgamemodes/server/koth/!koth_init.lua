@@ -57,6 +57,25 @@ end)
 
 rv_gm.AllowPlayerFriendlyFire(false)
 --[[----------------------------------------------------------------------
+    Hill healing
+------------------------------------------------------------------------]]
+local Hills = {}
+local HillHealAmount = 1
+local HillHealDelay = 0.5
+local OverhealAmount = 0
+timer.Create("HillHealing", HillHealDelay, 0, function()
+    for _, hill in ipairs(Hills) do
+        print(hill)
+        if not IsValid(hill) then continue end
+        if not hill.Players then continue end
+        for ply, _ in pairs(hill.Players) do
+            local NewHealth = math.min(100 + OverhealAmount, ply:Health() + HillHealAmount)
+            ply:SetHealth(NewHealth)
+        end
+    end
+end)
+
+--[[----------------------------------------------------------------------
     Readyup
 ------------------------------------------------------------------------]]
 rv_gm.SetReadyUpRatio(0.75)
@@ -138,9 +157,11 @@ local HillMins, HillMaxes = Vector(-300, -300, 0), Vector(300, 300, 200)
 AddGamemodeHook("rv_gm.GamemodeDataLoaded", "SetSpawns", function(gamemodetbl)
     local map = game.GetMap()
     for _, hillpos in pairs(gamemodetbl[map]["Hills"]) do
-        rv_gm.CreateHill(hillpos, HillMins, HillMaxes, 1)
+        local hill = rv_gm.CreateHill(hillpos, HillMins, HillMaxes, 1)
+        Hills[#Hills + 1] = hill
     end
-    if gamemodetbl[map]["Spawns"] then 
+
+    if gamemodetbl[map]["Spawns"] then
         for teamindex, tbl in pairs(gamemodetbl[map]["Spawns"]) do
             for _, data in ipairs(tbl) do
                 local pos = data[1]

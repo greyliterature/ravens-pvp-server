@@ -751,9 +751,9 @@ function rv_gm.ResetScores(Teams)
     end
 end
 
-local ScoreLimit = 100
+rv_gm.ScoreLimit = 100
 function rv_gm.SetScoreLimit(score)
-    ScoreLimit = score
+    rv_gm.ScoreLimit = score
     SetGlobal3("Int", "MatchScoreLimit", score)
 end
 
@@ -761,7 +761,7 @@ function rv_gm.AddTeamScore(teamindex, score)
     if rv_gm.MatchInProgress == false then return end
     if RoundInProgress == false then return end
     team.AddScore(teamindex, score)
-    if team.GetScore(teamindex) >= ScoreLimit then
+    if team.GetScore(teamindex) >= rv_gm.ScoreLimit then
         --
         rv_gm.EndMatch()
     end

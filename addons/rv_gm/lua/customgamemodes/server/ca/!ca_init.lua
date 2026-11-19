@@ -166,7 +166,7 @@ AddGamemodeHook("rv_gm.MatchStarted", "MatchStarted", function()
 end)
 
 AddGamemodeHook("rv_gm.MatchEnded", "MatchEnded", function(WinnerIndex, loserstbl)
-    ColoredChatPrint({team.GetColor(WinnerIndex), team.GetName(WinnerIndex), " wins " .. team.GetScore(WinnerIndex) .. " - " .. table.concat(loserstbl, " ")})
+    ColoredChatPrint({team.GetColor(WinnerIndex), team.GetName(WinnerIndex), " wins " .. team.GetScore(WinnerIndex) .. " - " .. team.GetScore(next(loserstbl))})
     SetGamemode("FFA")
     if mapvote then
         mapvote.StartMapVote()

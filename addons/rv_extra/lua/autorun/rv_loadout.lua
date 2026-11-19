@@ -171,8 +171,8 @@ elseif SERVER then
         PlayerLoadouts[ply] = PlayerLoadouts[ply] or {}
         ply:StripWeapons()
         for _, weaponclass in ipairs(Weapons) do
-            if IsClassBlacklisted(ply, weaponclass) then continue end
             PlayerLoadouts[ply][weaponclass] = true
+            if IsClassBlacklisted(ply, weaponclass) then continue end
             if list.GetEntry("Weapon", weaponclass) then ply:Give(weaponclass) end
         end
     end)

@@ -57,6 +57,22 @@ end)
 
 rv_gm.AllowPlayerFriendlyFire(false)
 --[[----------------------------------------------------------------------
+    Hill healing
+------------------------------------------------------------------------]]
+local LastHardpoint = nil
+local HillHealAmount = 1
+local HillHealDelay = 0.5
+local OverhealAmount = 0
+timer.Create("HillHealing", HillHealDelay, 0, function()
+    if not IsValid(LastHardpoint) then return end
+    if not LastHardpoint.Players then return end
+    for ply, _ in pairs(LastHardpoint.Players) do
+        local NewHealth = math.min(100 + OverhealAmount, ply:Health() + HillHealAmount)
+        ply:SetHealth(NewHealth)
+    end
+end)
+
+--[[----------------------------------------------------------------------
     Readyup
 ------------------------------------------------------------------------]]
 rv_gm.SetReadyUpRatio(0.75)
@@ -82,7 +98,6 @@ end)
 -- round start 
 -- there is no RoundEnded for KOTH because it is really just one round, this is just for notification formality
 local CreateHardPoint = nil
-local LastHardpoint = nil
 local HardPointsPoses = {}
 local RoundStartDelay = 5
 AddGamemodeHook("rv_gm.RoundStarted", "RoundStarted", function(RoundCount)
@@ -189,7 +204,6 @@ CreateHardPoint = function(pos)
     end
 
     local HardPoint = rv_gm.CreateTrigger(pos, nil, HillMins, HillMaxes, color_white, StartTouchFunc, nil, EndTouchFunc)
-    LastHardpoint = HardPoint
     SetGlobal3("Float", "HardPointUnlockDate", CurTime() + HardPointUnlockDelay)
     AddGamemodeTimer("HardpointUnlock", HardPointUnlockDelay, 1, function()
         AddGamemodeTimer("HardPointsScore", HardPointScoreTime, 0, function()
@@ -210,6 +224,9 @@ CreateHardPoint = function(pos)
             end
         end)
     end)
+
+    LastHardpoint = HardPoint
+    return HardPoint
 end
 
 AddGamemodeHook("rv_gm.GamemodeDataLoaded", "SetSpawns", function(gamemodetbl)
@@ -227,6 +244,7 @@ AddGamemodeHook("rv_gm.GamemodeDataLoaded", "SetSpawns", function(gamemodetbl)
             end
         end
     end
+
     AddGamemodeTimer("SwapHardPoint", HardPointSwapDelay, 0, function()
         for _, HardPointPos in RandomPairs(HardPointsPoses) do
             if HardPointPos ~= LastHardPointPos then --

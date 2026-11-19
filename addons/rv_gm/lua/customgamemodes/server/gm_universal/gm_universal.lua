@@ -127,6 +127,13 @@ function rv_gm.ForcePlayerToSpectate(ply, target)
     ply:KillSilent()
 end
 
+AddGamemodeHook("PlayerDeath", "ForceSpecOnDeath", function(victim)
+    if CanPlayersRespawn == false and rv_gm.MatchInProgress == true then
+        rv_gm.ForcePlayerToSpectate(victim, nil)
+        return
+    end
+end)
+
 function rv_gm.ForcePlayerToUnSpectate(ply)
     FSpectate.forceUnspectate(ply)
 end

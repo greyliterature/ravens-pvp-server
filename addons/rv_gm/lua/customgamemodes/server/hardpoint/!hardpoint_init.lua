@@ -41,7 +41,7 @@ rv_gm.DisablePlayerRewards()
 --[[----------------------------------------------------------------------
     Death
 ------------------------------------------------------------------------]]
-local RespawnDelay = 5
+local RespawnDelay = 3
 AddGamemodeHook("PlayerDeath", "SetSpecOnDeath", function(ply, _, _)
     local Teammates = team.GetPlayers(ply:Team())
     table.RemoveByValue(Teammates, ply)

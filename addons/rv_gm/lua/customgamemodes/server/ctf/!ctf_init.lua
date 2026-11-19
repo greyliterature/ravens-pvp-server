@@ -48,7 +48,7 @@ end)
 --[[----------------------------------------------------------------------
     Death
 ------------------------------------------------------------------------]]
-local RespawnDelay = 5
+local RespawnDelay = 3
 AddGamemodeHook("PlayerDeath", "SetSpecOnDeath", function(victim, _, _)
     rv_gm.ForcePlayerToSpectate(victim)
     timer.Simple(RespawnDelay, function()

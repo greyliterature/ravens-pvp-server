@@ -1201,13 +1201,11 @@ function rv_gm.GetValidPlayers()
     local players = {}
     for _, ply in player.Iterator() do
         local ShouldIncludePlayer = hook.Run("rv_gm.IsValidPlayer", ply)
-        if ShouldIncludePlayer == true then
+        if ShouldIncludePlayer ~= false then
             players[#players + 1] = ply
         elseif ShouldIncludePlayer == false then
             continue
-        elseif ShouldIncludePlayer == nil then
-            -- could do with some ply:team() == TEAM_SPECTATOR logic here, 
-            -- but for now expect the operator to know that 
+        elseif ShouldIncludePlayer == nil or ply:Team() == TEAM_SPECTATOR then
             continue
         end
     end

@@ -533,6 +533,7 @@ AddGamemodeHook("GravGunOnPickedUp", "NetworkGravGunForFlags", function(ply, ent
     net.WriteEntity(ent)
     net.WritePlayer(ply)
     net.Broadcast()
+    if timer.Exists("FlagRevelation" .. ent:EntIndex()) then return end
     timer.Create("FlagRevelation" .. ent:EntIndex(), RevelationDelay, 1, function()
         if not ent.Revealed then --
             rv_gm.RevealFlag(ent.LastPickedUpPly, ent, not ent.AtBase)

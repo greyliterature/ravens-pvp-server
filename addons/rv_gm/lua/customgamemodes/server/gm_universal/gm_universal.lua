@@ -41,6 +41,7 @@ function rv_gm.SetPlayerToNotRespawn(ply, bool)
 end
 
 AddGamemodeHook("PlayerDeathThink", "AllowPlayerRespawns", function(ply)
+    if ply:Team() == TEAM_SPECTATOR then return false end
     if CanPlayersRespawn == false and rv_gm.MatchInProgress == true then
         if not ply.CanRespawn then
             return false

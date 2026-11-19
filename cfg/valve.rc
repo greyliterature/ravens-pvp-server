@@ -8,13 +8,17 @@ sv_sticktoground 0
 ulx_showmotd 0
 
 // net
+sv_minrate 2000000
+sv_maxrate 2097152
+sv_alternateticks 0
+sv_client_predict 1
+
 sv_maxcmdrate 100
 sv_maxupdaterate 100
 sv_minupdaterate 99
 sv_mincmdrate 99
 clhr_supertolerant 1
 
-// limits
 toolmode_allow_balloon 0
 toolmode_allow_button 0
 toolmode_allow_camera 0
@@ -50,3 +54,5 @@ toolmode_allow_trails 0
 toolmode_allow_weld 0
 toolmode_allow_wheel 0
 toolmode_allow_winch 0
+
+map ap_resistance

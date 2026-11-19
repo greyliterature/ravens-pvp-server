@@ -814,6 +814,12 @@ function rv_gm.StartRound()
     hook.Run("rv_gm.RoundStarted", RoundCount)
 end
 
+AddGamemodeHook("AcceptInput", "BlockLuaRun", function(ent, name, activator, caller, data)
+    if caller:IsPlayer() and StartingNewRound == true then --
+        return true
+    end
+end)
+
 -- Start/Endmatch
 function rv_gm.ShuffleTeams(Teams)
     if not Teams then Teams = rv_gm.GetTeamIndexes() end

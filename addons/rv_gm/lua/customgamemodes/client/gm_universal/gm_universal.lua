@@ -65,6 +65,23 @@ AddGamemodeHook("FSpectate_canSpectatePlayer", "OnlySpectateTeam", function(ply)
 end)
 
 --[[------------------------------
+    Sound system
+--------------------------------]]
+net.Receive("SendSound", function(len, ply)
+    local StartDate = net.ReadFloat()
+    local SoundName = net.ReadString()
+    local StartDelay = StartDate - CurTime()
+    if StartDate < 0 then --
+        StartDelay = 0
+    end
+
+    timer.Simple(StartDelay, function()
+        -- 
+        surface.PlaySound(SoundName)
+    end)
+end)
+
+--[[------------------------------
     Warmup
 --------------------------------]]
 local function CeilZero(x) -- math.ceil does not round up for 0

@@ -20,6 +20,7 @@ team.SetUp(TEAM_RED, "Red Team", Color(255, 0, 0), true)
 team.SetUp(TEAM_BLUE, "Blue Team", Color(0, 0, 255), true)
 rv_gm.SetAllToSpectate(true)
 rv_gm.AllowPlayerRespawns(false)
+rv_gm.AllowPlayerSuicide(false)
 rv_gm.EnableTeamJoins(true)
 rv_gm.SetUpTeams({
     [TEAM_RED] = {

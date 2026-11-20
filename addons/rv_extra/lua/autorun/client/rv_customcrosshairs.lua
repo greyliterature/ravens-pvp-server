@@ -1,3 +1,5 @@
+-- todo:
+-- allow multiple files in the folder that loads the crosshair
 local ShapeTable = {
     -- this should be a full STRING, not a table. it will be defined in a txt file.
     "#DEFINENAME 1",
@@ -10,7 +12,7 @@ local ShapeTable = {
     "HOLLOWCIRCLE 0.54 0.5 0.1 255 0 255 // EXAMPLE COMMENT",
     "SETTEXTURE decals/smile",
     "SETCOLOR 55 0 0 255",
-    "ROTATEDRECT 0.375 0.375 0.25 0.25 0",
+    "ROTATEDTEXTUREDRECT 0.375 0.375 0.25 0.25 0",
     "SETCOLOR 0 255 0 255",
     "RECT 0 0 0.2 0.2",
     "SETCOLOR 55 0 0 255",
@@ -25,6 +27,9 @@ local ShapeTable = {
     "ROUNDEDRECT 0.1 0.1 0.1 0.1 0.1",
     "IGNORETHIS, DEBUG TEST || THISLINESHOULDNEVERERROR",
     "#ENDSTENCIL",
+    "LINE 0.1 0.1 0.5 0.5",
+    "//#REGISTERFONT",
+    "TEXT hello_this_is_some_text ChatFont 0.5 0.5 1 1",
 }
 
 local RNDX = include("autorun/rndx.lua")
@@ -131,7 +136,7 @@ local StringToDrawFunctionTable = {
             surface.SetMaterial(texture)
         end
     },
-    ["ROTATEDRECT"] = {
+    ["ROTATEDTEXTUREDRECT"] = {
         ["expectedconversions"] = {
             --
             function(x) return ScrW() * x end,
@@ -244,16 +249,48 @@ local StringToDrawFunctionTable = {
         ["expectedconversions"] = {}, --
         ["function"] = draw.NoTexture
     },
+    ["LINE"] = {
+        ["expectedconversions"] = {
+            --
+            function(startx) return ScrW() * tonumber(startx) end,
+            function(starty) return ScrW() * tonumber(starty) end,
+            function(endx) return ScrW() * tonumber(endx) end,
+            function(endy) return ScrW() * tonumber(endy) end,
+        },
+        ["function"] = function(startx, starty, endx, endy)
+            --
+            surface.DrawLine(startx, starty, endx, endy)
+        end,
+    },
+    ["TEXT"] = {
+        ["expectedconversions"] = {
+            --
+            function(text) return string.Replace(text, "_", " ") end,
+            function(font) return font end,
+            function(x) return ScrW() * x end,
+            function(y) return ScrH() * y end,
+            function(xalign) return tonumber(xalign) end,
+            function(yalign) return tonumber(yalign) end,
+        },
+        --
+        ["function"] = function(text, font, x, y, xalign, yalign)
+            --
+            draw.SimpleText(text, font, x, y, surface.GetDrawColor(), xalign, yalign)
+        end,
+    },
     ["OVAL"] = {},
 }
 
 local CachedShapes = {}
 local color_red = Color(255, 0, 0, 255)
 local function CacheShapes()
+    local shapetitle = nil
     for _, str in ipairs(ShapeTable) do
         if string.find(str, "#DEFINENAME") then
-            -- encoder, handle it properly later
-            -- probably put it in a table defined by the name
+            --
+            local split = string.Split(str, " ")
+            shapetitle = split[2]
+            CachedShapes[shapetitle] = {}
             continue
         end
 
@@ -291,15 +328,23 @@ local function CacheShapes()
             args[i] = ShapeInfoTable["expectedconversions"][i](arg)
         end
 
-        local HighestIndex = table.insert(CachedShapes, {})
-        CachedShapes[HighestIndex]["function"] = ShapeInfoTable["function"]
-        CachedShapes[HighestIndex]["args"] = args
+        local HighestIndex = table.insert(CachedShapes[shapetitle], {})
+        CachedShapes[shapetitle][HighestIndex]["function"] = ShapeInfoTable["function"]
+        CachedShapes[shapetitle][HighestIndex]["args"] = args
     end
 end
 
 CacheShapes()
+CreateClientConVar("rv_custom_crosshairs_selected_crosshair", "0", true, false, "Which crosshair to use, 0 = disabled")
+local SelectedCrosshair = "0"
+cvars.AddChangeCallback("rv_custom_crosshairs_selected_crosshair", function(convar, old, new)
+    --
+    SelectedCrosshair = new
+end, "rv_custom_crosshairs_selected_crosshair")
+
 hook.Add("HUDPaint", "CustomCrosshairTest", function()
-    for _, ShapeFuncTable in ipairs(CachedShapes) do
+    if SelectedCrosshair == "0" then return end
+    for _, ShapeFuncTable in ipairs(CachedShapes["1"]) do
         ShapeFuncTable["function"](unpack(ShapeFuncTable["args"])) -- this could be optimized further by passing a table and going arg by arg in the function itself, but dont care currently
         --StringToDrawFunction(ShapeString)
     end

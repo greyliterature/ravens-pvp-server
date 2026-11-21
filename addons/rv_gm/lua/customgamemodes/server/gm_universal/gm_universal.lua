@@ -1299,7 +1299,6 @@ AddGamemodeHook("PlayerButtonDown", "ReadyUpButtons", function(ply, button)
 
     local CanPlayerReadyUp, err = hook.Run("rv_gm.CanPlayerReadyUp", ply)
     if CanPlayerReadyUp == false then
-        print("SAD")
         rv_gm.SendNotif(ply, {err}, {CurTime() + 1}, nil, true)
         return
     end

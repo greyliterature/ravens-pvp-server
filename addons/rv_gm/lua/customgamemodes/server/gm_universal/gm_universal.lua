@@ -1245,10 +1245,10 @@ function rv_gm.SetPlayerReadiedUp(ply, bool, sendnotif)
     net.Start("rv_gm.ReadyUpSuccess")
     net.WriteBool(ply.ReadyUpState)
     net.Send(ply)
-    ReadyUpCount = (ply.ReadyUpState == true and 1) or -1
+    ReadyUpCount = ReadyUpCount + ((ply.ReadyUpState == true and 1) or -1)
     print("Set readyup state for " .. ply:Nick() .. " " .. tostring(ply.ReadyUpState))
     SetGlobal3("Int", "ReadyUpCount", ReadyUpCount)
-    ply:SetNW3Var("String", "CustomName", ((bool == true and " (R)") or " (NR)") .. ply:Nick())
+    ply:SetNW3Var("String", "CustomName", ((ply.ReadyUpState == true and " (R)") or " (NR)") .. ply:Nick())
     if sendnotif ~= false then --
         rv_gm.SendNotif(nil, {ply:Nick() .. " is" .. (((ply.ReadyUpState == true) and "") or " not") .. " Ready"}, {CurTime() + 2}, nil, true)
     end

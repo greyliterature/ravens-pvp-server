@@ -111,7 +111,7 @@ local StringToDrawFunctionTable = {
             --
             function(x) return ScrW() * tonumber(x) end,
             function(y) return ScrH() * tonumber(y) end,
-            function(radius) return ScrH() * tonumber(radius) end,
+            function(radius) return math.Round(ScrH() * tonumber(radius)) * 2 end,
             function(flags) return tonumber(flags) end,
         },
         ["function"] = function(x, y, radius, flags)
@@ -123,9 +123,9 @@ local StringToDrawFunctionTable = {
     ["POLYGON"] = {
         ["expectedconversions"] = {
             -- 
-            function(x) return ScrW() * tonumber(x) end,
-            function(y) return ScrH() * tonumber(y) end,
-            function(radius) return ScrW() * tonumber(radius) end,
+            function(x) return math.Round(ScrW() * tonumber(x)) end,
+            function(y) return math.Round(ScrH() * tonumber(y)) end,
+            function(radius) return ScrH() * tonumber(radius) end,
             function(vertices) return tonumber(vertices) end,
         },
         ["function"] = function(x, y, radius, vertices)
@@ -166,7 +166,7 @@ local StringToDrawFunctionTable = {
             StartMask()
         end,
     },
-    ["#MASKSTART"] = {
+    ["#STARTMASK"] = {
         ["expectedconversions"] = {},
         --
         ["function"] = function()
@@ -174,7 +174,7 @@ local StringToDrawFunctionTable = {
             StartMask()
         end,
     },
-    ["#MASKEND"] = {
+    ["#ENDMASK"] = {
         ["expectedconversions"] = {
             --
             function(cut) return tobool(cut) end
@@ -224,9 +224,9 @@ local StringToDrawFunctionTable = {
     ["OUTLINEDCIRCLE"] = {
         ["expectedconversions"] = {
             --
-            function(x) return ScrW() * tonumber(x) end,
-            function(y) return ScrH() * tonumber(y) end,
-            function(radius) return ScrH() * tonumber(radius) end,
+            function(x) return math.Round(ScrW() * tonumber(x)) end,
+            function(y) return math.Round(ScrH() * tonumber(y)) end,
+            function(radius) return math.Round(ScrH() * tonumber(radius)) * 2 end,
             function(thickness) return ScrW() * tonumber(thickness) end,
             function(flags) return tonumber(flags) end,
         },
@@ -298,6 +298,7 @@ local function CacheShapes()
                 continue
             end
 
+            str = string.Trim(str) -- trim again because comments
             local split = string.Split(str, " ")
             local ShapeType = split[1]
             table.remove(split, 1)
@@ -392,13 +393,19 @@ local function DrawCustomCrosshair()
     end
 end
 
-if SelectedCrosshair ~= "0" then hook.Add("HUDPaint", "CustomCrosshairTest", DrawCustomCrosshair) end
+if SelectedCrosshair ~= "0" then
+    hook.Add("HUDPaint", "CustomCrosshairTest", DrawCustomCrosshair)
+    hook.Add("HUDShouldDraw", "HideNormalCrosshair", function(name) if name == "CHudCrosshair" then return false end end)
+end
+
 cvars.AddChangeCallback("rv_custom_crosshairs_selected_crosshair", function(convar, old, new)
     SelectedCrosshair = new
     if SelectedCrosshair ~= "0" then
         hook.Add("HUDPaint", "CustomCrosshairTest", DrawCustomCrosshair)
+        hook.Add("HUDShouldDraw", "HideNormalCrosshair", function(name) if name == "CHudCrosshair" then return false end end)
     else
         hook.Remove("HUDPaint", "CustomCrosshairTest")
+        hook.Remove("HUDShouldDraw", "HideNormalCrosshair")
     end
 end, "rv_custom_crosshairs_selected_crosshair")
 
@@ -407,6 +414,7 @@ local color_green = Color(0, 255, 0, 255)
 local color_lightgreen = Color(0, 128, 0, 255)
 local color_blackish = Color(40, 40, 40)
 local color_dark = Color(15, 15, 15)
+local color_magenta = Color(255, 0, 0)
 CustomCrosshairPanel = CustomCrosshairPanel or nil
 local function CrosshairGUI()
     if IsValid(CustomCrosshairPanel) then CustomCrosshairPanel:Remove() end
@@ -456,7 +464,7 @@ local function CrosshairGUI()
     end
 
     local LabelMargin = ScrW() * 0.005
-    RefreshHUDLabel = vgui.Create("DLabel", RefreshButtonsPanel)
+    local RefreshHUDLabel = vgui.Create("DLabel", RefreshButtonsPanel)
     RefreshHUDLabel:SetTextColor(color_green)
     RefreshHUDLabel:SetX(RefreshHUDButton:GetX() + RefreshHUDButton:GetWide() + LabelMargin)
     RefreshHUDLabel:SetText("Refresh HUD")
@@ -534,10 +542,33 @@ local function CrosshairGUI()
         CacheShapes()
     end
 
-    RefreshFilesLabel = vgui.Create("DLabel", RefreshFilesButtonsPanel)
+    local RefreshFilesLabel = vgui.Create("DLabel", RefreshFilesButtonsPanel)
     RefreshFilesLabel:SetTextColor(color_green)
     RefreshFilesLabel:SetX(RefreshFilesButton:GetX() + RefreshFilesButton:GetWide() + LabelMargin)
     RefreshFilesLabel:SetText("Refresh files")
+    local DrawCenterPanel = vgui.Create("DPanel", ButtonsPanel)
+    DrawCenterPanel:Dock(TOP)
+    DrawCenterPanel:SetBackgroundColor(color_blackish)
+    DrawCenterPanel:DockMargin(0, DockMargin, 0, 0)
+    local DrawCenterCheckbox = vgui.Create("DCheckBox", DrawCenterPanel)
+    DrawCenterCheckbox:SetSize(DrawCenterPanel:GetTall(), DrawCenterPanel:GetTall())
+    function DrawCenterCheckbox.OnChange(self, bVal)
+        if bVal == true then
+            hook.Add("HUDPaint", "CustomCrosshairsDrawCenter", function()
+                surface.SetDrawColor(color_magenta)
+                surface.DrawRect(ScrW() * 0.5 - 1, 0, 2, ScrH())
+                surface.DrawRect(0, ScrH() * 0.5 - 1, ScrW(), 2)
+            end)
+        else
+            hook.Remove("HUDPaint", "CustomCrosshairsDrawCenter")
+        end
+    end
+
+    DrawCenterCheckbox:SetValue(true)
+    DrawCenterLabel = vgui.Create("DLabel", DrawCenterPanel)
+    DrawCenterLabel:SetTextColor(color_green)
+    DrawCenterLabel:SetX(DrawCenterCheckbox:GetX() + DrawCenterCheckbox:GetWide() + LabelMargin)
+    DrawCenterLabel:SetText("Show center")
 end
 
 concommand.Add("rv_custom_crosshairs_menu", function()

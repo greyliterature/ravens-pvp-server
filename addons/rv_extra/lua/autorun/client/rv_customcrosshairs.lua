@@ -1,3 +1,5 @@
+-- todo:
+-- allow multiple files in the folder that loads the crosshair
 local ShapeTable = {}
 local RNDX = include("autorun/rndx.lua")
 local function StartMask()
@@ -352,9 +354,8 @@ TEXT 'OUTLINEDRECT_x_y_w_h_thickness' ChatFont 0.15 0.5 1 1
 OUTLINEDRECT 0.09 0.54 0.12 0.10 0.01
 TEXT 'OUTLINEDCIRCLE_x_y_radius_thickness_flags' ChatFont 0.33 0.5 1 1
 OUTLINEDCIRCLE 0.33 0.58 0.1 0.007]],
-    ["owcircle"] = [[
-SETCOLOR 0 255 255 255
-OUTLINEDCIRCLE 0.5 0.5 0.005 0.0012]]
+    ["owcircle"] = [[SETCOLOR 0 255 255 255
+OUTLINEDCIRCLE 0.5 0.5 0.004 0.0009]]
 }
 
 -- make this later

@@ -1241,7 +1241,8 @@ end
 util.AddNetworkString("rv_gm.ReadyUpSuccess")
 local ReadyUpCount = 0
 function rv_gm.SetPlayerReadiedUp(ply, bool, sendnotif)
-    ply.ReadyUpState = (bool == nil and not ply.ReadyUpState) or bool
+    ply.ReadyUpState = ply.ReadyUpState or false
+    ply.ReadyUpState = bool or (bool == nil and not ply.ReadyUpState)
     net.Start("rv_gm.ReadyUpSuccess")
     net.WriteBool(ply.ReadyUpState)
     net.Send(ply)
@@ -1253,6 +1254,7 @@ function rv_gm.SetPlayerReadiedUp(ply, bool, sendnotif)
         rv_gm.SendNotif(nil, {ply:Nick() .. " is" .. (((ply.ReadyUpState == true) and "") or " not") .. " Ready"}, {CurTime() + 2}, nil, true)
     end
 
+    print(ply.ReadyUpState)
     if ReadyUpCount >= math.floor(#rv_gm.GetValidPlayers() * ReadyUpRatio) then --
         rv_gm.StartMatch()
     end

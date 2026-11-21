@@ -1304,7 +1304,7 @@ AddGamemodeHook("PlayerButtonDown", "ReadyUpButtons", function(ply, button)
         return
     end
 
-    rv_gm.SetPlayerReadiedUp(ply, true)
+    rv_gm.SetPlayerReadiedUp(ply, nil)
 end)
 
 --[[------------------------------

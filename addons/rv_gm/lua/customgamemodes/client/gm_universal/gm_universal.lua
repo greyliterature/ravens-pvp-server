@@ -778,9 +778,12 @@ AddGamemodeHook("PlayerButtonDown", "JoinTeamPopup", function(ply, button)
     if button == KEY_F4 then
         rv_gm.OpenJoinTeamPopup()
         hook.Remove("HUDPaint", "TeamJoinMenuReminder")
-    elseif button == KEY_F3 then
-        ReadiedUp = not ReadiedUp
     end
+end)
+
+net.Receive("rv_gm.ReadyUpSuccess", function(_, _)
+    local MyReadyUpStatus = net.ReadBool()
+    ReadiedUp = MyReadyUpStatus
 end)
 
 --[[------------------------------

@@ -1,37 +1,6 @@
 -- todo:
 -- allow multiple files in the folder that loads the crosshair
-local ShapeTable = {
-    -- this should be a full STRING, not a table. it will be defined in a txt file.
-    "#DEFINENAME 1",
-    "//#USERESOLUTIONASCOORDINATES 1",
-    "#MASKSTART",
-    "FILLEDCIRCLE 0.5 0.5 0.2 0",
-    "#MASKEND true",
-    "SETCOLOR 255 0 0 255",
-    "RECT 0.375 0.375 0.25 0.25", -- make this a convar where its "use resolution percentages"
-    "HOLLOWCIRCLE 0.54 0.5 0.1 255 0 255 // EXAMPLE COMMENT",
-    "SETTEXTURE decals/smile",
-    "SETCOLOR 55 0 0 255",
-    "ROTATEDTEXTUREDRECT 0.375 0.375 0.25 0.25 0",
-    "SETCOLOR 0 255 0 255",
-    "RECT 0 0 0.2 0.2",
-    "SETCOLOR 55 0 0 255",
-    "SCISSORRECT 0.05 0.05 0.15 0.15 true",
-    "RECT 0 0 0.2 0.2",
-    "SCISSORRECT 0 0 0 0 false",
-    "SETCOLOR 125 125 0",
-    "SETNOTEXTURE",
-    "POLYGON 0.5 0.5 0.1 10",
-    "//CREATEMATERIAL",
-    "SETCOLOR 0 0 255 255",
-    "ROUNDEDRECT 0.1 0.1 0.1 0.1 0.1",
-    "IGNORETHIS, DEBUG TEST || THISLINESHOULDNEVERERROR",
-    "#ENDSTENCIL",
-    "LINE 0.1 0.1 0.5 0.5",
-    "//#REGISTERFONT",
-    "TEXT hello_this_is_some_text ChatFont 0.5 0.5 1 1",
-}
-
+local ShapeTable = {}
 local RNDX = include("autorun/rndx.lua")
 local function StartMask()
     render.SetStencilEnable(true)
@@ -94,6 +63,76 @@ local StringToDrawFunctionTable = {
             surface.DrawRect(x, y, w, h)
         end
     },
+    ["HOLLOWCIRCLE"] = {
+        ["expectedconversions"] = {
+            --
+            function(centerX) return ScrW() * tonumber(centerX) end,
+            function(centerY) return ScrH() * tonumber(centerY) end,
+            function(radius) return ScrH() * tonumber(radius) end,
+        },
+        ["function"] = function(centerX, centerY, radius)
+            --
+            surface.DrawCircle(centerX, centerY, radius, surface.GetDrawColor())
+        end,
+    },
+    ["ROTATEDTEXTUREDRECT"] = {
+        ["expectedconversions"] = {
+            --
+            function(x) return ScrW() * x end,
+            function(y) return ScrH() * y end,
+            function(w) return ScrW() * w end,
+            function(h) return ScrH() * h end,
+            function(rotation) return tonumber(rotation) end,
+        },
+        ["function"] = function(x, y, w, h, rotation)
+            --
+            surface.DrawTexturedRectRotated(x, y, w, h, rotation)
+        end
+    },
+    ["ROUNDEDRECT"] = {
+        ["expectedconversions"] = {
+            --
+            function(radius) return ScrH() * radius end,
+            function(x) return ScrW() * tonumber(x) end,
+            function(y) return ScrH() * tonumber(y) end,
+            function(w) return ScrW() * tonumber(w) end,
+            function(h) return ScrH() * tonumber(h) end,
+            function(flags) return tonumber(flags) end,
+        },
+        ["function"] = function(radius, x, y, w, h, flags)
+            if RNDX then --
+                RNDX.Draw(radius, x, y, w, h, surface.GetDrawColor(), flags)
+            end
+        end,
+        ["expectedargumentcount"] = 4
+    },
+    ["FILLEDCIRCLE"] = {
+        ["expectedconversions"] = {
+            --
+            function(x) return ScrW() * tonumber(x) end,
+            function(y) return ScrH() * tonumber(y) end,
+            function(radius) return ScrH() * tonumber(radius) end,
+            function(flags) return tonumber(flags) end,
+        },
+        ["function"] = function(x, y, radius, flags)
+            --
+            RNDX.DrawCircle(x, y, radius, surface.GetDrawColor(), flags or 0)
+        end,
+        ["expectedargumentcount"] = 3
+    },
+    ["POLYGON"] = {
+        ["expectedconversions"] = {
+            -- 
+            function(x) return ScrW() * tonumber(x) end,
+            function(y) return ScrH() * tonumber(y) end,
+            function(radius) return ScrW() * tonumber(radius) end,
+            function(vertices) return tonumber(vertices) end,
+        },
+        ["function"] = function(x, y, radius, vertices)
+            -- 
+            draw.Circle(x, y, radius, vertices)
+        end,
+    },
     ["SETCOLOR"] = {
         ["expectedconversions"] = {
             --
@@ -108,23 +147,6 @@ local StringToDrawFunctionTable = {
         end,
         ["expectedargumentcount"] = 3
     },
-    ["HOLLOWCIRCLE"] = {
-        ["expectedconversions"] = {
-            --
-            function(centerX) return ScrW() * tonumber(centerX) end,
-            function(centerY) return ScrH() * tonumber(centerY) end,
-            function(radius) return ScrH() * tonumber(radius) end,
-            function(R) return tonumber(R) end,
-            function(G) return tonumber(G) end,
-            function(B) return tonumber(B) end,
-            function(A) return tonumber(A) end,
-        },
-        ["function"] = function(centerX, centerY, radius, R, G, B, A)
-            --
-            surface.DrawCircle(centerX, centerY, radius, R, G, B, A or 255)
-        end,
-        ["expectedargumentcount"] = 6
-    },
     ["SETTEXTURE"] = {
         ["expectedconversions"] = {
             --
@@ -134,20 +156,6 @@ local StringToDrawFunctionTable = {
         ["function"] = function(texture)
             --
             surface.SetMaterial(texture)
-        end
-    },
-    ["ROTATEDTEXTUREDRECT"] = {
-        ["expectedconversions"] = {
-            --
-            function(x) return ScrW() * x end,
-            function(y) return ScrH() * y end,
-            function(w) return ScrW() * w end,
-            function(h) return ScrH() * h end,
-            function(rotation) return tonumber(rotation) end,
-        },
-        ["function"] = function(x, y, w, h, rotation)
-            --
-            surface.DrawTexturedRectRotated(x, y, w, h, rotation)
         end
     },
     ["#STARTSTENCIL"] = {
@@ -188,10 +196,10 @@ local StringToDrawFunctionTable = {
     ["SCISSORRECT"] = {
         ["expectedconversions"] = {
             --
-            function(x) return ScrW() * x end,
-            function(y) return ScrH() * y end,
-            function(w) return ScrW() * w end,
-            function(h) return ScrH() * h end,
+            function(x) return ScrW() * tonumber(x) end,
+            function(y) return ScrH() * tonumber(y) end,
+            function(w) return ScrW() * tonumber(w) end,
+            function(h) return ScrH() * tonumber(h) end,
             function(enabled) return tobool(enabled) end,
         },
         ["function"] = function(x, y, w, h, enabled)
@@ -199,51 +207,34 @@ local StringToDrawFunctionTable = {
             render.SetScissorRect(x, y, w, h, enabled)
         end
     },
-    ["ROUNDEDRECT"] = {
+    ["OUTLINEDRECT"] = {
         ["expectedconversions"] = {
             --
-            function(radius) return ScrH() * radius end,
             function(x) return ScrW() * tonumber(x) end,
             function(y) return ScrH() * tonumber(y) end,
             function(w) return ScrW() * tonumber(w) end,
             function(h) return ScrH() * tonumber(h) end,
-            function(flags) return tonumber(flags) end,
+            function(thickness) return ScrW() * tonumber(thickness) end,
         },
-        ["function"] = function(radius, x, y, w, h, flags)
-            if RNDX then --
-                RNDX.Draw(radius, x, y, w, h, nil, flags or 0)
-            end
+        ["function"] = function(x, y, w, h, thickness)
+            --
+            surface.DrawOutlinedRect(x, y, w, h, thickness)
         end,
-        ["expectedargumentcount"] = 4
     },
-    ["FILLEDCIRCLE"] = {
+    ["OUTLINEDCIRCLE"] = {
         ["expectedconversions"] = {
             --
             function(x) return ScrW() * tonumber(x) end,
             function(y) return ScrH() * tonumber(y) end,
             function(radius) return ScrH() * tonumber(radius) end,
-            function(thickness) return ScrH() * tonumber(thickness) end,
+            function(thickness) return ScrW() * tonumber(thickness) end,
             function(flags) return tonumber(flags) end,
         },
         ["function"] = function(x, y, radius, thickness, flags)
             --
-            RNDX.DrawCircle(x, y, radius, nil, thickness, flags or 0)
+            RNDX.DrawCircleOutlined(x, y, radius, surface.GetDrawColor(), thickness, flags or 0)
         end,
-        ["expectedargumentcount"] = 4
-    },
-    ["OUTLINEDRECT"] = {},
-    ["POLYGON"] = {
-        ["expectedconversions"] = {
-            -- 
-            function(x) return ScrW() * tonumber(x) end,
-            function(y) return ScrH() * tonumber(y) end,
-            function(radius) return ScrW() * tonumber(radius) end,
-            function(vertices) return tonumber(vertices) end,
-        },
-        ["function"] = function(x, y, radius, vertices)
-            -- 
-            draw.Circle(x, y, radius, vertices)
-        end,
+        ["expectedargumentcount"] = 4,
     },
     ["SETNOTEXTURE"] = {
         ["expectedconversions"] = {}, --
@@ -253,9 +244,9 @@ local StringToDrawFunctionTable = {
         ["expectedconversions"] = {
             --
             function(startx) return ScrW() * tonumber(startx) end,
-            function(starty) return ScrW() * tonumber(starty) end,
+            function(starty) return ScrH() * tonumber(starty) end,
             function(endx) return ScrW() * tonumber(endx) end,
-            function(endy) return ScrW() * tonumber(endy) end,
+            function(endy) return ScrH() * tonumber(endy) end,
         },
         ["function"] = function(startx, starty, endx, endy)
             --
@@ -284,59 +275,113 @@ local StringToDrawFunctionTable = {
 local CachedShapes = {}
 local color_red = Color(255, 0, 0, 255)
 local function CacheShapes()
-    local shapetitle = nil
-    for _, str in ipairs(ShapeTable) do
-        if string.find(str, "#DEFINENAME") then
-            --
+    for shapetitle, tbl in pairs(ShapeTable) do
+        for _, str in ipairs(tbl) do
+            if string.find(str, "#DEFINENAME") then
+                --
+                local split = string.Split(str, " ")
+                shapetitle = split[2]
+                CachedShapes[shapetitle] = {}
+                continue
+            end
+
+            if not shapetitle then continue end
+            --]]
+            local firstcommentindex, _, _ = string.find(str, "//")
+            if firstcommentindex then --
+                str = utf8.sub(str, 1, firstcommentindex - 1)
+            end
+
+            if str == "" then -- caused by lines that are purely a comment 
+                continue
+            end
+
             local split = string.Split(str, " ")
-            shapetitle = split[2]
-            CachedShapes[shapetitle] = {}
-            continue
-        end
+            local ShapeType = split[1]
+            table.remove(split, 1)
+            local ShapeInfoTable = StringToDrawFunctionTable[ShapeType]
+            if not ShapeInfoTable then
+                MsgC("UNDEFINED SHAPE: " .. str .. "\n")
+                continue
+            end
 
-        local firstcommentindex, _, _ = string.find(str, "//")
-        if firstcommentindex then --
-            str = utf8.sub(str, 1, firstcommentindex - 1)
-        end
+            local args = split
+            if #args < #ShapeInfoTable["expectedconversions"] and (ShapeInfoTable["expectedargumentcount"] and #args < ShapeInfoTable["expectedargumentcount"] or not ShapeInfoTable["expectedargumentcount"]) then
+                -- make an error here
+                MsgC(color_red, "Amount of args does not match expected amount of args for shape / function " .. str .. "\nExpected args: " .. (ShapeInfoTable["expectedargumentcount"] or #ShapeInfoTable["expectedconversions"]) .. "\nGiven: " .. #args .. "\n")
+                continue
+            elseif #args > #ShapeInfoTable["expectedconversions"] then
+                MsgC(color_red, "Args overflow: " .. str .. "\nExpected args: " .. (ShapeInfoTable["expectedargumentcount"] or #ShapeInfoTable["expectedconversions"]) .. "\nGiven: " .. #args .. "\n")
+                continue
+            end
 
-        if str == "" then -- caused by lines that are purely a comment 
-            continue
-        end
+            for i = 1, #args do
+                local arg = args[i]
+                args[i] = ShapeInfoTable["expectedconversions"][i](arg)
+            end
 
-        local split = string.Split(str, " ")
-        local ShapeType = split[1]
-        table.remove(split, 1)
-        local ShapeInfoTable = StringToDrawFunctionTable[ShapeType]
-        if not ShapeInfoTable then
-            MsgC("UNDEFINED SHAPE: " .. str .. "\n")
-            continue
+            local HighestIndex = table.insert(CachedShapes[shapetitle], {})
+            CachedShapes[shapetitle][HighestIndex]["function"] = ShapeInfoTable["function"]
+            CachedShapes[shapetitle][HighestIndex]["args"] = args
         end
+    end
 
-        local args = split
-        if #args < #ShapeInfoTable["expectedconversions"] and (ShapeInfoTable["expectedargumentcount"] and #args < ShapeInfoTable["expectedargumentcount"] or not ShapeInfoTable["expectedargumentcount"]) then
-            -- make an error here
-            MsgC(color_red, "Amount of args does not match expected amount of args for shape / function " .. str .. "\nExpected args: " .. (ShapeInfoTable["expectedargumentcount"] or #ShapeInfoTable["expectedconversions"]) .. "\nGiven: " .. #args .. "\n")
-            continue
-        elseif #args > #ShapeInfoTable["expectedconversions"] then
-            MsgC(color_red, "Args overflow: " .. str .. "\nExpected args: " .. (ShapeInfoTable["expectedargumentcount"] or #ShapeInfoTable["expectedconversions"]) .. "\nGiven: " .. #args .. "\n")
-            continue
-        end
+    PrintTable(CachedShapes)
+end
 
-        print(str)
-        for i = 1, #args do
-            local arg = args[i]
-            args[i] = ShapeInfoTable["expectedconversions"][i](arg)
-        end
+local DefaultCrosshairs = {
+    ["1"] = [[//#DEFINENAME 1 // this line isnt used currently, ignore it
+SETCOLOR 255 0 0 255
+TEXT 'RECT_x_y_w_h' ChatFont 0.15 0.2 1 1
+RECT 0.10 0.25 0.1 0.05
+TEXT 'HOLLOWCIRCLE_centerx_center_y_radius' ChatFont 0.33 0.2 1 1
+HOLLOWCIRCLE 0.33 0.275 0.05
+TEXT 'ROTATEDTEXTUREDRECT_x_y_w_h_rotation' ChatFont 0.53 0.2 1 1
+SETTEXTURE effects/tvscreen_noise002a
+ROTATEDTEXTUREDRECT 0.53 0.27 0.15 0.07 10
+TEXT 'ROUNDEDRECT_cornerradius_x_y_w_h_flags' ChatFont 0.73 0.2 1 1
+ROUNDEDRECT 0.1 0.65 0.23 0.15 0.1
+TEXT 'FILLEDCIRCLE_x_y_radius_flags' ChatFont 0.15 0.36 1 1
+FILLEDCIRCLE 0.15 0.43 0.075
+TEXT 'POLYGON_x_y_radius_numvertices' ChatFont 0.33 0.36 1 1
+POLYGON 0.33 0.43 0.025 6
+TEXT 'TEXT_font_x_y_xalign_yalign' ChatFont 0.53 0.36 1 1
+TEXT words_MUST_be_separated_with_underscores ChatFont 0.53 0.43 1 1
+TEXT 'LINE_startx_starty_endx_endy' ChatFont 0.73 0.36 1 1
+LINE 0.65 0.43 0.83 0.46
+TEXT 'OUTLINEDRECT_x_y_w_h_thickness' ChatFont 0.15 0.5 1 1
+OUTLINEDRECT 0.09 0.54 0.12 0.10 0.01
+TEXT 'OUTLINEDCIRCLE_x_y_radius_thickness_flags' ChatFont 0.33 0.5 1 1
+OUTLINEDCIRCLE 0.33 0.58 0.1 0.007]],
+}
 
-        local HighestIndex = table.insert(CachedShapes[shapetitle], {})
-        CachedShapes[shapetitle][HighestIndex]["function"] = ShapeInfoTable["function"]
-        CachedShapes[shapetitle][HighestIndex]["args"] = args
+-- make this later
+local function WriteCrosshairFiles()
+    if not file.IsDir("ravens/customcrosshairs", "DATA") then --
+        file.CreateDir("ravens/customcrosshairs")
+    end
+
+    for name, str in pairs(DefaultCrosshairs) do
+        --
+        local filepath = "ravens/customcrosshairs/" .. name .. ".txt"
+        if file.Exists(filepath, "DATA") then continue end
+        file.Write(filepath, str)
     end
 end
 
+local function ReadCrosshairFiles()
+    local files, _ = file.Find("ravens/customcrosshairs/*.txt", "DATA")
+    for _, filename in ipairs(files) do
+        local filecontent = file.Read("ravens/customcrosshairs/" .. filename)
+        ShapeTable[string.StripExtension(filename)] = string.Explode("\n", filecontent)
+    end
+end
+
+WriteCrosshairFiles()
+ReadCrosshairFiles()
 CacheShapes()
 CreateClientConVar("rv_custom_crosshairs_selected_crosshair", "0", true, false, "Which crosshair to use, 0 = disabled")
-local SelectedCrosshair = "0"
+local SelectedCrosshair = GetConVar("rv_custom_crosshairs_selected_crosshair"):GetString()
 cvars.AddChangeCallback("rv_custom_crosshairs_selected_crosshair", function(convar, old, new)
     --
     SelectedCrosshair = new
@@ -344,8 +389,10 @@ end, "rv_custom_crosshairs_selected_crosshair")
 
 hook.Add("HUDPaint", "CustomCrosshairTest", function()
     if SelectedCrosshair == "0" then return end
-    for _, ShapeFuncTable in ipairs(CachedShapes["1"]) do
-        ShapeFuncTable["function"](unpack(ShapeFuncTable["args"])) -- this could be optimized further by passing a table and going arg by arg in the function itself, but dont care currently
+    if not CachedShapes[SelectedCrosshair] then return end
+    for _, ShapeFuncTable in ipairs(CachedShapes[SelectedCrosshair]) do
+        -- this could be optimized further by passing a table and going arg by arg in the function itself, but dont care currently
+        ShapeFuncTable["function"](unpack(ShapeFuncTable["args"]))
         --StringToDrawFunction(ShapeString)
     end
     --surface.DrawRect(0.1 * ScrW(), 0.1  * ScrH(), 0.5 * ScrW(), 0.5 * ScrW())

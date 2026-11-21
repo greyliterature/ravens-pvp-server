@@ -1214,7 +1214,7 @@ end
 local ReadyUpRatio = 100
 function rv_gm.SetReadyUpRatio(ratio)
     ReadyUpRatio = ratio
-    SetGlobal3("Int", "ReadyUpRatio", ratio)
+    SetGlobal3("Float", "ReadyUpRatio", ratio)
 end
 
 function rv_gm.GetValidPlayers()

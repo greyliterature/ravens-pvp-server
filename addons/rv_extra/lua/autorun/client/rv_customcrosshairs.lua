@@ -418,6 +418,7 @@ local color_blackish = Color(40, 40, 40)
 local color_dark = Color(15, 15, 15)
 local color_magenta = Color(255, 0, 0)
 CustomCrosshairPanel = CustomCrosshairPanel or nil
+if IsValid(CustomCrosshairPanel) then CustomCrosshairPanel:Remove() end
 local function CrosshairGUI()
     if IsValid(CustomCrosshairPanel) then CustomCrosshairPanel:Remove() end
     CustomCrosshairPanel = vgui.Create("DFrame")
@@ -491,11 +492,14 @@ local function CrosshairGUI()
         SelectedCrosshairPanel:SetValue("Selected crosshair: " .. SelectedCrosshair)
     end
 
+    local WriteToFileText = nil
     function SelectedCrosshairPanel.OnSelect(self, _, value, _)
         RunConsoleCommand("rv_custom_crosshairs_selected_crosshair", value)
         self:SetValue("Selected crosshair: " .. value)
         SelectedCrosshair = value
         TextPanel:SetText(table.concat(ShapeTable[value], "\n"))
+        WriteToFileText:SetText("")
+        WriteToFileText:SetPlaceholderText("Write to file " .. SelectedCrosshair .. ".txt" .. " (enter)")
     end
 
     AddSelectedCrosshairOptions()
@@ -504,7 +508,7 @@ local function CrosshairGUI()
     WriteToFilePanel:SetBackgroundColor(color_blackish)
     local DockMargin = ScrH() * 0.00463
     WriteToFilePanel:DockMargin(0, DockMargin, 0, 0)
-    local WriteToFileText = vgui.Create("DTextEntry", WriteToFilePanel)
+    WriteToFileText = vgui.Create("DTextEntry", WriteToFilePanel)
     WriteToFileText:Dock(FILL)
     WriteToFileText:DockMargin(DockMargin * 0.75, DockMargin * 0.75, DockMargin * 0.75, DockMargin * 0.75)
     WriteToFileText:SetPlaceholderText("Write to file " .. SelectedCrosshair .. ".txt" .. " (enter)")

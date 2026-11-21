@@ -1243,7 +1243,7 @@ local ReadyUpCount = 0
 function rv_gm.SetPlayerReadiedUp(ply, bool, sendnotif)
     ply.ReadyUpState = (bool == nil and not ply.ReadyUpState) or bool
     net.Start("rv_gm.ReadyUpSuccess")
-    net.WriteBool(ply.ReadyUpState")
+    net.WriteBool(ply.ReadyUpState)
     net.Send(ply)
     ReadyUpCount = (ply.ReadyUpState == true and 1) or -1
     print("Set readyup state for " .. ply:Nick() .. " " .. tostring(ply.ReadyUpState))

@@ -163,7 +163,7 @@ local StringToDrawFunctionTable = {
         --
         ["function"] = function()
             --
-            SetMaskToggle(true)
+            StartMask()
         end,
     },
     ["#MASKSTART"] = {
@@ -276,12 +276,14 @@ local CachedShapes = {}
 local color_red = Color(255, 0, 0, 255)
 local function CacheShapes()
     for shapetitle, tbl in pairs(ShapeTable) do
+        CachedShapes[shapetitle] = {}
         for _, str in ipairs(tbl) do
+            str = string.Trim(str)
+            --[[
             if string.find(str, "#DEFINENAME") then
                 --
                 local split = string.Split(str, " ")
                 shapetitle = split[2]
-                CachedShapes[shapetitle] = {}
                 continue
             end
 
@@ -325,8 +327,6 @@ local function CacheShapes()
             CachedShapes[shapetitle][HighestIndex]["args"] = args
         end
     end
-
-    PrintTable(CachedShapes)
 end
 
 local DefaultCrosshairs = {
@@ -380,21 +380,168 @@ end
 WriteCrosshairFiles()
 ReadCrosshairFiles()
 CacheShapes()
+--
 CreateClientConVar("rv_custom_crosshairs_selected_crosshair", "0", true, false, "Which crosshair to use, 0 = disabled")
 local SelectedCrosshair = GetConVar("rv_custom_crosshairs_selected_crosshair"):GetString()
-cvars.AddChangeCallback("rv_custom_crosshairs_selected_crosshair", function(convar, old, new)
-    --
-    SelectedCrosshair = new
-end, "rv_custom_crosshairs_selected_crosshair")
-
-hook.Add("HUDPaint", "CustomCrosshairTest", function()
-    if SelectedCrosshair == "0" then return end
+local function DrawCustomCrosshair()
     if not CachedShapes[SelectedCrosshair] then return end
     for _, ShapeFuncTable in ipairs(CachedShapes[SelectedCrosshair]) do
         -- this could be optimized further by passing a table and going arg by arg in the function itself, but dont care currently
         ShapeFuncTable["function"](unpack(ShapeFuncTable["args"]))
-        --StringToDrawFunction(ShapeString)
     end
-    --surface.DrawRect(0.1 * ScrW(), 0.1  * ScrH(), 0.5 * ScrW(), 0.5 * ScrW())
+end
+
+if SelectedCrosshair ~= "0" then hook.Add("HUDPaint", "CustomCrosshairTest", DrawCustomCrosshair) end
+cvars.AddChangeCallback("rv_custom_crosshairs_selected_crosshair", function(convar, old, new)
+    --
+    SelectedCrosshair = new
+    if SelectedCrosshair ~= "0" then
+        hook.Add("HUDPaint", "CustomCrosshairTest", DrawCustomCrosshair)
+    else
+        hook.Remove("HUDPaint", "CustomCrosshairTest")
+    end
+end, "rv_custom_crosshairs_selected_crosshair")
+
+local color_grey = Color(120, 120, 120)
+local color_green = Color(0, 255, 0, 255)
+local color_lightgreen = Color(0, 128, 0, 255)
+local color_blackish = Color(40, 40, 40)
+local color_dark = Color(15, 15, 15)
+CustomCrosshairPanel = CustomCrosshairPanel or nil
+local function CrosshairGUI()
+    if IsValid(CustomCrosshairPanel) then CustomCrosshairPanel:Remove() end
+    CustomCrosshairPanel = vgui.Create("DFrame")
+    CustomCrosshairPanel:SetSize(ScrW() * 0.3, ScrH() * 0.4)
+    CustomCrosshairPanel:CenterVertical()
+    CustomCrosshairPanel:SetX(ScrW() - CustomCrosshairPanel:GetWide())
+    CustomCrosshairPanel:MakePopup()
+    local TextPanel = vgui.Create("DTextEntry", CustomCrosshairPanel)
+    TextPanel:Dock(LEFT)
+    TextPanel:SetWide(CustomCrosshairPanel:GetWide() * 0.7)
+    TextPanel:SetMultiline(true)
+    TextPanel:SetText(table.concat(ShapeTable[SelectedCrosshair], "\n"))
+    --[[
+    function TextPanel.OnEntry(self, value)
+    end
+    --]]
+    TextPanel:SetTextColor(color_green)
+    TextPanel:SetCursorColor(color_white)
+    function TextPanel.Paint(self, w, h)
+        if self:HasFocus() then
+            surface.SetDrawColor(color_dark)
+        else
+            surface.SetDrawColor(color_black)
+        end
+
+        surface.DrawRect(0, 0, w, h)
+        self:DrawTextEntryText(self:GetTextColor(), self:GetHighlightColor(), self:GetCursorColor())
+    end
+
+    local Divider = vgui.Create("DPanel", CustomCrosshairPanel)
+    Divider:Dock(LEFT)
+    Divider:SetWide(ScrW() * 0.002)
+    Divider:SetBackgroundColor(color_grey)
+    local ButtonsPanel = vgui.Create("DPanel", CustomCrosshairPanel)
+    ButtonsPanel:Dock(FILL)
+    ButtonsPanel:SetBackgroundColor(color_black)
+    local RefreshButtonsPanel = vgui.Create("DPanel", ButtonsPanel)
+    RefreshButtonsPanel:Dock(TOP)
+    RefreshButtonsPanel:SetBackgroundColor(color_blackish)
+    local RefreshHUDButton = vgui.Create("DImageButton", RefreshButtonsPanel)
+    RefreshHUDButton:SetImage("icon16/arrow_refresh.png")
+    RefreshHUDButton:SetSize(RefreshButtonsPanel:GetTall(), RefreshButtonsPanel:GetTall())
+    function RefreshHUDButton.DoClick()
+        ShapeTable[SelectedCrosshair] = string.Explode("\n", TextPanel:GetText())
+        CacheShapes()
+    end
+
+    local LabelMargin = ScrW() * 0.005
+    RefreshHUDLabel = vgui.Create("DLabel", RefreshButtonsPanel)
+    RefreshHUDLabel:SetTextColor(color_green)
+    RefreshHUDLabel:SetX(RefreshHUDButton:GetX() + RefreshHUDButton:GetWide() + LabelMargin)
+    RefreshHUDLabel:SetText("Refresh HUD")
+    local SelectedCrosshairPanel = vgui.Create("DComboBox", ButtonsPanel)
+    SelectedCrosshairPanel:Dock(TOP)
+    --SelectedCrosshairPanel:SetBackgroundColor(color_blackish) -- make it do this later
+    local function AddSelectedCrosshairOptions()
+        SelectedCrosshairPanel:Clear()
+        for crosshairname, _ in pairs(ShapeTable) do
+            SelectedCrosshairPanel:AddChoice(crosshairname)
+        end
+
+        SelectedCrosshairPanel:SetValue("Selected crosshair: " .. SelectedCrosshair)
+    end
+
+    function SelectedCrosshairPanel.OnSelect(self, _, value, _)
+        RunConsoleCommand("rv_custom_crosshairs_selected_crosshair", value)
+        self:SetValue("Selected crosshair: " .. value)
+        TextPanel:SetText(table.concat(ShapeTable[SelectedCrosshair], "\n"))
+    end
+
+    AddSelectedCrosshairOptions()
+    local WriteToFilePanel = vgui.Create("DPanel", ButtonsPanel)
+    WriteToFilePanel:Dock(TOP)
+    WriteToFilePanel:SetBackgroundColor(color_blackish)
+    local DockMargin = ScrH() * 0.00463
+    WriteToFilePanel:DockMargin(0, DockMargin, 0, 0)
+    local WriteToFileText = vgui.Create("DTextEntry", WriteToFilePanel)
+    WriteToFileText:Dock(FILL)
+    WriteToFileText:DockMargin(DockMargin * 0.75, DockMargin * 0.75, DockMargin * 0.75, DockMargin * 0.75)
+    WriteToFileText:SetPlaceholderText("Write to file " .. SelectedCrosshair .. ".txt" .. " (enter)")
+    WriteToFileText:SetTextColor(color_green)
+    WriteToFileText:SetCursorColor(color_white)
+    WriteToFileText:SetPlaceholderColor(color_lightgreen)
+    function WriteToFileText.Paint(self, w, h)
+        if self:HasFocus() then
+            surface.SetDrawColor(color_dark)
+        else
+            surface.SetDrawColor(color_black)
+        end
+
+        surface.DrawRect(0, 0, w, h)
+        if self:GetText() == "" and not self:HasFocus() then
+            draw.SimpleText(self:GetPlaceholderText(), self:GetFont(), 0, h * 0.5, self:GetPlaceholderColor(), 0, TEXT_ALIGN_CENTER)
+            return
+        end
+
+        self:DrawTextEntryText(self:GetTextColor(), self:GetHighlightColor(), self:GetCursorColor())
+    end
+
+    function WriteToFileText.OnGetFocus(self)
+        self:SetText(SelectedCrosshair .. ".txt")
+    end
+
+    function WriteToFileText.OnEnter(self, value)
+        --value  = string.trim
+        local TextPanelText = TextPanel:GetText()
+        file.Write("ravens/customcrosshairs/" .. value, TextPanelText)
+        ReadCrosshairFiles()
+        AddSelectedCrosshairOptions()
+        CacheShapes()
+    end
+
+    local RefreshFilesButtonsPanel = vgui.Create("DPanel", ButtonsPanel)
+    RefreshFilesButtonsPanel:Dock(TOP)
+    RefreshFilesButtonsPanel:SetBackgroundColor(color_blackish)
+    RefreshFilesButtonsPanel:DockMargin(0, DockMargin, 0, 0)
+    local RefreshFilesButton = vgui.Create("DImageButton", RefreshFilesButtonsPanel)
+    RefreshFilesButton:SetImage("icon16/arrow_refresh.png")
+    RefreshFilesButton:SetSize(RefreshFilesButtonsPanel:GetTall(), RefreshFilesButtonsPanel:GetTall())
+    function RefreshFilesButton.DoClick()
+        ReadCrosshairFiles()
+        AddSelectedCrosshairOptions()
+        CacheShapes()
+    end
+
+    RefreshFilesLabel = vgui.Create("DLabel", RefreshFilesButtonsPanel)
+    RefreshFilesLabel:SetTextColor(color_green)
+    RefreshFilesLabel:SetX(RefreshFilesButton:GetX() + RefreshFilesButton:GetWide() + LabelMargin)
+    RefreshFilesLabel:SetText("Refresh files")
+end
+
+concommand.Add("rv_custom_crosshairs_menu", function()
+    CrosshairGUI()
     return
 end)
+
+CrosshairGUI()

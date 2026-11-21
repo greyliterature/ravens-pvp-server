@@ -64,6 +64,6 @@ end)
 
 local InvalidFallback = 134634196349634 -- A player's arenanumber should never be set to this number. If the fallback of the player == InvalidFallback then the nwint didnt get set
 hook.Add("ShouldCollide", "MakePlayersNotCollide", function(ent1, ent2)
-    if ent1:GetNWInt("ArenaNumber", InvalidFallback) == InvalidFallback or ent2:GetNWInt("ArenaNumber", InvalidFallback) == InvalidFallback then return end
+
     return ent1:GetNWInt("ArenaNumber", 0) == ent2:GetNWInt("ArenaNumber", 0)
 end)

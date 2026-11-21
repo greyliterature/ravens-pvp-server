@@ -51,33 +51,9 @@ end
 local MatchesLeft = {}
 --steamid = matchesleft
 local function UpdateDatabaseGlicko(winner, winnerscore, loser, loserscore, category, forfeited, rated)
-    local highestmatchid = sql.QueryTyped("SELECT MAX(match_id) FROM match_data WHERE match_id")
-    local matches_count = (highestmatchid[1]["MAX(match_id)"] or 0) + 1
-    ratingperiod = math.ceil(matches_count / RatingPeriodInterval)
-    if rated == true then
-        local players = {winner, loser}
-        for _, ply in ipairs(players) do
-            local plyData = sql.QueryTyped("SELECT * FROM player_glickos WHERE steamid64 = ?", ply)
-            local plyLastUsedMatchID = (plyData ~= false and plyData[1] and plyData[1]["lastmatchid"]) or 0
-            local plyMatchData = sql.QueryTyped("SELECT * FROM match_data WHERE (winner_SteamID64 = ? OR loser_SteamID64 = ?) AND match_id > ? AND rated = ?", ply, ply, plyLastUsedMatchID, "1")
-            local plyMatchesSinceLastRating = (plyData ~= false and plyData[1] and plyData[1]["matchessincelastrating"] or 0) + 1
-            MatchesLeft[ply] = RatingPeriodInterval - plyMatchesSinceLastRating
-            --
-            sql.QueryTyped("INSERT OR IGNORE INTO player_glickos (steamid64, rating, rd, matchessincelastrating, lastmatchid) VALUES (?, 1500, 350, 0, 0)", ply)
-            sql.QueryTyped("UPDATE player_glickos SET rating = ?, rd = ?, matchessincelastrating = ? WHERE steamid64 = ?", (plyData ~= false and plyData[1] and plyData[1]["rating"]) or 1500, (plyData ~= false and plyData[1] and plyData[1]["rd"]) or 350, plyMatchesSinceLastRating, ply)
-            if plyMatchesSinceLastRating and (plyMatchesSinceLastRating >= RatingPeriodInterval) then
-                newrating, newrd = CalculateNewGlicko(ply, plyMatchData, category)
-                if newrating and newrd then --
-                    UpdateGlicko(ply, newrating, newrd, category, matches_count)
-                end
-            end
-        end
-    end
-
-    --
     local winnerglicko, loserglicko = select(2, GetGlicko((IsValid(winner) and winner:SteamID64()) or winner)), select(2, GetGlicko((IsValid(loser) and loser:SteamID64()) or loser))
     local map = game.GetMap()
-    sql.QueryTyped("INSERT INTO match_data (winner_SteamID64, loser_SteamID64, category, matchdate, forfeited, winnerscore, loserscore, winnerglicko, loserglicko, rated, map, mapwsid ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", --
+    sql.QueryTyped("INSERT INTO match_data ( winner_SteamID64, loser_SteamID64, category, matchdate, forfeited, winnerscore, loserscore, winnerglicko, loserglicko, rated, map, mapwsid ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", --
         IsValid(winner) and winner:SteamID64() or winner, -- winnersteamid64
         IsValid(loser) and loser:SteamID64() or loser, -- losersteamid64
         category, -- category
@@ -90,6 +66,33 @@ local function UpdateDatabaseGlicko(winner, winnerscore, loser, loserscore, cate
         rated, --
         map, --
         GetMapWSID(map))
+
+    local highestmatchid = sql.QueryTyped("SELECT last_insert_rowid()")
+    local newmatchid = highestmatchid[1]["last_insert_rowid()"] -- this is useless and doesnt increment now, since the insert is above
+    ratingperiod = math.ceil(newmatchid / RatingPeriodInterval)
+    if rated == true then
+        local players = {winner, loser}
+        for _, ply in ipairs(players) do
+            local plyData = sql.QueryTyped("SELECT * FROM player_glickos WHERE steamid64 = ?", ply)
+            local plyLastUsedMatchID = (plyData ~= false and plyData[1] and plyData[1]["lastmatchid"]) or 0
+            local plyMatchData = sql.QueryTyped("SELECT * FROM match_data WHERE (winner_SteamID64 = ? OR loser_SteamID64 = ?) AND match_id > ? AND rated = ?", ply, ply, plyLastUsedMatchID, "1")
+            local plyMatchesSinceLastRating = (plyData ~= false and plyData[1] and plyData[1]["matchessincelastrating"] or 0) + 1
+            MatchesLeft[ply] = RatingPeriodInterval - plyMatchesSinceLastRating
+            --
+            sql.QueryTyped("INSERT OR IGNORE INTO player_glickos (steamid64, rating, rd, matchessincelastrating, lastmatchid) VALUES (?, 1500, 350, 0, 0)", ply)
+            sql.QueryTyped("UPDATE player_glickos SET rating = ?, rd = ?, matchessincelastrating = ? WHERE steamid64 = ?", (plyData ~= false and plyData[1] and plyData[1]["rating"]) or 1500, (plyData ~= false and plyData[1] and plyData[1]["rd"]) or 350, plyMatchesSinceLastRating, ply)
+            if plyMatchesSinceLastRating and (plyMatchesSinceLastRating >= RatingPeriodInterval) then
+                local newrating, newrd = CalculateNewGlicko(ply, plyMatchData, category)
+                if newrating and newrd then --
+                    UpdateGlicko(ply, newrating, newrd, category, newmatchid)
+                end
+            end
+        end
+    end
+
+    --
+    local aftermatchwinnerglicko, aftermatchloserglicko = select(2, GetGlicko((IsValid(winner) and winner:SteamID64()) or winner)), select(2, GetGlicko((IsValid(loser) and loser:SteamID64()) or loser))
+    sql.QueryTyped("UPDATE match_data SET winnerglicko = ?, loserglicko = ? WHERE match_id = ?", aftermatchwinnerglicko, aftermatchloserglicko, newmatchid)
 end
 
 local function GetMatchesLeft(steamid)

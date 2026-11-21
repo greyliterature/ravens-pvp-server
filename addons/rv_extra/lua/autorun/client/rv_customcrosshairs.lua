@@ -352,6 +352,9 @@ TEXT 'OUTLINEDRECT_x_y_w_h_thickness' ChatFont 0.15 0.5 1 1
 OUTLINEDRECT 0.09 0.54 0.12 0.10 0.01
 TEXT 'OUTLINEDCIRCLE_x_y_radius_thickness_flags' ChatFont 0.33 0.5 1 1
 OUTLINEDCIRCLE 0.33 0.58 0.1 0.007]],
+    ["owcircle"] = [[
+SETCOLOR 0 255 255 255
+OUTLINEDCIRCLE 0.5 0.5 0.005 0.0012]]
 }
 
 -- make this later
@@ -421,6 +424,14 @@ local function CrosshairGUI()
     CustomCrosshairPanel:CenterVertical()
     CustomCrosshairPanel:SetX(ScrW() - CustomCrosshairPanel:GetWide())
     CustomCrosshairPanel:MakePopup()
+    function CustomCrosshairPanel.OnRemove(_)
+        hook.Remove("HUDPaint", "CustomCrosshairsDrawCenter")
+    end
+
+    function CustomCrosshairPanel.OnClose(self)
+        self:Remove()
+    end
+
     CustomCrosshairPanel:SetTitle("Custom crosshair setup")
     local TextPanel = vgui.Create("DTextEntry", CustomCrosshairPanel)
     TextPanel:Dock(LEFT)
@@ -574,5 +585,3 @@ concommand.Add("rv_custom_crosshairs_menu", function()
     CrosshairGUI()
     return
 end)
-
-CrosshairGUI()

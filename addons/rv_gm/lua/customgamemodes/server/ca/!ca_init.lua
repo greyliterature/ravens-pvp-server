@@ -127,7 +127,7 @@ AddGamemodeHook("rv_gm.ShouldIncludePlayer", "ExcludeSpectatorsFromReadyup", fun
     return
 end)
 
-rv_gm.SetScoreLimit(7)
+rv_gm.SetScoreLimit(10)
 AddGamemodeHook("ShouldSpectateOnJoin", "SetSpectateOnJoin", function(ply)
     return true --
 end)

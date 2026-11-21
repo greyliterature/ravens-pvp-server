@@ -334,7 +334,7 @@ local DefaultCrosshairs = {
     ["1"] = [[//#DEFINENAME 1 // this line isnt used currently, ignore it
 SETCOLOR 255 0 0 255
 TEXT 'RECT_x_y_w_h' ChatFont 0.15 0.2 1 1
-RECT 0.10 0.25 0.1 0.05
+RECT 0.1 0.25 0.1 0.05
 TEXT 'HOLLOWCIRCLE_centerx_center_y_radius' ChatFont 0.33 0.2 1 1
 HOLLOWCIRCLE 0.33 0.275 0.05
 TEXT 'ROTATEDTEXTUREDRECT_x_y_w_h_rotation' ChatFont 0.53 0.2 1 1
@@ -353,7 +353,7 @@ LINE 0.65 0.43 0.83 0.46
 TEXT 'OUTLINEDRECT_x_y_w_h_thickness' ChatFont 0.15 0.5 1 1
 OUTLINEDRECT 0.09 0.54 0.12 0.10 0.01
 TEXT 'OUTLINEDCIRCLE_x_y_radius_thickness_flags' ChatFont 0.33 0.5 1 1
-OUTLINEDCIRCLE 0.33 0.58 0.1 0.007]],
+OUTLINEDCIRCLE 0.33 0.58 0.05 0.007]],
     ["owcircle"] = [[SETCOLOR 0 255 255 255
 OUTLINEDCIRCLE 0.5 0.5 0.004 0.0009]]
 }
@@ -494,6 +494,7 @@ local function CrosshairGUI()
     function SelectedCrosshairPanel.OnSelect(self, _, value, _)
         RunConsoleCommand("rv_custom_crosshairs_selected_crosshair", value)
         self:SetValue("Selected crosshair: " .. value)
+        SelectedCrosshair = value
         TextPanel:SetText(table.concat(ShapeTable[value], "\n"))
     end
 

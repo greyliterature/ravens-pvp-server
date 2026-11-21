@@ -1,5 +1,3 @@
--- todo:
--- allow multiple files in the folder that loads the crosshair
 local ShapeTable = {}
 local RNDX = include("autorun/rndx.lua")
 local function StartMask()
@@ -423,6 +421,7 @@ local function CrosshairGUI()
     CustomCrosshairPanel:CenterVertical()
     CustomCrosshairPanel:SetX(ScrW() - CustomCrosshairPanel:GetWide())
     CustomCrosshairPanel:MakePopup()
+    CustomCrosshairPanel:SetTitle("Custom crosshair setup")
     local TextPanel = vgui.Create("DTextEntry", CustomCrosshairPanel)
     TextPanel:Dock(LEFT)
     TextPanel:SetWide(CustomCrosshairPanel:GetWide() * 0.7)

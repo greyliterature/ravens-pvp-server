@@ -1225,7 +1225,7 @@ function rv_gm.GetValidPlayers()
             players[#players + 1] = ply
         elseif ShouldIncludePlayer == false then
             continue
-        elseif ShouldIncludePlayer == nil or ply:Team() == TEAM_SPECTATOR then
+        elseif ply:Team() == TEAM_SPECTATOR then
             continue
         end
     end

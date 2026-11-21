@@ -385,6 +385,7 @@ CreateClientConVar("rv_custom_crosshairs_selected_crosshair", "0", true, false, 
 local SelectedCrosshair = GetConVar("rv_custom_crosshairs_selected_crosshair"):GetString()
 local function DrawCustomCrosshair()
     if not CachedShapes[SelectedCrosshair] then return end
+    if not LocalPlayer():Alive() then return end
     for _, ShapeFuncTable in ipairs(CachedShapes[SelectedCrosshair]) do
         -- this could be optimized further by passing a table and going arg by arg in the function itself, but dont care currently
         ShapeFuncTable["function"](unpack(ShapeFuncTable["args"]))
@@ -393,7 +394,6 @@ end
 
 if SelectedCrosshair ~= "0" then hook.Add("HUDPaint", "CustomCrosshairTest", DrawCustomCrosshair) end
 cvars.AddChangeCallback("rv_custom_crosshairs_selected_crosshair", function(convar, old, new)
-    --
     SelectedCrosshair = new
     if SelectedCrosshair ~= "0" then
         hook.Add("HUDPaint", "CustomCrosshairTest", DrawCustomCrosshair)
@@ -475,7 +475,7 @@ local function CrosshairGUI()
     function SelectedCrosshairPanel.OnSelect(self, _, value, _)
         RunConsoleCommand("rv_custom_crosshairs_selected_crosshair", value)
         self:SetValue("Selected crosshair: " .. value)
-        TextPanel:SetText(table.concat(ShapeTable[SelectedCrosshair], "\n"))
+        TextPanel:SetText(table.concat(ShapeTable[value], "\n"))
     end
 
     AddSelectedCrosshairOptions()
@@ -518,6 +518,7 @@ local function CrosshairGUI()
         ReadCrosshairFiles()
         AddSelectedCrosshairOptions()
         CacheShapes()
+        RunConsoleCommand("rv_custom_crosshairs_selected_crosshair", string.StripExtension(value))
     end
 
     local RefreshFilesButtonsPanel = vgui.Create("DPanel", ButtonsPanel)

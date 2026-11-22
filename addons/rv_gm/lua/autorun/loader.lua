@@ -168,7 +168,7 @@ hook.Add("PlayerSay", "VotemodeCommands", function(sender, text, teamChat)
     local args = exploded
     if #args > 1 then table.remove(args, 1) end
     table.RemoveByValue(args, "")
-    if rv_gm.IsMatchInProgress() == true then return end
+    if rv_gm.IsMatchInProgress == true then return end
     if command == "!votemode" and IsValidGamemode(args[1]) == true then --
         if LastModeChange + ChangeModeRateLimit > CurTime() then
             timer.Simple(0, function()

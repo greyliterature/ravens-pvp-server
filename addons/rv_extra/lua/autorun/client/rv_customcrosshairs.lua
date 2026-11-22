@@ -439,7 +439,7 @@ local function CrosshairGUI()
     TextPanel:Dock(LEFT)
     TextPanel:SetWide(CustomCrosshairPanel:GetWide() * 0.7)
     TextPanel:SetMultiline(true)
-    TextPanel:SetText(table.concat(ShapeTable[SelectedCrosshair], "\n"))
+    if ShapeTable[SelectedCrosshair] then TextPanel:SetText(table.concat(ShapeTable[SelectedCrosshair], "\n")) end
     --[[
     function TextPanel.OnEntry(self, value)
     end

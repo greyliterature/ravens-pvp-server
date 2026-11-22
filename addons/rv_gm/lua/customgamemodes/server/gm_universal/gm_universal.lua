@@ -38,6 +38,11 @@ function rv_gm.SetPlayerToNotRespawn(ply, bool)
     ply.CanRespawn = (bool == true and bool) or nil
 end
 
+local CanPlayersSpawnMidRound = false
+function rv_gm.AllowMidRoundRespawns(bool)
+    CanPlayersSpawnMidRound = bool
+end
+
 AddGamemodeHook("PlayerDeathThink", "AllowPlayerRespawns", function(ply)
     if ply:Team() == TEAM_SPECTATOR then return false end
     if CanPlayersRespawn == false and rv_gm.MatchInProgress == true then
@@ -1387,6 +1392,9 @@ AddGamemodeHook("PlayerChangedTeam", "SpectateStateOnTeamChange", function(ply, 
         rv_gm.DelayedRespawn(ply)
     elseif newTeam == TEAM_SPECTATOR then
         rv_gm.ForcePlayerToSpectate(ply, nil)
+    elseif CanPlayersSpawnMidRound == true then
+        FSpectate.forceUnspectate(ply)
+        rv_gm.DelayedRespawn(ply)
     end
 end)
 

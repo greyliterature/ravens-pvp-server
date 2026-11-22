@@ -276,6 +276,7 @@ if SERVER then
 
     InformEnemyHealth = function(victim, attacker)
         if not IsValid(victim) or not IsValid(attacker) then return end
+        if not attacker:IsPlayer() then return end
         victim:ChatPrintColor({"RV_OUTLINESCOLOR", attacker:Nick(), "COLOR_WHITE", " had ", "COLOR_GREEN", attacker:Health(), "COLOR_WHITE", " health remaining."})
         return
     end

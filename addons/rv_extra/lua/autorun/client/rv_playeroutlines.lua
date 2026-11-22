@@ -52,6 +52,7 @@ local function rv_drawoutlines()
 		if not ply:Alive() then continue end
 		if ply == LocalPlayer() then continue end
 		if ply:GetNoDraw() == true then continue end
+		if ply:IsDormant() == true then continue end
 		local DistToTarg = (ply:GetPos() - LocalPlayer():GetShootPos()):GetNormalized()
 		local dot = LocalPlayer():GetAimVector():Dot(DistToTarg)
 		ShouldDraw = dot >= rv_outlinesdotfloat

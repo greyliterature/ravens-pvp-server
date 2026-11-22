@@ -445,7 +445,7 @@ function rv_gm.CreateDollFlagBase(vec, teamindex, spawnwithflag)
         if not ent.IsDollFlag then return end
         if ent.TeamIndex == self.TeamIndex then return end
         rv_gm.ReturnDollFlagToBase(ent)
-        rv_gm.AddTeamScore(ent.TeamIndex, 1)
+        rv_gm.AddTeamScore((ent.TeamIndex == TEAM_RED and TEAM_BLUE) or TEAM_RED, 1)
     end
 
     --[[

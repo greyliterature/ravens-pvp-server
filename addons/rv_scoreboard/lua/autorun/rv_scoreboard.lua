@@ -559,6 +559,7 @@ if CLIENT then
                 --NameHolder:SetBackgroundColor(color_white)
                 surface.SetFont("ScoreboardDefaultScaled")
                 local CustomName = (IsValid(ply) and ply:GetNW3Var("CustomName", ply:Nick())) or ""
+                if CustomName == "" then CustomName = ply:Nick() end
                 local PlayerName = " " .. ((FindColorInText(CustomName, true) and table.concat(FindColorInText(CustomName, true)) or CustomName) or "Connecting")
                 local NickW, NickH = surface.GetTextSize(PlayerName)
                 local SpacerW, _ = surface.GetTextSize(" ")

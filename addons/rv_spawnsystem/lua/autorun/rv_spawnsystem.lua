@@ -41,7 +41,9 @@ local function DecideSpawn(ply, _)
     end
 
     local team_spawns = {}
+    local ShouldUseTeamSpawns = hook.Run("ShouldUseTeamSpawns", ply)
     for _, spawn in ipairs(spawns) do
+        if ShouldUseTeamSpawns == false then break end
         if (spawn.TeamIndex and spawn.TeamIndex == ply:Team()) and ply:Team() ~= TEAM_UNASSIGNED then -- 
             team_spawns[#team_spawns + 1] = spawn
         end

@@ -1148,7 +1148,9 @@ function rv_gm.BalanceTeams(Teams)
         ply:SetTeam(2)
     end
 
-    ColoredChatPrint({team.GetColor(1), math.Truncate(team1_sum / #team.GetPlayers(1), 1), color_white, " - ", team.GetColor(2), math.Truncate(team2_sum / #team.GetPlayers(2), 1), color_white, ": ", color_black, math.abs(math.Truncate(team1_sum - team2_sum, 0))})
+    local team1_average = team1_sum / #team.GetPlayers(1)
+    local team2_average = team2_sum / #team.GetPlayers(2)
+    ColoredChatPrint({team.GetColor(1), math.Truncate(team1_average, 1), color_white, " - ", team.GetColor(2), math.Truncate(team2_average, 1), color_white, ": ", color_black, math.abs(math.Truncate(team1_average - team2_average, 0))})
 end
 
 function rv_gm.RespawnAllDeadPlayers(Teams)

@@ -536,6 +536,7 @@ function rv_gm.SetFlagReturnDelay(delay)
 end
 
 function rv_gm.RevealFlag(revealedply, ent, bool)
+    if IsValid(revealedply) and revealedply:Team() == ent.TeamIndex then return end
     net.Start("RevealFlag")
     net.WritePlayer(revealedply)
     net.WriteEntity(ent)

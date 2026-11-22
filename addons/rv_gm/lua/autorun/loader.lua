@@ -103,13 +103,14 @@ AddCSLuaFile("customgamemodes/gamemodevars.lua")
 if SERVER then
     util.AddNetworkString("SendNewGamemode")
     function SetGamemode(NewGamemode, RoundLimit, Ranked)
+        for _, ply in player.Iterator() do
+            ply.VotedForMode = nil
+        end
+
         NewGamemode = string.lower(NewGamemode)
         local InitPath = "customgamemodes/server/" .. NewGamemode .. "/" .. "!" .. NewGamemode .. "_init.lua"
         local CanSetGamemode, err = CanPlayGamemode(NewGamemode)
-        if err then
-            PrintMessage(HUD_PRINTTALK, "Can't set gamemode because " .. err)
-        end
-        
+        if err then PrintMessage(HUD_PRINTTALK, "Can't set gamemode because " .. err) end
         if file.Exists(InitPath, "LUA") and hook.Run("CanPlayGamemode", NewGamemode) ~= false and select(1, CanPlayGamemode(NewGamemode)) ~= false then --
             GamemodeVars.CurrentGamemode[2] = NewGamemode
             SetGlobal3("Bool", "RankedMatch", Ranked == true)

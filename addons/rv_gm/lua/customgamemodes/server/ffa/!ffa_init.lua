@@ -14,6 +14,7 @@ net.Receive("ReadyUp", function()
     return
 end)
 
+rv_gm.ClearCustomNames()
 RunConsoleCommand("blacklistclass", "weapon_frag")
 include("autorun/server/rv_motd.lua")
 --include("autorun/damagelogic.lua")

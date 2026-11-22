@@ -157,6 +157,12 @@ function rv_gm.ForcePlayerToUnSpectate(ply)
     FSpectate.forceUnspectate(ply)
 end
 
+AddGamemodeHook("PlayerInitialSpawn", "KillOnJoin", function(ply, _)
+    local ShouldSpectateOnJoin = hook.Run("ShouldSpectateOnJoin", ply)
+    if ShouldSpectateOnJoin ~= true then return end
+    ply:KillSilent()
+end)
+
 AddGamemodeHook("InitPostEntityStarted", "SetSpectateOnJoin", function(ply)
     ply.FullyLoaded = true
     local ShouldSpectateOnJoin = hook.Run("ShouldSpectateOnJoin", ply)

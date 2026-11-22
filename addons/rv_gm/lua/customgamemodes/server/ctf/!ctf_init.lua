@@ -18,6 +18,7 @@ team.SetUp(TEAM_BLUE, "Blue Team", Color(0, 0, 255), true)
 rv_gm.SetAllToSpectate(true)
 rv_gm.AllowPlayerFriendlyFire(false)
 rv_gm.AllowPlayerRespawns(false)
+rv_gm.AllowMidRoundRespawns(true)
 rv_gm.EnableTeamJoins(true)
 rv_gm.SetUpTeams({
     [TEAM_RED] = {

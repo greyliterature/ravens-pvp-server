@@ -15,6 +15,19 @@ function rv_gm.AllowPlayerRespawns(bool)
     end
 end
 
+local ShouldUseTeamSpawns = nil
+function rv_gm.UseTeamSpawns(bool)
+    if bool == true then
+        ShouldUseTeamSpawns = nil
+    elseif bool == false then
+        ShouldUseTeamSpawns = false
+    end
+end
+
+AddGamemodeHook("ShouldUseTeamSpawns", "rv_gm.UseTeamSpawns", function(ply)
+    return ShouldUseTeamSpawns --
+end)
+
 function rv_gm.DelayedRespawn(ply) -- should fix issues with PLAYERMETA:Spawn() being called too early for PlayerSelectSpawn to account for team when a player's team is changed and immediately spawned after change
     timer.Simple(0, function()
         ply:Spawn()

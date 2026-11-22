@@ -255,6 +255,7 @@ AddGamemodeHook("rv_gm.GamemodeDataLoaded", "SetSpawns", function(gamemodetbl)
         end
 
         CreateHardPoint(random_hardpointpos)
+        rv_gm.SendNotif(nil, {""}, {CurTime() + 2}, "Hardpoint moved", true)
     end)
 end)
 

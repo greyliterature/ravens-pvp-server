@@ -222,4 +222,11 @@ hook.Add("PlayerDisconnected", "DiscountVotesOnDisconnect", function(ply)
     if ply.VotedForMode and VotedForModes[ply.VotedForMode] then --
         VotedForModes[ply.VotedForMode] = VotedForModes[ply.VotedForMode] - 1
     end
+
+    local team1_players = #team.GetPlayers(1)
+    local team2_players = #team.GetPlayers(2)
+    if team1_players > 0 and team2_players > 0 then return end
+    if rv_gm.CurrentGamemode ~= "FFA" then -- this should check if the team is teambased, checking team1 and team2 players always is not a good idea, (what if its FFAKOTH? what then)
+        SetGamemode("FFA")
+    end
 end)

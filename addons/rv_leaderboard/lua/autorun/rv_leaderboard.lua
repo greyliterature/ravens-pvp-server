@@ -462,7 +462,7 @@ if CLIENT then
         end
 
         local Avatar = vgui.Create("AvatarImage", PlayerInfoHolder)
-        Avatar:SetSteamID(CurrentlyOpenedProfile)
+        Avatar:SetSteamID(CurrentlyOpenedProfile, 184)
         Avatar:SetPos(AvatarMargin, AvatarMargin)
         Avatar:SetSize(AvatarSize, AvatarSize)
         local NickHolder = vgui.Create("DPanel", PlayerInfoHolder)
@@ -830,7 +830,8 @@ if CLIENT then
                     local _KD = _WeaponStats[i][2]
                     local _Kills = _WeaponStats[i][3]
                     surface.SetFont("HL2MPSmall")
-                    local _, WeapH = surface.GetTextSize(WeaponToText[weap])
+                    local WeaponText = WeaponToText[weap] or "N/A"
+                    local _, WeapH = surface.GetTextSize(WeaponText)
                     local CurrentHeader = h * 0.3 * (i - 1) + Panel:GetTall() * 0.01 + WeapH * 1.05
                     local LastHeader = h * 0.3 * (i - 2) + Panel:GetTall() * 0.01 + WeapH * 1.05
                     --HeaderToRect - ((i == 1 and Panel:GetTall() * 0.01) or 0)

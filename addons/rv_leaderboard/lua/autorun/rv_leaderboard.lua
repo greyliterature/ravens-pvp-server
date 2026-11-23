@@ -766,6 +766,7 @@ if CLIENT then
         BestWeapon:SetWide(Panel:GetWide() - BestWeapon:GetX() - MarginFromEdge)
         BestWeapon:SetTall(MapPerformance:GetY() - MatchesPlayed:GetY() - MarginFromEdge)
         local WeaponToText = {
+            weapon_crowbar = "6",
             weapon_357 = ".",
             weapon_ar2 = "2",
             weapon_crossbow = "1",

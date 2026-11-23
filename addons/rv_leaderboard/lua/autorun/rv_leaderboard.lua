@@ -804,7 +804,7 @@ if CLIENT then
             table.sort(_WeaponStats, function(a, b) return a[2] > b[2] end)
             -- piechart
             for i = 1, #_WeaponStats do
-                local kills = _WeaponStats[i][2]
+                local kills = _WeaponStats[i][3]
                 local weaponclass = _WeaponStats[i][1]
                 Percents[#Percents + 1] = kills / killssum
                 Labels[#Labels + 1] = WeaponToNiceName[weaponclass]
@@ -813,7 +813,6 @@ if CLIENT then
             PieChart:SetPercents(Percents)
             PieChart:SetLabels(Labels)
             LabelHolder:Attach(PieChart)
-            PrintTable(Percents)
         end)
 
         local WeaponsToDisplay = 3

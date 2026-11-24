@@ -774,8 +774,10 @@ elseif CLIENT then
         SearchBar:SetPlaceholderColor(color_white)
         SearchBar:SetPlaceholderText("Search...")
         function SearchBar.Paint(self, w, h)
-            surface.SetDrawColor(color_black)
-            surface.DrawOutlinedRect(0, 0, w, h, 5)
+            surface.SetDrawColor(color_cod_black)
+            surface.DrawRect(0, 0, w, h)
+            surface.SetDrawColor(color_cod_lighter_black)
+            surface.DrawOutlinedRect(0, 0, w, h, 3)
             --[[if self:HasFocus() then
                 surface.SetDrawColor(color_dark)
             else

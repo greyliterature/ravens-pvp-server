@@ -3,25 +3,6 @@ local debugvgui = false
 -- this should be in some sort of table later
 local colorTextPrimary = Color(205, 214, 255) -- https://github.com/greyliterature/map_vote/blob/3e18c15656596f705442bc47dc6283f0027ac770/lua/mapvote/client/modules/style_config.lua#L7 
 --
-local fontCreated = {}
-local function iconFont(size) -- https://github.com/greyliterature/map_vote/blob/3e18c15656596f705442bc47dc6283f0027ac770/lua/mapvote/client/vgui/map_icon.lua#L6
-    -- no smaller  than 10
-    size = math.max(size, 10)
-    if fontCreated["MapVote_MapIcon" .. size] then return "MapVote_MapIcon" .. size end
-    local name = "MapVote_MapIcon" .. size
-    surface.CreateFont(name, {
-        font = "Roboto",
-        size = size,
-        weight = 600,
-        antialias = true,
-        shadow = true,
-        outline = true,
-    })
-
-    fontCreated[name] = true
-    return name
-end
-
 local mapvote_colortable = nil
 if CLIENT and debugvgui == true then
     mapvote_colortable = {}
@@ -114,6 +95,25 @@ net.Receive("MapVote_request_map_wsid_response", function(_, _)
     end)
 end)
 
+net.Receive("MapVote_votemap_announcement", function(_, _)
+    local RemoveVote = net.ReadBool()
+    local MapName = net.ReadString()
+    local ply = net.ReadPlayer()
+    local MapPanels = MapToPanels[MapName]
+    for _, MapPanel in pairs(MapPanels) do
+        if not IsValid(MapPanel) then continue end
+        if RemoveVote == false then
+            print("vote")
+            MapPanel:VoteForMap(ply, true)
+        else
+            print("remove")
+            MapPanel:RemoveVoteForMap(ply, true)
+        end
+    end
+
+    hook.Run("MapVote_PlayerVotedForMap", ply, RemoveVote, MapName, MapPanel)
+end)
+
 -- SVoteIcon
 local PANEL = {}
 function PANEL:Init()
@@ -172,7 +172,7 @@ function PANEL:Paint(w, h)
     end
 
     local baseFontSize = w * 0.10 -- https://github.com/greyliterature/map_vote/blob/3e18c15656596f705442bc47dc6283f0027ac770/lua/mapvote/client/vgui/map_icon.lua#L94
-    draw.SimpleText(self:GetMapName(), iconFont(baseFontSize), 0, 0, colorTextPrimary, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM)
+    draw.SimpleText(self:GetMapName(), MapVote.iconFont(baseFontSize), 0, 0, colorTextPrimary, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM)
 end
 
 local PlayerPanelVotes = {}
@@ -227,28 +227,26 @@ function PANEL:VoteForMap(ply, forced)
     local Avatar = vgui.Create("AvatarImage", self.Grid)
     Avatar:SetPlayer(ply, 184)
     Avatar:SetWide(IconSize)
+    function Avatar.PaintOver(_, w, h)
+        surface.SetDrawColor(ColorRand())
+        surface.DrawRect(0, 0, w, h)
+    end
+
     self.Grid:AddItem(Avatar)
     self.Grid:SetRowHeight(IconSize)
     PlayerAvatars[ply] = Avatar
 end
 
-net.Receive("MapVote_votemap_announcement", function(_, _)
-    print("REC HI")
-    local RemoveVote = net.ReadBool()
-    local MapName = net.ReadString()
-    local ply = net.ReadPlayer()
-    local MapPanels = MapToPanels[MapName]
-    for _, MapPanel in pairs(MapPanels) do
-        if not IsValid(MapPanel) then continue end
-        if RemoveVote == false then
-            print("vote")
-            MapPanel:VoteForMap(ply, true)
-        else
-            print("remove")
-            MapPanel:RemoveVoteForMap(ply, true)
-        end
+function PANEL:SetVoters(votertbl)
+    for _, tbl in ipairs(self.Grid.Items) do
+        local PanelObject = tbl[1]
+        if IsValid(PanelObject) then self.Grid:RemoveItem(PanelObject) end
     end
-end)
+
+    for _, ply in ipairs(votertbl) do
+        self:VoteForMap(ply, true)
+    end
+end
 
 function PANEL:Debug_VoteEveryone()
     for _, ply in player.Iterator() do

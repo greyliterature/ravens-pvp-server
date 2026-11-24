@@ -658,6 +658,8 @@ elseif CLIENT then
             for mapIndex, mapName in ipairs(MapVote.GetMapList()) do
                 local category = MapToCategory[mapName] or "Uncategorized"
                 if not DropDowns[category] then
+                    print(mapIndex)
+                    print("hiya")
                     local DropDown = vgui.Create("SDropDown", VoteFrame)
                     DropDown:Dock(TOP)
                     DropDown:SetWide(VoteFrame:GetWide())
@@ -741,7 +743,6 @@ elseif CLIENT then
                             self.Grid:Remove()
                         end
                     end
-                    --[[--]]
                 end
             end
         end
@@ -801,6 +802,7 @@ elseif CLIENT then
                 dropdown:Remove()
             end
 
+            DropDowns = {}
             local SearchResultMaps = {}
             for mapindex, mapname in ipairs(MapVote.GetMapList()) do
                 if string.find(mapname, value) then --

@@ -345,6 +345,41 @@ elseif CLIENT then
         MapVote.UpdateCheckBoxes()
     end)
 
+    local PlayerVotes = {}
+    --local MapToPanels = {}
+    hook.Add("MapVote_PlayerVotedForMap", "TrackVoterTable", function(ply, RemoveVote, MapName, panelobject)
+        PlayerVotes[MapName] = PlayerVotes[MapVote] or {}
+        PlayerVotes[MapName][ply] = (RemoveVote == false and true) or nil
+    end)
+
+    --[[ net.Receive("MapVote_votemap_announcement", function(_, _)
+        local RemoveVote = net.ReadBool()
+        local MapName = net.ReadString()
+        local ply = net.ReadPlayer()
+        PlayerVotes[MapName] = PlayerVotes[MapVote] or {}
+        PlayerVotes[MapName][ply] = (RemoveVote == false and true) or nil
+        local votertbl = {}
+        for plyr, _ in pairs(PlayerVotes[MapName]) do
+            votertbl[#votertbl + 1] = plyr
+        end
+
+        --MapToVoteIcon[MapName]:SetVoters(votertbl)
+        --[[
+        local MapPanels = MapToPanels[MapName]
+        print(MapName, "waaa")
+        PrintTable(MapToPanels)
+        for _, MapPanel in pairs(MapPanels) do
+            if not IsValid(MapPanel) then continue end
+            if RemoveVote == false then
+                print("vote")
+                MapPanel:VoteForMap(ply, true)
+            else
+                print("remove")
+                MapPanel:RemoveVoteForMap(ply, true)
+            end
+        end
+        --]]
+    --end)--]]
     --[[-------------------------------------------------------
        MISC VGUI STUFF
     ---------------------------------------------------------]]
@@ -671,6 +706,19 @@ elseif CLIENT then
                             local VoteIcon = vgui.Create("SVoteIcon", Grid) -- requires parent only because of autorefresh being annoying
                             VoteIcon:SetMap(mapname)
                             VoteIcon:GetThumbnail()
+                            if PlayerVotes[mapname] then --
+                                local votertbl = {}
+                                for ply, _ in pairs(PlayerVotes[mapname]) do
+                                    votertbl[#votertbl + 1] = ply
+                                    print(ply, "HIII")
+                                end
+
+                                timer.Simple(0, function()
+                                    -- why a 0 timer?
+                                    VoteIcon:SetVoters(votertbl)
+                                end)
+                            end
+
                             function VoteIcon.DoClick(_)
                                 print("hi")
                                 MapVote.Net.changeVote(mapIndex)

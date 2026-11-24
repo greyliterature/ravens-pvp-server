@@ -735,6 +735,8 @@ elseif CLIENT then
                         end
 
                         Grid:Show()
+                        local ScrollCanvas = ScrollPanel:GetCanvas()
+                        ScrollCanvas:SetTall(ScrollCanvas:GetTall() + self:GetExpandedSize())
                     end
 
                     function DropDown:FullyMinimizedHook()
@@ -742,6 +744,9 @@ elseif CLIENT then
                             print("Removed")
                             self.Grid:Remove()
                         end
+
+                        local ScrollCanvas = ScrollPanel:GetCanvas()
+                        ScrollCanvas:SetTall(ScrollCanvas:GetTall() - self:GetExpandedSize())
                     end
                 end
             end

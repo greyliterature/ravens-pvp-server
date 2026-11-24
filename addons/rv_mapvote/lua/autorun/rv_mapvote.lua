@@ -852,6 +852,19 @@ elseif CLIENT then
                     local VoteIcon = vgui.Create("SVoteIcon", Grid) -- requires parent only because of autorefresh being annoying
                     VoteIcon:SetMap(mapname)
                     VoteIcon:GetThumbnail()
+                    if PlayerVotes[mapname] then --
+                        local votertbl = {}
+                        for ply, _ in pairs(PlayerVotes[mapname]) do
+                            votertbl[#votertbl + 1] = ply
+                            print(ply, "HIII")
+                        end
+
+                        timer.Simple(0, function()
+                            -- why a 0 timer?
+                            VoteIcon:SetVoters(votertbl)
+                        end)
+                    end
+
                     function VoteIcon.DoClick(_)
                         print("hi")
                         MapVote.Net.changeVote(mapIndex)

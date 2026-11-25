@@ -313,11 +313,13 @@ elseif CLIENT then
         MapVote[subbed] = tonumber(VarNewValue) -- should tonumber this with an if statement probably
     end)
 
+    local EndDate = 0
     net.Receive("MapVote_VoteStarted", function(_, _)
-        local EndDate = net.ReadFloat()
-        MapVote.StartVote(EndDate)
+        EndDate = net.ReadFloat()
+        MapVote.PlayerVotes = {}
+        MapVote.CategoryVotes = {}
         print("HI!!!")
-        return
+        MapVote.StartVote(EndDate)
     end)
 
     net.Receive("MapVote_SendMapList", function(_, _)
@@ -345,11 +347,34 @@ elseif CLIENT then
         MapVote.UpdateCheckBoxes()
     end)
 
-    local PlayerVotes = {}
+    MapVote.PlayerVotes = {}
+    local KeyDictToArray = nil
     --local MapToPanels = {}
     hook.Add("MapVote_PlayerVotedForMap", "TrackVoterTable", function(ply, RemoveVote, MapName, panelobject)
-        PlayerVotes[MapName] = PlayerVotes[MapVote] or {}
-        PlayerVotes[MapName][ply] = (RemoveVote == false and true) or nil
+        MapVote.PlayerVotes[MapName] = MapVote.PlayerVotes[MapVote] or {}
+        for map, tbl in pairs(MapVote.PlayerVotes) do -- clear the player's other votes, inefficient maybe, but works
+            tbl[ply] = nil
+        end
+
+        MapVote.PlayerVotes[MapName][ply] = (RemoveVote == false and true) or nil
+    end)
+
+    MapVote.CategoryVotes = {}
+    hook.Add("MapVote_PlayerVotedForMap", "SetVotersForDropdown", function(ply, RemoveVote, MapName, MapPanel)
+        local Category = MapVote.MapToCategory[MapName] or "Uncategorized"
+        local DropDown = MapVote.DropDowns[Category]
+        if not IsValid(DropDown) then return end
+        PrintTable(MapVote.DropDowns)
+        MapVote.CategoryVotes[Category] = MapVote.CategoryVotes[Category] or {}
+        for category, tbl in pairs(MapVote.CategoryVotes) do -- clear the player's other votes, inefficient maybe, but works
+            print(tbl[ply], "waaaaaaaaaaaaaa")
+            tbl[ply] = nil
+            MapVote.DropDowns[category]:SetVoters(KeyDictToArray(tbl))
+        end
+
+        PrintTable(MapVote.CategoryVotes)
+        MapVote.CategoryVotes[Category][ply] = (RemoveVote == false and true) or nil
+        DropDown:SetVoters(KeyDictToArray(MapVote.CategoryVotes[Category]))
     end)
 
     --[[ net.Receive("MapVote_votemap_announcement", function(_, _)
@@ -418,7 +443,7 @@ elseif CLIENT then
     end
 
     -- the map networking would no longer be needed with this categories table, should only network x number of maps that aren't categorized
-    local MapToCategory = {
+    MapVote.MapToCategory = {
         ["gm_bigcity_improved_lite"] = "MyCoolCategory1",
         ["fof_city17"] = "MyCoolCategory2"
     }
@@ -499,13 +524,11 @@ elseif CLIENT then
     gameevent.Listen("player_disconnect")
     gameevent.Listen("player_connect")
     hook.Add("player_disconnect", "UpdateCheckboxes", function()
-        print("WAN")
         MapVote.PlayerCount = MapVote.PlayerCount - 1
         MapVote.MakeCheckBoxes(MapVote.BottomHeader)
     end)
 
     hook.Add("player_activate", "UpdateCheckboxes", function()
-        print("TOO")
         MapVote.PlayerCount = MapVote.PlayerCount + 1
         MapVote.MakeCheckBoxes(MapVote.BottomHeader)
     end)
@@ -515,7 +538,7 @@ elseif CLIENT then
         MapVote.NumberOfCancellers = MapVote.NumberOfCancellers + increment
     end
 
-    local DropDowns = {} -- "category" = panel
+    MapVote.DropDowns = {} -- "category" = panel
     local Voters = {}
     function MapVote.ChangeVote(ply, mapIndex, voteMult)
         if not IsValid(ply) then return end
@@ -529,8 +552,8 @@ elseif CLIENT then
         --if IsValid(MapVote.Panel.OpenGrid) then MapVote.Panel.OpenGrid:SetVote(identifier, mapIndex, voteMult) end
         local currentMaps = MapVote.GetMapList()
         local mapname = currentMaps[mapIndex]
-        local category = MapToCategory[mapname] or "Uncategorized"
-        local CategoryDropDown = DropDowns[category]
+        local category = MapVote.MapToCategory[mapname] or "Uncategorized"
+        local CategoryDropDown = MapVote.DropDowns[category]
         print(mapIndex, "HI!")
         local PlayersLastCategoryDropDown = Voters[identifier]
         if IsValid(PlayersLastCategoryDropDown) then PlayersLastCategoryDropDown:RemoveVote(identifier) end
@@ -544,6 +567,16 @@ elseif CLIENT then
         columncount = math.max(columncount, 1)
         local rowcount = math.ceil(numitems / columncount)
         return rowcount
+    end
+
+    --@ returns array made from keys of dictionary
+    --@ local tbl = { [ply1] = true, [ply2] = true } -> return array = {ply1, ply2} 
+    KeyDictToArray = function(dictionary)
+        local array = {}
+        for key, _ in pairs(dictionary) do
+            array[#array + 1] = key
+        end
+        return array
     end
 
     -- col
@@ -648,19 +681,26 @@ elseif CLIENT then
         local TopDropDock = ScrH() * 0.01
         local Categories = {}
         for mapIndex, mapName in ipairs(MapVote.GetMapList()) do
-            local category = MapToCategory[mapName] or "Uncategorized"
+            local category = MapVote.MapToCategory[mapName] or "Uncategorized"
             Categories[category] = Categories[category] or {}
             Categories[category][#Categories[category] + 1] = mapName
         end
 
-        DropDowns = {}
+        MapVote.DropDowns = {}
         local function MakeDropdowns()
             for mapIndex, mapName in ipairs(MapVote.GetMapList()) do
-                local category = MapToCategory[mapName] or "Uncategorized"
-                if not DropDowns[category] then
+                local category = MapVote.MapToCategory[mapName] or "Uncategorized"
+                if not MapVote.DropDowns[category] then
                     print(mapIndex)
                     print("hiya")
                     local DropDown = vgui.Create("SDropDown", VoteFrame)
+                    print("D")
+                    MsgC(color_black, "aaa\n\n\n\n")
+                    if MapVote.CategoryVotes[category] then --
+                        print("HI YEAH!!!!!!!!!!!!!!!!!!!!!!!!")
+                        DropDown:SetVoters(KeyDictToArray(MapVote.CategoryVotes[category]))
+                    end
+
                     DropDown:Dock(TOP)
                     DropDown:SetWide(VoteFrame:GetWide())
                     DropDown:DockMargin(0, 0, 0, TopDropDock)
@@ -673,10 +713,10 @@ elseif CLIENT then
                     local RowCount = CalculateRowCount(IconSize + RowGap, DropDown:GetWide(), table.Count(Categories[category]))
                     local ExpandedSize = RowCount * IconSize + (RowCount - 1) * RowGap + RowGap
                     DropDown:SetExpandedSize(ExpandedSize)
-                    DropDowns[category] = DropDown
+                    MapVote.DropDowns[category] = DropDown
                     function DropDown:FullyExpandedHook()
                         if IsValid(self.Grid) then return end
-                        local Grid = vgui.Create("SGrid", DropDown)
+                        local Grid = vgui.Create("SGrid", self.Drop)
                         Grid:SetOverallAlignment(SGRID_ALIGN_LEFT)
                         Grid:DockMargin(RowGap, RowGap, 0, RowGap)
                         Grid:SetWide(DropDown:GetWide())
@@ -691,7 +731,7 @@ elseif CLIENT then
 
                         for mapindex, mapname in ipairs(Categories[category]) do
                             print("HI", mapindex, mapname)
-                            if (MapToCategory[mapname] or "Uncategorized") ~= category then -- this is inefficient but it works, whatever
+                            if (MapVote.MapToCategory[mapname] or "Uncategorized") ~= category then -- this is inefficient but it works, whatever
                                 continue
                             end
 
@@ -708,13 +748,8 @@ elseif CLIENT then
                             local VoteIcon = vgui.Create("SVoteIcon", Grid) -- requires parent only because of autorefresh being annoying
                             VoteIcon:SetMap(mapname)
                             VoteIcon:GetThumbnail()
-                            if PlayerVotes[mapname] then --
-                                local votertbl = {}
-                                for ply, _ in pairs(PlayerVotes[mapname]) do
-                                    votertbl[#votertbl + 1] = ply
-                                    print(ply, "HIII")
-                                end
-
+                            if MapVote.PlayerVotes[mapname] then --
+                                local votertbl = KeyDictToArray(MapVote.PlayerVotes[mapname])
                                 timer.Simple(0, function()
                                     -- why a 0 timer?
                                     VoteIcon:SetVoters(votertbl)
@@ -805,7 +840,7 @@ elseif CLIENT then
                 return
             end
 
-            for _, dropdown in pairs(DropDowns) do
+            for _, dropdown in pairs(MapVote.DropDowns) do
                 dropdown:Remove()
             end
 
@@ -861,13 +896,8 @@ elseif CLIENT then
                     local VoteIcon = vgui.Create("SVoteIcon", Grid) -- requires parent only because of autorefresh being annoying
                     VoteIcon:SetMap(mapname)
                     VoteIcon:GetThumbnail()
-                    if PlayerVotes[mapname] then --
-                        local votertbl = {}
-                        for ply, _ in pairs(PlayerVotes[mapname]) do
-                            votertbl[#votertbl + 1] = ply
-                            print(ply, "HIII")
-                        end
-
+                    if MapVote.PlayerVotes[mapname] then --
+                        local votertbl = KeyDictToArray(MapVote.PlayerVotes[mapname])
                         timer.Simple(0, function()
                             -- why a 0 timer?
                             VoteIcon:SetVoters(votertbl)
@@ -911,6 +941,11 @@ elseif CLIENT then
         hook.Run("MapVote_VoteStarted")
         hook.Run("MapVote_VotePanelOpened")
     end
+
+    hook.Add("PlayerButtonDown", "OpenMapVoteMenu", function(_, button)
+        if button ~= KEY_F3 then return end
+        MapVote.StartVote(EndDate)
+    end)
 end
 
 RunConsoleCommand("startmapvote", 5000)

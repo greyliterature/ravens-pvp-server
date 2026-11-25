@@ -32,11 +32,12 @@ end
 
 local TriangHeight = ScrH() * 0.007
 local TriangLength = ScrW() * 0.004
+local ExponentialOffset = 3 -- counter approaching
 local offset = 0
 function PANEL:Init()
     --[[
-                figure out what selfs to delete here later, copy pasted from when work on mapvote version
-            --]]
+        figure out what selfs to delete here later, copy pasted from when work on mapvote version
+    --]]
     self.avatarSize = 50
     self.maps = {}
     self.rows = {}
@@ -53,13 +54,42 @@ function PANEL:Init()
     --self.MinimizedSize = self:GetTall()
     self.DropDownTriangleTable = {{}, {}, {}}
     self.BackgroundColor = color_white
+    -------
+    self.Head = vgui.Create("DPanel", self)
+    self.Head:Dock(TOP)
+    self.Head:SetTall(self:GetTall())
+    function self.Head.Paint(_, w, h)
+        surface.SetDrawColor(color_black)
+        surface.DrawRect(0, 0, w, self:GetMinimizedSize() + ExponentialOffset)
+        surface.SetDrawColor(self:GetBackgroundColor())
+        surface.DrawRect(0, self:GetMinimizedSize() + ExponentialOffset, w, h) -- this math here is wrong possibly, i think its drawing under the minimized box, but it doesnt matter, since its drawn over anyway
+        surface.SetDrawColor(color_white)
+        draw.SimpleText(self:GetCategoryTitle(), iconFont(23), w * 0.01, (self.MinimizedSize + ExponentialOffset) * 0.5, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        if not self.DropDownTriangleTable[1].x then -- simple check
+            return
+        end
+
+        draw.NoTexture()
+        surface.DrawPoly(self.DropDownTriangleTable)
+    end
+
+    function self.Head.OnMousePressed(_, mouseCode)
+        self:OnMousePressed(mouseCode)
+    end
+
+    self.Drop = vgui.Create("DPanel", self)
+    self.Drop:Dock(TOP)
+    self.Drop:SetTall(0)
+    function self.Drop.Paint(_, w, h)
+        surface.SetDrawColor(color_black)
+        surface.DrawRect(0, 0, w, h)
+    end
 end
 
 function PANEL:GetMinimizedSize() -- the size of the top dropdown "frame" (not really a frame but looks like one)
     return self.MinimizedSize
 end
 
-local ExponentialOffset = 3 -- counter approaching
 function PANEL:SetExpandedSize(tallness)
     self.ExpandedSize = tallness + ExponentialOffset
 end
@@ -90,12 +120,14 @@ local function ExpDecay(a, b, decay, dt) -- from styledstrike glide github, cant
     return b + (a - b) * math.exp(-decay * dt)
 end
 
+local VoterGridLineSize = ScrH() * 0.002
 function PANEL:Think()
     if not self.FirstThink then -- doing this in PANEL:Init() messes up for some reason
         self.FirstThink = true
         PANEL.oldSetTall = vgui.GetControlTable("DPanel")["SetTall"]
         self.MinimizedSize = self:GetTall() - ExponentialOffset
-        self:DockPadding(0, self.MinimizedSize, 0, 0)
+        self.Head:SetTall(self.MinimizedSize)
+        --self:DockPadding(0, self.MinimizedSize, 0, 0)
         self:SetExpandedSize(self.MinimizedSize + self:GetExpandedSize() - ExponentialOffset) -- this leaves some space on the bottom but for now we wont care
         function PANEL:SetTall(tallness, dynamiccall)
             self.oldSetTall(self, tallness)
@@ -103,28 +135,77 @@ function PANEL:Think()
                 self.MinimizedSize = tallness - ExponentialOffset
             end
         end
+
+        local VotesPanel = vgui.Create("DPanel", self.Head)
+        VotesPanel:SetPos(self:GetWide() * 0.25)
+        VotesPanel:SetWide(self:GetWide() * 0.9 - VotesPanel:GetPos())
+        VotesPanel:CenterVertical()
+        function VotesPanel.Paint(_, w, h)
+            surface.DrawRect(0, (h - VoterGridLineSize) * 0.5, w, VoterGridLineSize)
+        end
+
+        self.VoterGrid = vgui.Create("SGrid", VotesPanel)
+        self.VoterGrid:Dock(TOP)
+        self.VoterGrid:SetOverallAlignment(SGRID_ALIGN_LEFT)
+        function self.VoterGrid.Paint(_, w, h)
+        end
+
+        if self.VoterQueue then
+            for _, ply in ipairs(self.VoterQueue) do
+                local Avatar = vgui.Create("AvatarImage", self)
+                Avatar:SetPlayer(ply, 184)
+                Avatar:SetWide(self.VoterGrid:GetRowHeight())
+                self.VoterGrid:AddItem(Avatar)
+                self.VoterGrid:SetRowHeight(self.VoterGrid:GetTall())
+            end
+
+            self.VoterQueue = nil
+        end
     end
 
     if self.Expanding == true then
-        if self:GetTall() >= self.ExpandedSize - ExponentialOffset then
+        if self.Drop:GetTall() >= self.ExpandedSize - ExponentialOffset then
             self.Expanding = false
             self:FullyExpandedHook() -- a hook
             self.FullyExpanded = true
         end
 
+        self.Drop:SetTall(ExpDecay(self:GetTall(), self.ExpandedSize, 15, FrameTime()), true)
         self:SetTall(ExpDecay(self:GetTall(), self.ExpandedSize, 15, FrameTime()), true)
     end
 
     if self.Minimizing == true then
         self.FullyExpanded = false
         self.Expanding = false
-        if self:GetTall() <= self.MinimizedSize + ExponentialOffset then
+        if self.Drop:GetTall() <= self.MinimizedSize + ExponentialOffset then
             self.Minimizing = false
             self.FullyMinimized = true
             self:FullyMinimizedHook()
         end
 
+        self.Drop:SetTall(ExpDecay(self:GetTall(), 0, 7, FrameTime()), true)
         self:SetTall(ExpDecay(self:GetTall(), self.MinimizedSize, 7, FrameTime()), true)
+    end
+end
+
+function PANEL:SetVoters(votertbl)
+    if not IsValid(self.VoterGrid) then
+        self.VoterQueue = votertbl -- queueing this is needed for now, but can probably fix the underlying code to not require it
+        return
+    end
+
+    for _, tbl in ipairs(self.VoterGrid.Items) do
+        local PanelObject = tbl[1]
+        print("REMOVING!!!!!!!!!!")
+        if IsValid(PanelObject) then self.VoterGrid:RemoveItem(PanelObject) end
+    end
+
+    for _, ply in ipairs(votertbl) do
+        local Avatar = vgui.Create("AvatarImage", self)
+        Avatar:SetPlayer(ply, 184)
+        Avatar:SetWide(self.VoterGrid:GetRowHeight())
+        self.VoterGrid:AddItem(Avatar)
+        self.VoterGrid:SetRowHeight(self.VoterGrid:GetTall())
     end
 end
 
@@ -145,6 +226,7 @@ function PANEL:SetBackgroundColor(col)
 end
 
 function PANEL:Paint(w, h)
+    --[[
     surface.SetDrawColor(color_black)
     surface.DrawRect(0, 0, w, self:GetMinimizedSize() + ExponentialOffset)
     surface.SetDrawColor(self:GetBackgroundColor())
@@ -157,6 +239,7 @@ function PANEL:Paint(w, h)
 
     draw.NoTexture()
     surface.DrawPoly(self.DropDownTriangleTable)
+    --]]
 end
 
 function PANEL:Expand()

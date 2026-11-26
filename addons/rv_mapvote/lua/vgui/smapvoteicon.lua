@@ -12,15 +12,17 @@ if CLIENT and debugvgui == true then
     mapvote_colortable.color_transparentishpurple = Color(255, 0, 255, 0)
 end
 
+local ERROR_DOWNLOADING_MAT = Material("maps/thumb/noicon.png")
 local MapVoteRateLimit = include("autorun/shared/vguilogic_smapvoteicon.lua")
 local MapsToPanel = {}
 local MapNameToWSID = {}
 local MapMaterials = {}
 -- panel is for the queue system table to remember
+local TimeoutDelay = 5
 local function RequestMapWSID(panel, mapname) -- should this be batched? is net messages 1 by 1 sig worse than a large net message? probably
     print("MapVote: Requesting WSID for " .. mapname)
     if MapMaterials[mapname] then
-        --print("RET", MapMaterials[mapname])
+        print("Returning mapmaterial cache for " .. mapname)
         panel.MapMaterial = MapMaterials[mapname]
         return
     end
@@ -36,6 +38,11 @@ local function RequestMapWSID(panel, mapname) -- should this be batched? is net 
     net.Start("MapVote_request_map_wsid")
     net.WriteString(mapname)
     net.SendToServer()
+    timer.Create(mapname .. "Timeout", TimeoutDelay, 1, function()
+        if MapMaterials[mapname] then return end
+        print("MapWSID request timed out for " .. mapname)
+        MapMaterials[mapname] = ERROR_DOWNLOADING_MAT
+    end)
 end
 
 local SearchPaths = {
@@ -64,7 +71,6 @@ function getMapThumbnailFilePath(name) -- https://github.com/greyliterature/map_
 end
 
 local MapToPanels = {}
-local ERROR_DOWNLOADING_MAT = Material("maps/thumb/noicon.png")
 net.Receive("MapVote_request_map_wsid_response", function(_, _)
     local mapname = net.ReadString()
     local wsid = net.ReadString()
@@ -125,6 +131,7 @@ function PANEL:Init()
     self.Grid = vgui.Create("SGrid", self)
     self.Grid:Dock(FILL)
     self.Grid:SetOverallAlignment(SGRID_ALIGN_RIGHT)
+    self.PlayerAvatars = {}
     function self.Grid.Paint(_, w, h)
         if debugvgui == true then
             surface.SetDrawColor(mapvote_colortable.color_transparentishpurple)
@@ -155,10 +162,11 @@ function PANEL:GetThumbnail()
     local FilePath = getMapThumbnailFilePath(self:GetMapName())
     if FilePath then -- https://github.com/greyliterature/map_vote/blob/3e18c15656596f705442bc47dc6283f0027ac770/lua/mapvote/client/modules/thumb_downloader.lua#L51
         self.MapMaterial = Material(FilePath)
-        print("Got thumb file path for " .. self:GetMapName())
+        print("Got thumb file path for " .. self:GetMapName(), self.MapMaterial)
         return
     end
 
+    print("yep")
     RequestMapWSID(self, self.Map) -- request, which also handles setting the self.MapMaterial
 end
 
@@ -175,35 +183,37 @@ function PANEL:Paint(w, h)
     draw.SimpleText(self:GetMapName(), MapVote.iconFont(baseFontSize), 0, 0, colorTextPrimary, TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM)
 end
 
-local PlayerPanelVotes = {}
-local PlayerAvatars = {}
+local PlayerVotes = {} -- ply = mapnaem
 -- forced arg is used by the net.receive callback to force past the localplayer return
 function PANEL:RemoveVoteForMap(ply, forced)
     if not self.Votes[ply] then return end
     if ply == LocalPlayer() and forced == nil then
-        print("heyoooo")
         net.Start("rv_mapvote_vote_map")
         net.WriteBool(true) -- bool of whether or not we're removing the vote
         net.WriteString(self:GetMapName())
         net.SendToServer()
+        return
     end
 
     self.Votes[ply] = nil
-    self.Grid:RemoveItem(PlayerAvatars[ply])
-    PlayerPanelVotes[ply] = nil
-    PlayerAvatars[ply] = nil
+    local LastAvatar = self.PlayerAvatars[ply]
+    if IsValid(LastAvatar) then
+        self.Grid:RemoveItem(LastAvatar)
+        LastAvatar:Remove()
+    end
+
+    self.PlayerAvatars[ply] = nil
+    PlayerVotes[ply] = nil
 end
 
 local LastVoteTime = 0
 -- forced arg is used by the net.receive callback to force past the localplayer return
 function PANEL:VoteForMap(ply, forced)
-    if PlayerPanelVotes[ply] == self then
-        self:RemoveVoteForMap(ply)
-        return
-    end
-
-    if IsValid(PlayerPanelVotes[ply]) then --
-        PlayerPanelVotes[ply]:RemoveVoteForMap(ply, true)
+    local LastVotedMap = PlayerVotes[ply]
+    if LastVotedMap and LastVotedMap ~= self:GetMapName() then
+        for _, panel in pairs(MapToPanels[LastVotedMap]) do
+            if IsValid(panel) then panel:RemoveVoteForMap(ply, true) end
+        end
     end
 
     if ply == LocalPlayer() and not forced then
@@ -213,28 +223,24 @@ function PANEL:VoteForMap(ply, forced)
 
         LastVoteTime = CurTime()
         net.Start("rv_mapvote_vote_map")
-        net.WriteBool(false) -- bool of whether or not we're removing the vote
+        local RequestRemove = PlayerVotes[ply] == self:GetMapName()
+        print(RequestRemove, "hi")
+        net.WriteBool(RequestRemove) -- bool of whether or not we're removing the vote
         net.WriteString(self:GetMapName())
         net.SendToServer()
         return
     end
 
-    PlayerPanelVotes[ply] = self
+    PlayerVotes[ply] = self:GetMapName()
+    if self.PlayerAvatars[ply] then return end
     self.Votes[ply] = true
-    print(ply, "voted for ", self)
-    --self:AddToVoterPanel(ply)
     local IconSize = self:GetTall() * 0.2 -- this shouldnt be static, but ignorable for now
     local Avatar = vgui.Create("AvatarImage", self.Grid)
     Avatar:SetPlayer(ply, 184)
     Avatar:SetWide(IconSize)
-    function Avatar.PaintOver(_, w, h)
-        surface.SetDrawColor(ColorRand())
-        surface.DrawRect(0, 0, w, h)
-    end
-
     self.Grid:AddItem(Avatar)
     self.Grid:SetRowHeight(IconSize)
-    PlayerAvatars[ply] = Avatar
+    self.PlayerAvatars[ply] = Avatar
 end
 
 function PANEL:SetVoters(votertbl)

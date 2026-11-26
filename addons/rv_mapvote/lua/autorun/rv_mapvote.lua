@@ -302,6 +302,16 @@ elseif CLIENT then
         return MapVote.maps
     end
 
+    MapVote.MapDict = {}
+    function MapVote.GetMapDict()
+        if #MapVote.MapDict == 0 then
+            for _, map in ipairs(MapVote.GetMapList()) do
+                MapVote.MapDict[map] = true
+            end
+        end
+        return MapVote.MapDict
+    end
+
     --[[-------------------------------------------------------
         NET STUFF
     ---------------------------------------------------------]]
@@ -318,6 +328,7 @@ elseif CLIENT then
         EndDate = net.ReadFloat()
         MapVote.PlayerVotes = {}
         MapVote.CategoryVotes = {}
+        MapVote.MapDict = {}
         print("HI!!!")
         MapVote.StartVote(EndDate)
     end)
@@ -427,14 +438,44 @@ elseif CLIENT then
 
     MapVote.Categories = {
         [1] = {
+            ["Title"] = "Favorites",
+            ["Maps"] = {},
+        },
+        [2] = {
             ["Title"] = "MyCoolCategory1",
             ["Maps"] = {"gm_bigcity_improved_lite",}
         },
-        [2] = {
+        [3] = {
             ["Title"] = "MyCoolCategory2",
             ["Maps"] = {"fof_city17",}
         },
+        [4] = {
+            ["Title"] = "Uncategorized",
+            ["Maps"] = {}
+        }
     }
+
+    if file.Exists("ravens/mapvote/mapfavorites.txt", "DATA") then
+        local MyFavorites = {}
+        for _, line in ipairs(string.Explode("\n", file.Read("ravens/mapvote/mapfavorites.txt", "DATA"))) do
+            if line == "" then continue end
+            MyFavorites[#MyFavorites + 1] = line
+        end
+
+        if #MyFavorites > 0 then
+            local MapFavoritesTable = MapVote.Categories[1]["Maps"]
+            table.Add(MapFavoritesTable, MyFavorites)
+        end
+    else
+        file.CreateDir("ravens/mapvote")
+        file.Write("ravens/mapvote/mapfavorites.txt", "")
+    end
+
+    local function MapToFavorites(RemoveFromFavorites)
+        if RemoveFromFavorites == true then
+        else
+        end
+    end
 
     function MapVote.VoteToCancel()
         net.Start("MapVote_VoteToCancel")
@@ -663,6 +704,11 @@ elseif CLIENT then
             Categories[category][#Categories[category] + 1] = mapName
         end
         --]]
+        local UncategorizedMapsDict = {}
+        for map, _ in pairs(MapVote.GetMapDict()) do
+            UncategorizedMapsDict[map] = true
+        end
+
         MapVote.DropDowns = {}
         local function MakeDropdowns()
             for k, dropdown in pairs(MapVote.DropDowns) do
@@ -682,7 +728,30 @@ elseif CLIENT then
                 DropDown:SetTall(SixtyFour * 0.5)
                 DropDown:SetCategoryTitle(Title)
                 DropDown:SetBackgroundColor(color_cod_lighter_black)
+                if Title == "Favorites" then -- favorites may have invalid map, so check for them
+                    local MapDict = MapVote.GetMapDict()
+                    for j = #Maps, 1, -1 do
+                        local map = Maps[i]
+                        if not MapDict[map] then --
+                            table.remove(Maps, j)
+                        end
+                    end
+                end
+
+                if Title ~= "Uncategorized" then
+                    for _, map in ipairs(Maps) do
+                        UncategorizedMapsDict[map] = nil
+                    end
+                else
+                    local maptbl = {}
+                    for map, _ in pairs(UncategorizedMapsDict) do
+                        maptbl[#maptbl + 1] = map
+                        Maps = maptbl
+                    end
+                end
+
                 DropDown:SetMaps(Maps)
+                if #Maps == 0 then DropDown.CanExpand = false end
                 MapVote.DropDowns[Title] = DropDown
                 local RowCount = CalculateRowCount(IconSize + RowGap, DropDown:GetWide(), #Maps)
                 local ExpandedSize = RowCount * IconSize + (RowCount - 1) * RowGap + RowGap

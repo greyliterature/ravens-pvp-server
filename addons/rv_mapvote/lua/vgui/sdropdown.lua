@@ -58,6 +58,7 @@ function PANEL:Init()
     self.Head = vgui.Create("DPanel", self)
     self.Head:Dock(TOP)
     self.Head:SetTall(self:GetTall())
+    self.CanExpand = true
     function self.Head.Paint(_, w, h)
         surface.SetDrawColor(color_black)
         surface.DrawRect(0, 0, w, self:GetMinimizedSize() + ExponentialOffset)
@@ -163,6 +164,7 @@ function PANEL:Think()
         end
     end
 
+    if self.CanExpand == false then return end
     if self.Expanding == true then
         if self.Drop:GetTall() >= self.ExpandedSize - ExponentialOffset then
             self.Expanding = false

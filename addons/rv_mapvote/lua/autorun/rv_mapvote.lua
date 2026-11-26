@@ -442,7 +442,6 @@ elseif CLIENT then
         hook.Run("MapVote_VoteCancelled")
     end
 
-    -- the map networking would no longer be needed with this categories table, should only network x number of maps that aren't categorized
     MapVote.MapToCategory = {
         ["gm_bigcity_improved_lite"] = "MyCoolCategory1",
         ["fof_city17"] = "MyCoolCategory2"
@@ -688,6 +687,11 @@ elseif CLIENT then
 
         MapVote.DropDowns = {}
         local function MakeDropdowns()
+            for k, dropdown in pairs(MapVote.DropDowns) do
+                dropdown:Remove()
+            end
+
+            MapVote.DropDowns = {}
             for mapIndex, mapName in ipairs(MapVote.GetMapList()) do
                 local category = MapVote.MapToCategory[mapName] or "Uncategorized"
                 if not MapVote.DropDowns[category] then
@@ -836,6 +840,7 @@ elseif CLIENT then
         function SearchBar.OnEnter(self, value)
             if IsValid(SearchResultsDropdown) then SearchResultsDropdown:Remove() end
             if value == "" then
+                print("yepppppppppppppppp")
                 MakeDropdowns()
                 return
             end
@@ -868,7 +873,7 @@ elseif CLIENT then
             print(ExpandedSize, "heyyyooo")
             function SearchResultsDropdown:FullyExpandedHook()
                 if IsValid(self.Grid) then return end
-                local Grid = vgui.Create("SGrid", self)
+                local Grid = vgui.Create("SGrid", self.Drop)
                 Grid:SetOverallAlignment(SGRID_ALIGN_LEFT)
                 Grid:DockMargin(RowGap, RowGap, 0, RowGap)
                 Grid:SetWide(self:GetWide())

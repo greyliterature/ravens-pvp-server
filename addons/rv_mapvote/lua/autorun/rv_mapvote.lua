@@ -438,7 +438,7 @@ elseif CLIENT then
 
     MapVote.Categories = {
         [1] = {
-            ["Title"] = "Favorites",
+            ["Title"] = "My Favorites",
             ["Maps"] = {},
         },
         [2] = {
@@ -455,23 +455,29 @@ elseif CLIENT then
         }
     }
 
-    if file.Exists("ravens/mapvote/mapfavorites.txt", "DATA") then
-        local MyFavorites = {}
-        for _, line in ipairs(string.Explode("\n", file.Read("ravens/mapvote/mapfavorites.txt", "DATA"))) do
-            if line == "" then continue end
-            MyFavorites[#MyFavorites + 1] = line
-        end
+    local function UpdateFavorites()
+        if file.Exists("ravens/mapvote/mapfavorites.txt", "DATA") then
+            local MyFavorites = {}
+            for _, line in ipairs(string.Explode("\n", file.Read("ravens/mapvote/mapfavorites.txt", "DATA"))) do
+                if line == "" then continue end
+                print(line, "hey")
+                MyFavorites[#MyFavorites + 1] = line
+            end
 
-        if #MyFavorites > 0 then
-            local MapFavoritesTable = MapVote.Categories[1]["Maps"]
-            table.Add(MapFavoritesTable, MyFavorites)
+            if #MyFavorites > 0 then
+                print("yaa")
+                local MapFavoritesTable = MapVote.Categories[1]
+                MapFavoritesTable["Maps"] = {} -- clear it beforehand incase this was started after multiple mapvotes
+                MapFavoritesTable["Maps"] = MyFavorites
+                PrintTable(MapVote.Categories)
+            end
+        else
+            file.CreateDir("ravens/mapvote")
+            file.Write("ravens/mapvote/mapfavorites.txt", "")
         end
-    else
-        file.CreateDir("ravens/mapvote")
-        file.Write("ravens/mapvote/mapfavorites.txt", "")
     end
 
-    local function MapToFavorites(RemoveFromFavorites)
+    local function RemoveOrAddMapToFavorites(RemoveFromFavorites)
         if RemoveFromFavorites == true then
         else
         end
@@ -619,6 +625,7 @@ elseif CLIENT then
     local HeaderSize = ScrH() * 0.05
     function MapVote.StartVote(EndTime)
         print("OPEN")
+        UpdateFavorites()
         MapVote.EndTime = EndTime -- is this necessary?
         if IsValid(MapVote.Panel) then MapVote.Panel:Remove() end
         local ScreenPanel = vgui.Create("DFrame") -- this is needed to make the search bar editable, sigh
@@ -730,9 +737,12 @@ elseif CLIENT then
                 DropDown:SetBackgroundColor(color_cod_lighter_black)
                 if Title == "Favorites" then -- favorites may have invalid map, so check for them
                     local MapDict = MapVote.GetMapDict()
+                    PrintTable(MapDict)
                     for j = #Maps, 1, -1 do
-                        local map = Maps[i]
+                        local map = Maps[j]
+                        print(map .. tostring(MapDict[map]))
                         if not MapDict[map] then --
+                            print(map .. " isn't valid, removing from favorites category")
                             table.remove(Maps, j)
                         end
                     end
@@ -751,7 +761,7 @@ elseif CLIENT then
                 end
 
                 DropDown:SetMaps(Maps)
-                if #Maps == 0 then DropDown.CanExpand = false end
+                DropDown.CanExpand =  #Maps > 0
                 MapVote.DropDowns[Title] = DropDown
                 local RowCount = CalculateRowCount(IconSize + RowGap, DropDown:GetWide(), #Maps)
                 local ExpandedSize = RowCount * IconSize + (RowCount - 1) * RowGap + RowGap

@@ -360,51 +360,34 @@ elseif CLIENT then
     end)
 
     MapVote.CategoryVotes = {}
+    local SearchResultsDropdown = nil
     hook.Add("MapVote_PlayerVotedForMap", "SetVotersForDropdown", function(ply, RemoveVote, MapName, MapPanel)
-        local Category = MapVote.MapToCategory[MapName] or "Uncategorized"
-        local DropDown = MapVote.DropDowns[Category]
-        if not IsValid(DropDown) then return end
-        PrintTable(MapVote.DropDowns)
-        MapVote.CategoryVotes[Category] = MapVote.CategoryVotes[Category] or {}
-        for category, tbl in pairs(MapVote.CategoryVotes) do -- clear the player's other votes, inefficient maybe, but works
-            print(tbl[ply], "waaaaaaaaaaaaaa")
-            tbl[ply] = nil
-            MapVote.DropDowns[category]:SetVoters(KeyDictToArray(tbl))
-        end
-
-        PrintTable(MapVote.CategoryVotes)
-        MapVote.CategoryVotes[Category][ply] = (RemoveVote == false and true) or nil
-        DropDown:SetVoters(KeyDictToArray(MapVote.CategoryVotes[Category]))
-    end)
-
-    --[[ net.Receive("MapVote_votemap_announcement", function(_, _)
-        local RemoveVote = net.ReadBool()
-        local MapName = net.ReadString()
-        local ply = net.ReadPlayer()
-        PlayerVotes[MapName] = PlayerVotes[MapVote] or {}
-        PlayerVotes[MapName][ply] = (RemoveVote == false and true) or nil
-        local votertbl = {}
-        for plyr, _ in pairs(PlayerVotes[MapName]) do
-            votertbl[#votertbl + 1] = plyr
-        end
-
-        --MapToVoteIcon[MapName]:SetVoters(votertbl)
-        --[[
-        local MapPanels = MapToPanels[MapName]
-        print(MapName, "waaa")
-        PrintTable(MapToPanels)
-        for _, MapPanel in pairs(MapPanels) do
-            if not IsValid(MapPanel) then continue end
-            if RemoveVote == false then
-                print("vote")
-                MapPanel:VoteForMap(ply, true)
-            else
-                print("remove")
-                MapPanel:RemoveVoteForMap(ply, true)
+        local Categories = {}
+        for _, categorytbl in ipairs(MapVote.Categories) do
+            local Title = categorytbl["Title"]
+            for _, map in ipairs(categorytbl["Maps"]) do
+                if map == MapName then Categories[#Categories + 1] = Title end
             end
         end
-        --]]
-    --end)--]]
+
+        if #Categories == 0 then Categories[1] = "Uncategorized" end
+        for category, tbl in pairs(MapVote.CategoryVotes) do -- clear the player's other votes, inefficient maybe, but works
+            tbl[ply] = nil
+            local DropDown = MapVote.DropDowns[category]
+            if not IsValid(DropDown) then continue end
+            DropDown:SetVoters(KeyDictToArray(tbl))
+        end
+
+        for _, Title in ipairs(Categories) do
+            MapVote.CategoryVotes[Title] = MapVote.CategoryVotes[Title] or {}
+            MapVote.CategoryVotes[Title][ply] = (RemoveVote == false and true) or nil
+            local DropDown = MapVote.DropDowns[Title]
+            if not IsValid(DropDown) then continue end
+            if DropDown == SearchResultsDropdown then continue end
+            DropDown:SetVoters(KeyDictToArray(MapVote.CategoryVotes[Title]))
+        end
+    end)
+
     --[[-------------------------------------------------------
        MISC VGUI STUFF
     ---------------------------------------------------------]]
@@ -442,9 +425,15 @@ elseif CLIENT then
         hook.Run("MapVote_VoteCancelled")
     end
 
-    MapVote.MapToCategory = {
-        ["gm_bigcity_improved_lite"] = "MyCoolCategory1",
-        ["fof_city17"] = "MyCoolCategory2"
+    MapVote.Categories = {
+        [1] = {
+            ["Title"] = "MyCoolCategory1",
+            ["Maps"] = {"gm_bigcity_improved_lite",}
+        },
+        [2] = {
+            ["Title"] = "MyCoolCategory2",
+            ["Maps"] = {"fof_city17",}
+        },
     }
 
     function MapVote.VoteToCancel()
@@ -454,14 +443,9 @@ elseif CLIENT then
 
     local TextMargin = ScrW() * 0.0105
     function MapVote.MakeCheckBoxes(parent, numcheckboxes)
-        if not IsValid(parent) then
-            print("return me sad")
-            return
-        end
-
+        if not IsValid(parent) then return end
         local NumPlayers = math.ceil(MapVote.PlayerCount * MapVote.VoteCancelRatio)
         local CheckBoxesToMake = numcheckboxes or NumPlayers
-        print("YES MAKING!!")
         local CheckBoxSize = 32
         local CheckBoxSpacing = ScrW() * 0.0075
         local CheckBoxGrid = vgui.Create("SGrid", parent)
@@ -560,7 +544,11 @@ elseif CLIENT then
         CategoryDropDown:SetVote(identifier, mapIndex, voteMult)
     end
 
-    --@ returns n amount of rows required to fit x number of items under constraint y width
+    -- for paint functions
+    local function DoNothing()
+    end
+
+    -- returns n amount of rows required to fit x number of items under constraint y width
     local function CalculateRowCount(squaresize, width, numitems)
         local columncount = math.floor(width / squaresize)
         columncount = math.max(columncount, 1)
@@ -568,8 +556,8 @@ elseif CLIENT then
         return rowcount
     end
 
-    --@ returns array made from keys of dictionary
-    --@ local tbl = { [ply1] = true, [ply2] = true } -> return array = {ply1, ply2} 
+    -- returns array made from keys of dictionary
+    -- local tbl = { [ply1] = true, [ply2] = true } -> return array = {ply1, ply2} 
     KeyDictToArray = function(dictionary)
         local array = {}
         for key, _ in pairs(dictionary) do
@@ -605,7 +593,6 @@ elseif CLIENT then
         end
 
         ScreenPanel:MakePopup()
-        --ScreenPanel:SetBackgroundColor(color_transparentish_black)
         function ScreenPanel.OnMousePressed(self, _)
             self:Remove()
         end
@@ -629,7 +616,6 @@ elseif CLIENT then
         function OuterPanel.Paint(_, _, _)
         end
 
-        --OuterPanel:MakePopup()
         local TopHeader = vgui.Create("DPanel", OuterPanel)
         TopHeader:Dock(TOP)
         TopHeader:SetTall(HeaderSize)
@@ -642,24 +628,15 @@ elseif CLIENT then
         end
 
         local ScrollPanel = vgui.Create("DScrollPanel", OuterPanel)
-        --ScrollPanel:MakePopup()
         ScrollPanel:Dock(TOP)
         ScrollPanel:SetWide(OuterPanel:GetWide())
         ScrollPanel:SetTall(ScrH() * 0.5)
         -- SCROLLPANELS HEIGHT IS WRONG. there is a large margin below the bottom dropdown, which is ugly
         local VBar = ScrollPanel:GetVBar()
-        function VBar.Paint(_, _, _)
-        end
-
-        function VBar.btnGrip.Paint(_, w, h)
-        end
-
-        function VBar.btnDown.Paint(_, w, h)
-        end
-
-        function VBar.btnUp.Paint(_, w, h)
-        end
-
+        VBar.Paint = DoNothing
+        VBar.btnGrip.Paint = DoNothing
+        VBar.btnDown.Paint = DoNothing
+        VBar.btnUp.Paint = DoNothing
         VBar:SetWide(0) -- fixes annoying docking issues
         local VoteFrame = vgui.Create("DPanel", ScrollPanel)
         VoteFrame:SetSize(ScrollPanel:GetWide(), ScrH() * 0.7)
@@ -678,13 +655,14 @@ elseif CLIENT then
         end
 
         local TopDropDock = ScrH() * 0.01
+        --[[
         local Categories = {}
         for mapIndex, mapName in ipairs(MapVote.GetMapList()) do
             local category = MapVote.MapToCategory[mapName] or "Uncategorized"
             Categories[category] = Categories[category] or {}
             Categories[category][#Categories[category] + 1] = mapName
         end
-
+        --]]
         MapVote.DropDowns = {}
         local function MakeDropdowns()
             for k, dropdown in pairs(MapVote.DropDowns) do
@@ -692,101 +670,86 @@ elseif CLIENT then
             end
 
             MapVote.DropDowns = {}
-            for mapIndex, mapName in ipairs(MapVote.GetMapList()) do
-                local category = MapVote.MapToCategory[mapName] or "Uncategorized"
-                if not MapVote.DropDowns[category] then
-                    print(mapIndex)
-                    print("hiya")
-                    local DropDown = vgui.Create("SDropDown", VoteFrame)
-                    print("D")
-                    MsgC(color_black, "aaa\n\n\n\n")
-                    if MapVote.CategoryVotes[category] then --
-                        print("HI YEAH!!!!!!!!!!!!!!!!!!!!!!!!")
-                        DropDown:SetVoters(KeyDictToArray(MapVote.CategoryVotes[category]))
+            for i, tbl in ipairs(MapVote.Categories) do
+                local Title = tbl["Title"]
+                local Maps = tbl["Maps"]
+                print(i)
+                local DropDown = vgui.Create("SDropDown", VoteFrame)
+                DropDown:Dock(TOP)
+                DropDown:SetWide(VoteFrame:GetWide())
+                DropDown:DockMargin(0, 0, 0, TopDropDock)
+                print(SixtyFour, "aa")
+                DropDown:SetTall(SixtyFour * 0.5)
+                DropDown:SetCategoryTitle(Title)
+                DropDown:SetBackgroundColor(color_cod_lighter_black)
+                DropDown:SetMaps(Maps)
+                MapVote.DropDowns[Title] = DropDown
+                local RowCount = CalculateRowCount(IconSize + RowGap, DropDown:GetWide(), #Maps)
+                local ExpandedSize = RowCount * IconSize + (RowCount - 1) * RowGap + RowGap
+                DropDown:SetExpandedSize(ExpandedSize)
+                function DropDown:FullyExpandedHook()
+                    if IsValid(self.Grid) then return end
+                    local Grid = vgui.Create("SGrid", self.Drop)
+                    Grid:SetOverallAlignment(SGRID_ALIGN_LEFT)
+                    Grid:DockMargin(RowGap, RowGap, 0, RowGap)
+                    Grid:SetWide(DropDown:GetWide())
+                    Grid:Dock(TOP)
+                    self.Grid = Grid
+                    function Grid.Paint(_, w, h)
+                        if debugvgui == true then
+                            surface.SetDrawColor(mapvote_colortable.color_red)
+                            surface.DrawRect(0, 0, w, h)
+                        end
                     end
 
-                    DropDown:Dock(TOP)
-                    DropDown:SetWide(VoteFrame:GetWide())
-                    DropDown:DockMargin(0, 0, 0, TopDropDock)
-                    DropDown:SetTall(SixtyFour * 0.5)
-                    print(DropDown, "HIIIIIIIIII")
-                    DropDown:SetCategoryTitle(category)
-                    DropDown:SetBackgroundColor(color_cod_lighter_black)
-                    print("HII")
-                    DropDown:SetMaps(Categories[category])
-                    local RowCount = CalculateRowCount(IconSize + RowGap, DropDown:GetWide(), table.Count(Categories[category]))
-                    local ExpandedSize = RowCount * IconSize + (RowCount - 1) * RowGap + RowGap
-                    DropDown:SetExpandedSize(ExpandedSize)
-                    MapVote.DropDowns[category] = DropDown
-                    function DropDown:FullyExpandedHook()
-                        if IsValid(self.Grid) then return end
-                        local Grid = vgui.Create("SGrid", self.Drop)
-                        Grid:SetOverallAlignment(SGRID_ALIGN_LEFT)
-                        Grid:DockMargin(RowGap, RowGap, 0, RowGap)
-                        Grid:SetWide(DropDown:GetWide())
-                        Grid:Dock(TOP)
-                        self.Grid = Grid
-                        function Grid.Paint(_, w, h)
+                    for mapindex, mapname in ipairs(Maps) do
+                        print(mapname, "HAAHAH")
+                        local SpacerPanel = vgui.Create("DPanel", row)
+                        function SpacerPanel.Paint(_, w, h)
                             if debugvgui == true then
-                                surface.SetDrawColor(mapvote_colortable.color_red)
+                                surface.SetDrawColor(mapvote_colortable.color_yellow)
                                 surface.DrawRect(0, 0, w, h)
                             end
                         end
 
-                        for mapindex, mapname in ipairs(Categories[category]) do
-                            print("HI", mapindex, mapname)
-                            if (MapVote.MapToCategory[mapname] or "Uncategorized") ~= category then -- this is inefficient but it works, whatever
-                                continue
-                            end
-
-                            print(mapname, "HAAHAH")
-                            local SpacerPanel = vgui.Create("DPanel", row)
-                            function SpacerPanel.Paint(_, w, h)
-                                if debugvgui == true then
-                                    surface.SetDrawColor(mapvote_colortable.color_yellow)
-                                    surface.DrawRect(0, 0, w, h)
-                                end
-                            end
-
-                            SpacerPanel:SetWide(RowGap)
-                            local VoteIcon = vgui.Create("SVoteIcon", Grid) -- requires parent only because of autorefresh being annoying
-                            VoteIcon:SetMap(mapname)
-                            VoteIcon:GetThumbnail()
-                            if MapVote.PlayerVotes[mapname] then --
-                                local votertbl = KeyDictToArray(MapVote.PlayerVotes[mapname])
-                                timer.Simple(0, function()
-                                    -- why a 0 timer?
-                                    VoteIcon:SetVoters(votertbl)
-                                end)
-                            end
-
-                            function VoteIcon.DoClick(_)
-                                print("hi")
-                                MapVote.Net.changeVote(mapIndex)
-                            end
-
-                            self.maps[mapname].panel = VoteIcon
-                            --VoteIcon:DownloadMap()
-                            VoteIcon:SetSize(IconSize, IconSize)
-                            Grid:SetRowHeight(IconSize)
-                            Grid:AddItem(VoteIcon)
-                            Grid:AddItem(SpacerPanel)
+                        SpacerPanel:SetWide(RowGap)
+                        local VoteIcon = vgui.Create("SVoteIcon", Grid) -- requires parent only because of autorefresh being annoying
+                        VoteIcon:SetMap(mapname)
+                        VoteIcon:GetThumbnail()
+                        if MapVote.PlayerVotes[mapname] then --
+                            local votertbl = KeyDictToArray(MapVote.PlayerVotes[mapname])
+                            timer.Simple(0, function()
+                                -- why a 0 timer?
+                                VoteIcon:SetVoters(votertbl)
+                            end)
                         end
 
-                        Grid:Show()
-                        local ScrollCanvas = ScrollPanel:GetCanvas()
-                        ScrollCanvas:SetTall(ScrollCanvas:GetTall() + self:GetExpandedSize())
-                    end
-
-                    function DropDown:FullyMinimizedHook()
-                        if IsValid(self.Grid) then
-                            print("Removed")
-                            self.Grid:Remove()
+                        function VoteIcon.DoClick(_)
+                            print("hi")
+                            MapVote.Net.changeVote(mapIndex)
                         end
 
-                        local ScrollCanvas = ScrollPanel:GetCanvas()
-                        ScrollCanvas:SetTall(ScrollCanvas:GetTall() - self:GetExpandedSize())
+                        self.maps[mapname].panel = VoteIcon
+                        --VoteIcon:DownloadMap()
+                        VoteIcon:SetSize(IconSize, IconSize)
+                        Grid:SetRowHeight(IconSize)
+                        Grid:AddItem(VoteIcon)
+                        Grid:AddItem(SpacerPanel)
                     end
+
+                    Grid:Show()
+                    local ScrollCanvas = ScrollPanel:GetCanvas()
+                    ScrollCanvas:SetTall(ScrollCanvas:GetTall() + self:GetExpandedSize())
+                end
+
+                function DropDown:FullyMinimizedHook()
+                    if IsValid(self.Grid) then
+                        print("Removed")
+                        self.Grid:Remove()
+                    end
+
+                    local ScrollCanvas = ScrollPanel:GetCanvas()
+                    ScrollCanvas:SetTall(ScrollCanvas:GetTall() - self:GetExpandedSize())
                 end
             end
         end
@@ -836,11 +799,9 @@ elseif CLIENT then
             self:DrawTextEntryText(self:GetTextColor(), self:GetHighlightColor(), self:GetCursorColor())
         end
 
-        local SearchResultsDropdown = nil
         function SearchBar.OnEnter(self, value)
             if IsValid(SearchResultsDropdown) then SearchResultsDropdown:Remove() end
             if value == "" then
-                print("yepppppppppppppppp")
                 MakeDropdowns()
                 return
             end
@@ -849,7 +810,7 @@ elseif CLIENT then
                 dropdown:Remove()
             end
 
-            DropDowns = {}
+            MapVote.DropDowns = {}
             local SearchResultMaps = {}
             for mapindex, mapname in ipairs(MapVote.GetMapList()) do
                 if string.find(mapname, value) then --
@@ -865,8 +826,6 @@ elseif CLIENT then
             SearchResultsDropdown:SetCategoryTitle("Search results")
             SearchResultsDropdown:SetBackgroundColor(color_cod_lighter_black)
             SearchResultsDropdown:SetMaps(SearchResultMaps)
-            PrintTable(SearchResultMaps)
-            print("WAAAAAAAAAAAA")
             local RowCount = CalculateRowCount(IconSize + RowGap, SearchResultsDropdown:GetWide(), #SearchResultMaps)
             local ExpandedSize = RowCount * IconSize + (RowCount - 1) * RowGap + RowGap
             SearchResultsDropdown:SetExpandedSize(ExpandedSize)

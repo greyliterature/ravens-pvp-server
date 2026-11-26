@@ -173,7 +173,7 @@ elseif CLIENT then
     net.Receive("InitClassBlacklistTable", function(_, _)
         local numkeys = net.ReadUInt(8)
         for i = 1, numkeys do
-            local classname = net.ReadString
+            local classname = net.ReadString()
             BadClasses[classname] = true
         end
     end)

@@ -164,7 +164,11 @@ function PANEL:Think()
         end
     end
 
-    if self.CanExpand == false then return end
+    if self.CanExpand == false then
+        self.Expanding = false
+        return
+    end
+
     if self.Expanding == true then
         if self.Drop:GetTall() >= self.ExpandedSize - ExponentialOffset then
             self.Expanding = false

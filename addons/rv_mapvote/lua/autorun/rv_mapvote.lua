@@ -361,6 +361,7 @@ elseif CLIENT then
     MapVote.PlayerVotes = {}
     local KeyDictToArray = nil
     --local MapToPanels = {}
+    local MapVoteWinnersTable = {}
     hook.Add("MapVote_PlayerVotedForMap", "TrackVoterTable", function(ply, RemoveVote, MapName, panelobject)
         MapVote.PlayerVotes[MapName] = MapVote.PlayerVotes[MapVote] or {}
         for map, tbl in pairs(MapVote.PlayerVotes) do -- clear the player's other votes, inefficient maybe, but works
@@ -368,6 +369,21 @@ elseif CLIENT then
         end
 
         MapVote.PlayerVotes[MapName][ply] = (RemoveVote == false and true) or nil
+        local MapTableIndex = nil
+        for i, tbl in ipairs(MapVoteWinnersTable) do
+            if tbl["MapName"] == Mapname then
+                MapTableIndex = i
+                break
+            end
+        end
+
+        MapTableIndex = MapTableIndex or table.insert(MapVoteWinnersTable, {})
+        MapVoteWinnersTable[MapTableIndex]["Count"] = (MapVoteWinnersTable[MapTableIndex]["Count"] or 0) + 1
+        MapVoteWinnersTable[MapTableIndex]["MapName"] = MapName
+        table.sort(MapVoteWinnersTable, function(a, b)
+            --
+            return a.Count > b.Count
+        end)
     end)
 
     MapVote.CategoryVotes = {}
@@ -442,34 +458,39 @@ elseif CLIENT then
             ["Maps"] = {},
         },
         [2] = {
-            ["Title"] = "MyCoolCategory1",
-            ["Maps"] = {"gm_bigcity_improved_lite",}
+            ["Title"] = "crossfire_hl1",
+            ["Maps"] = {"crossfire_hl1",}
         },
         [3] = {
             ["Title"] = "MyCoolCategory2",
-            ["Maps"] = {"fof_city17",}
+            ["Maps"] = {"gm_bigcity_improved_lite",}
         },
         [4] = {
+            ["Title"] = "MyCoolCategory3",
+            ["Maps"] = {"fof_city17",}
+        },
+        [5] = {
             ["Title"] = "Uncategorized",
             ["Maps"] = {}
         }
     }
 
+    local MyFavoritesDict = {}
     local function UpdateFavorites()
         if file.Exists("ravens/mapvote/mapfavorites.txt", "DATA") then
             local MyFavorites = {}
+            MyFavoritesDict = {}
             for _, line in ipairs(string.Explode("\n", file.Read("ravens/mapvote/mapfavorites.txt", "DATA"))) do
                 if line == "" then continue end
                 print(line, "hey")
                 MyFavorites[#MyFavorites + 1] = line
+                MyFavoritesDict[line] = true
             end
 
             if #MyFavorites > 0 then
-                print("yaa")
                 local MapFavoritesTable = MapVote.Categories[1]
                 MapFavoritesTable["Maps"] = {} -- clear it beforehand incase this was started after multiple mapvotes
                 MapFavoritesTable["Maps"] = MyFavorites
-                PrintTable(MapVote.Categories)
             end
         else
             file.CreateDir("ravens/mapvote")
@@ -675,6 +696,27 @@ elseif CLIENT then
             draw.SimpleText("Vote new map", MapVote.iconFont(40), w - TextMargin, h * 0.5, color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
         end
 
+        local WinnersHeader = vgui.Create("DPanel", OuterPanel)
+        WinnersHeader:Dock(TOP)
+        WinnersHeader:SetTall(HeaderSize * 0.5)
+        function WinnersHeader.Paint(_, w, h)
+            surface.SetDrawColor(color_cod_black)
+            surface.DrawRect(0, 0, w, h)
+            if #MapVoteWinnersTable == 0 then return end
+            local WinnerConcat = ""
+            local MAXWINNERS = 3
+            PrintTable(MapVoteWinnersTable)
+            for i, tbl in ipairs(MapVoteWinnersTable) do
+                if i > MAXWINNERS then break end
+                local MapName = tbl["MapName"]
+                local Count = tbl["Count"]
+                WinnerConcat = WinnerConcat .. MapName .. ": " .. Count .. ((#MapVoteWinnersTable > 1 and ", ") or "")
+            end
+
+            draw.SimpleText("Winners: " .. WinnerConcat, MapVote.iconFont(20), 0 + TextMargin, h * 0.5, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        end
+
+        --
         local ScrollPanel = vgui.Create("DScrollPanel", OuterPanel)
         ScrollPanel:Dock(TOP)
         ScrollPanel:SetWide(OuterPanel:GetWide())
@@ -735,7 +777,7 @@ elseif CLIENT then
                 DropDown:SetTall(SixtyFour * 0.5)
                 DropDown:SetCategoryTitle(Title)
                 DropDown:SetBackgroundColor(color_cod_lighter_black)
-                if Title == "Favorites" then -- favorites may have invalid map, so check for them
+                if Title == "My Favorites" then -- favorites may have invalid map, so check for them
                     local MapDict = MapVote.GetMapDict()
                     PrintTable(MapDict)
                     for j = #Maps, 1, -1 do
@@ -761,7 +803,7 @@ elseif CLIENT then
                 end
 
                 DropDown:SetMaps(Maps)
-                DropDown.CanExpand =  #Maps > 0
+                DropDown.CanExpand = #Maps > 0
                 MapVote.DropDowns[Title] = DropDown
                 local RowCount = CalculateRowCount(IconSize + RowGap, DropDown:GetWide(), #Maps)
                 local ExpandedSize = RowCount * IconSize + (RowCount - 1) * RowGap + RowGap
@@ -803,11 +845,58 @@ elseif CLIENT then
                             end)
                         end
 
+                        local CurrentlyInFavoritesCategory = Title == "My Favorites"
+                        local AlreadyFavorited = CurrentlyInFavoritesCategory or MyFavoritesDict[MapName]
+                        function VoteIcon.OnHeartPress()
+                            local MapName = VoteIcon:GetMapName()
+                            print("Hyey")
+                            if AlreadyFavorited == true then -- removing from favorites
+                                local FileContent = file.Read("ravens/mapvote/mapfavorites.txt", "DATA")
+                                FileContent = string.Replace(FileContent, MapName, "") -- this will make the file have gaps probably, but that's ok
+                                file.Write("ravens/mapvote/mapfavorites.txt", FileContent)
+                                VoteIcon.Heart:SetImage("icon16/heart_add.png")
+                                print("Removed " .. MapName .. " from favorites")
+                                UpdateFavorites()
+                                DropDown:SetMaps(tbl["Maps"]) -- the favorites table was updated
+                                if CurrentlyInFavoritesCategory then --
+                                    local PanelIndex = 2
+                                    for j, itemtbl in ipairs(Grid.Items) do
+                                        local panel = itemtbl[1]
+                                        if panel == VoteIcon then
+                                            PanelIndex = j
+                                            break
+                                        end
+                                    end
+
+                                    local LastSpacerPanel = Grid.Items[PanelIndex + 1][1]
+                                    Grid:RemoveItem(VoteIcon)
+                                    Grid:RemoveItem(LastSpacerPanel)
+                                    print(LastSpacerPanel, "DDDDDDDDDDDDDD\n\n\n\n")
+                                end
+                            else -- adding to favorites
+                                file.Append("ravens/mapvote/mapfavorites.txt", "\n" .. MapName)
+                                print("Added " .. MapName .. " to favorites")
+                                UpdateFavorites()
+                                DropDown:SetMaps(tbl["Maps"]) -- the favorites table was updated
+                                VoteIcon.Heart:SetImage("icon16/heart_delete.png")
+                            end
+
+                            local FavoritesDropDown = MapVote.DropDowns["My Favorites"]
+                            if not IsValid(FavoritesDropDown) then return end
+                            local FavoriteMaps = MapVote.Categories[1]["Maps"]
+                            -- updating the favorites grid live is too annoying to handle
+                            local NewRowCount = CalculateRowCount(IconSize + RowGap, FavoritesDropDown:GetWide(), #FavoriteMaps)
+                            local NewExpandedSize = NewRowCount * IconSize + (NewRowCount - 1) * RowGap + RowGap
+                            FavoritesDropDown:SetExpandedSize(NewExpandedSize)
+                            FavoritesDropDown.CanExpand = #FavoriteMaps > 0
+                        end
+
                         function VoteIcon.DoClick(_)
                             print("hi")
                             MapVote.Net.changeVote(mapIndex)
                         end
 
+                        if not self.maps[mapname] then return end
                         self.maps[mapname].panel = VoteIcon
                         --VoteIcon:DownloadMap()
                         VoteIcon:SetSize(IconSize, IconSize)
@@ -828,7 +917,7 @@ elseif CLIENT then
                     end
 
                     local ScrollCanvas = ScrollPanel:GetCanvas()
-                    ScrollCanvas:SetTall(ScrollCanvas:GetTall() - self:GetExpandedSize())
+                    ScrollCanvas:SetTall(math.max(VoteFrame:GetTall(), ScrollCanvas:GetTall() - self:GetExpandedSize()))
                 end
             end
         end

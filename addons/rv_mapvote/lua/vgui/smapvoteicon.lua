@@ -28,12 +28,12 @@ local function RequestMapWSID(panel, mapname) -- should this be batched? is net 
     end
 
     --[[
-            -- this didnt work properly
-            if MapNameToWSID[mapname] then -- cached in server response netmessage
-                panel.MapMaterial = MapsToPanel[mapname].MapMaterial
-                return
-            end
-            --]]
+    -- this didnt work properly
+    if MapNameToWSID[mapname] then -- cached in server response netmessage
+        panel.MapMaterial = MapsToPanel[mapname].MapMaterial
+        return
+    end
+    --]]
     MapsToPanel[mapname] = panel
     net.Start("MapVote_request_map_wsid")
     net.WriteString(mapname)
@@ -122,6 +122,8 @@ end)
 
 -- SVoteIcon
 local PANEL = {}
+local HeartSize = ScrW() * 0.01
+local color_dark_blue = Color(0, 0, 10, 253)
 function PANEL:Init()
     self.Map = nil
     self.WSID = nil -- is this important to store?
@@ -142,6 +144,33 @@ function PANEL:Init()
     function self.Grid.OnMousePressed(_, keyCode)
         self:OnMousePressed(keyCode)
     end
+
+    timer.Simple(0, function()
+        if not IsValid(self) then return end
+        local Heart = vgui.Create("DImageButton", self)
+        Heart:SetImage("icon16/heart_add.png")
+        Heart:SetSize(HeartSize, HeartSize)
+        Heart:SetPos(self:GetWide() - HeartSize, self:GetTall() - HeartSize)
+        Heart:IsMouseInputEnabled(true)
+        self.Heart = Heart
+        function Heart.DoClick(_)
+            self:OnHeartPress()
+        end
+    end)
+
+    local MapNamePanel = vgui.Create("DPanel", self)
+    MapNamePanel:Dock(BOTTOM)
+    function MapNamePanel.Paint(selfself, w, h)
+        surface.SetDrawColor(color_dark_blue)
+        surface.DrawRect(0, 0, w, h)
+        draw.SimpleText(selfself.Text or "N/A", MapVote.iconFont(20), w * 0.02, h * 0.5, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+    end
+
+    self.MapNamePanel = MapNamePanel
+end
+
+function PANEL:OnHeartPress()
+    -- override me
 end
 
 function PANEL:IsMapAlreadyRegistered(mapname) -- this is a helper function that doesn't really belong on the object, but i dont know wheree else to puts it
@@ -151,6 +180,7 @@ end
 function PANEL:SetMap(mapname)
     MapToPanels[mapname] = MapToPanels[mapname] or {}
     table.insert(MapToPanels[mapname], self)
+    self.MapNamePanel.Text = mapname
     self.Map = mapname
 end
 
